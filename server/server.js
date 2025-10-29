@@ -14,7 +14,15 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// API routes will be added here
+// API routes
+app.use('/api/checkins', require('./routes/checkins'));
+app.use('/api/stats', require('./routes/stats'));
+app.use('/api/filters', require('./routes/filters'));
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
