@@ -2,6 +2,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const Checkin = require('../models/checkin');
+const db = require('../db/connection');
 
 /**
  * Import Swarm check-in data from JSON export
@@ -110,6 +111,7 @@ async function importSwarmData(filePath) {
     console.log(`  Skipped records saved to: ${skippedFilePath}`);
   }
 
+  await db.pool.end();
   process.exit(0);
 }
 
@@ -130,7 +132,8 @@ if (!fs.existsSync(filePath)) {
   process.exit(1);
 }
 
-importSwarmData(filePath).catch(error => {
+importSwarmData(filePath).catch(async error => {
   console.error('Import failed:', error);
+  await db.pool.end();
   process.exit(1);
 });
