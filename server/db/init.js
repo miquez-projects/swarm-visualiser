@@ -1,3 +1,4 @@
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const db = require('./connection');
@@ -11,9 +12,11 @@ async function initDatabase() {
 
     await db.query(schemaSQL);
     console.log('Database schema initialized successfully');
+    await db.pool.end();
     process.exit(0);
   } catch (error) {
     console.error('Error initializing database:', error);
+    await db.pool.end();
     process.exit(1);
   }
 }
