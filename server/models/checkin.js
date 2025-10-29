@@ -62,7 +62,7 @@ class Checkin {
     const total = parseInt(countResult.rows[0].count);
 
     // Get paginated data
-    params.push(limit, offset);
+    const dataParams = [...params, limit, offset];
     const dataQuery = `
       SELECT
         id, venue_id, venue_name, venue_category,
@@ -74,7 +74,7 @@ class Checkin {
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
 
-    const dataResult = await db.query(dataQuery, params);
+    const dataResult = await db.query(dataQuery, dataParams);
 
     return {
       data: dataResult.rows,
@@ -255,6 +255,12 @@ class Checkin {
   static async bulkInsert(checkins) {
     if (!checkins || checkins.length === 0) {
       return 0;
+    }
+
+    // Validate required fields
+    const invalidCheckins = checkins.filter(c => !c.venue_name || !c.checkin_date);
+    if (invalidCheckins.length > 0) {
+      throw new Error(`Invalid checkins: ${invalidCheckins.length} records missing venue_name or checkin_date`);
     }
 
     const values = checkins.map((c, index) => {
