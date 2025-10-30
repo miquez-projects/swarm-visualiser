@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import Map, { Marker, Popup } from 'react-map-gl';
+import { Map, Marker, Popup } from 'react-map-gl/mapbox';
 import { Box, Typography, Chip, CircularProgress } from '@mui/material';
 import { Room } from '@mui/icons-material';
 import 'mapbox-gl/dist/mapbox-gl.css';
