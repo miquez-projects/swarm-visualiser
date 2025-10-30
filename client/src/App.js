@@ -45,7 +45,7 @@ function App() {
   };
 
   const sidebar = (
-    <Box>
+    <Box sx={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       <FilterPanel onFilterChange={handleFilterChange} initialFilters={filters} />
       <StatsPanel filters={filters} />
     </Box>

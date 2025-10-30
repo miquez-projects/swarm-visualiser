@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -33,23 +33,37 @@ function StatsPanel({ filters }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    const loadStats = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getStats(filters);
+        setStats(data);
+      } catch (err) {
+        console.error('Error loading stats:', err);
+        setError(err.message || 'Failed to load statistics');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
-  const loadStats = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getStats(filters);
-      setStats(data);
-    } catch (err) {
-      console.error('Error loading stats:', err);
-      setError(err.message || 'Failed to load statistics');
-    } finally {
-      setLoading(false);
-    }
+  // Prepare pie chart data
+  const preparePieData = (data) => {
+    if (!data || data.length === 0) return [];
+    return data.map(item => ({
+      name: item.category || item.country,
+      value: parseInt(item.count)
+    }));
   };
+
+  // Memoize pie chart data to avoid duplicate calculations
+  const pieChartData = useMemo(() =>
+    preparePieData(stats?.top_categories),
+    [stats?.top_categories]
+  );
 
   if (loading) {
     return (
@@ -85,23 +99,16 @@ function StatsPanel({ filters }) {
   const prepareTimelineData = () => {
     if (!stats.timeline || stats.timeline.length === 0) return [];
 
-    return stats.timeline.map(item => ({
-      date: `${item.year}-${String(item.month).padStart(2, '0')}`,
-      count: item.count
-    }));
-  };
-
-  // Prepare pie chart data
-  const preparePieData = (data) => {
-    if (!data || data.length === 0) return [];
-    return data.map(item => ({
-      name: item.category || item.country,
-      value: parseInt(item.count)
-    }));
+    return stats.timeline
+      .filter(item => item.year && item.month && item.count !== undefined)
+      .map(item => ({
+        date: `${item.year}-${String(item.month).padStart(2, '0')}`,
+        count: parseInt(item.count) || 0
+      }));
   };
 
   return (
-    <Box sx={{ p: 2, overflowY: 'auto', height: '100%' }}>
+    <Box sx={{ p: 2, height: '100%' }}>
       <Typography variant="h6" gutterBottom>
         Statistics
       </Typography>
@@ -193,7 +200,7 @@ function StatsPanel({ filters }) {
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={preparePieData(stats.top_categories)}
+                data={pieChartData}
                 cx="50%"
                 cy="50%"
                 labelLine={false}
@@ -202,7 +209,7 @@ function StatsPanel({ filters }) {
                 fill="#8884d8"
                 dataKey="value"
               >
-                {preparePieData(stats.top_categories).map((entry, index) => (
+                {pieChartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
