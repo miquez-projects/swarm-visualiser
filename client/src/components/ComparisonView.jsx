@@ -26,8 +26,6 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -59,7 +57,18 @@ function ComparisonView({ onClose }) {
 
   // Validate dates before fetching
   const canCompare = () => {
-    return period1Start && period1End && period2Start && period2End;
+    if (!period1Start || !period1End || !period2Start || !period2End) {
+      return false;
+    }
+    // Validate Period 1 dates
+    if (period1Start > period1End) {
+      return false;
+    }
+    // Validate Period 2 dates
+    if (period2Start > period2End) {
+      return false;
+    }
+    return true;
   };
 
   // Fetch comparison data
