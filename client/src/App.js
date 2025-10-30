@@ -5,6 +5,7 @@ import { lightTheme, darkTheme } from './theme';
 import Layout from './components/Layout';
 import MapView from './components/MapView';
 import FilterPanel from './components/FilterPanel';
+import StatsPanel from './components/StatsPanel';
 import { getCheckins } from './services/api';
 import { Box, Typography } from '@mui/material';
 
@@ -44,7 +45,10 @@ function App() {
   };
 
   const sidebar = (
-    <FilterPanel onFilterChange={handleFilterChange} initialFilters={filters} />
+    <Box>
+      <FilterPanel onFilterChange={handleFilterChange} initialFilters={filters} />
+      <StatsPanel filters={filters} />
+    </Box>
   );
 
   return (
