@@ -1,8 +1,14 @@
 const { Pool } = require('pg');
 
+// Detect if we're connecting to a remote database that requires SSL
+const isRemoteDatabase = process.env.DATABASE_URL &&
+  (process.env.DATABASE_URL.includes('render.com') ||
+   process.env.DATABASE_URL.includes('railway.app') ||
+   process.env.NODE_ENV === 'production');
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: isRemoteDatabase ? { rejectUnauthorized: false } : false
 });
 
 // Test connection
