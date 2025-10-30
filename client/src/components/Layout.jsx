@@ -17,7 +17,7 @@ import {
 
 const DRAWER_WIDTH = 320;
 
-function Layout({ children, darkMode, onToggleDarkMode, sidebar }) {
+function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions }) {
   const muiTheme = useMuiTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -31,7 +31,7 @@ function Layout({ children, darkMode, onToggleDarkMode, sidebar }) {
       {/* App Bar */}
       <AppBar position="static" elevation={1}>
         <Toolbar>
-          {isMobile && (
+          {isMobile && sidebar && (
             <IconButton
               color="inherit"
               edge="start"
@@ -44,6 +44,7 @@ function Layout({ children, darkMode, onToggleDarkMode, sidebar }) {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Swarm Visualizer
           </Typography>
+          {headerActions}
           <IconButton color="inherit" onClick={onToggleDarkMode}>
             {darkMode ? <Brightness7 /> : <Brightness4 />}
           </IconButton>

@@ -6,11 +6,14 @@ import Layout from './components/Layout';
 import MapView from './components/MapView';
 import FilterPanel from './components/FilterPanel';
 import StatsPanel from './components/StatsPanel';
+import ComparisonView from './components/ComparisonView';
 import { getCheckins } from './services/api';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Button } from '@mui/material';
+import { CompareArrows } from '@mui/icons-material';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
+  const [viewMode, setViewMode] = useState('map'); // 'map' or 'comparison'
   const [checkins, setCheckins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,58 +47,84 @@ function App() {
     setDarkMode(!darkMode);
   };
 
-  const sidebar = (
+  const handleViewModeToggle = () => {
+    setViewMode(viewMode === 'map' ? 'comparison' : 'map');
+  };
+
+  const headerActions = (
+    <Button
+      color="inherit"
+      startIcon={<CompareArrows />}
+      onClick={handleViewModeToggle}
+      sx={{ mr: 1 }}
+    >
+      {viewMode === 'map' ? 'Compare Periods' : 'Back to Map'}
+    </Button>
+  );
+
+  const sidebar = viewMode === 'map' ? (
     <Box sx={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       <FilterPanel onFilterChange={handleFilterChange} initialFilters={filters} />
       <StatsPanel filters={filters} />
     </Box>
-  );
+  ) : null;
 
   return (
     <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
       <CssBaseline />
-      <Layout darkMode={darkMode} onToggleDarkMode={handleThemeToggle} sidebar={sidebar}>
-        {error ? (
-          <Box
-            sx={{
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: 'column',
-              gap: 2
-            }}
-          >
-            <Typography variant="h6" color="error">
-              Error: {error}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Make sure the server is running on http://localhost:3001
-            </Typography>
-          </Box>
-        ) : checkins.length === 0 && !loading ? (
-          <Box
-            sx={{
-              height: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: 'column',
-              gap: 2
-            }}
-          >
-            <Typography variant="h6">
-              No check-ins found
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Import your Swarm data to get started:
-            </Typography>
-            <Typography variant="body2" color="text.secondary" fontFamily="monospace">
-              npm run import -- /path/to/swarm-export.json
-            </Typography>
-          </Box>
+      <Layout
+        darkMode={darkMode}
+        onToggleDarkMode={handleThemeToggle}
+        sidebar={sidebar}
+        headerActions={headerActions}
+      >
+        {viewMode === 'comparison' ? (
+          <ComparisonView onClose={() => setViewMode('map')} />
         ) : (
-          <MapView checkins={checkins} loading={loading} />
+          <>
+            {error ? (
+              <Box
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'column',
+                  gap: 2
+                }}
+              >
+                <Typography variant="h6" color="error">
+                  Error: {error}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Make sure the server is running on http://localhost:3001
+                </Typography>
+              </Box>
+            ) : checkins.length === 0 && !loading ? (
+              <Box
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'column',
+                  gap: 2
+                }}
+              >
+                <Typography variant="h6">
+                  No check-ins found
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Import your Swarm data to get started:
+                </Typography>
+                <Typography variant="body2" color="text.secondary" fontFamily="monospace">
+                  npm run import -- /path/to/swarm-export.json
+                </Typography>
+              </Box>
+            ) : (
+              <MapView checkins={checkins} loading={loading} />
+            )}
+          </>
         )}
       </Layout>
     </ThemeProvider>
