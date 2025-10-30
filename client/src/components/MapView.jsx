@@ -94,6 +94,33 @@ function MapView({ checkins, loading }) {
         </Box>
       )}
 
+      {!loading && checkins.length === 0 && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            bgcolor: 'background.paper',
+            p: 3,
+            borderRadius: 2,
+            boxShadow: 3,
+            zIndex: 1000,
+            textAlign: 'center'
+          }}
+        >
+          <Typography variant="h6" gutterBottom>
+            No check-ins found
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Import your Swarm data to get started:
+          </Typography>
+          <Typography variant="body2" color="text.secondary" fontFamily="monospace" sx={{ mt: 1 }}>
+            npm run import -- /path/to/swarm-export.json
+          </Typography>
+        </Box>
+      )}
+
       <Map
         ref={mapRef}
         {...viewState}

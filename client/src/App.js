@@ -100,27 +100,6 @@ function App() {
                   Make sure the server is running on http://localhost:3001
                 </Typography>
               </Box>
-            ) : checkins.length === 0 && !loading ? (
-              <Box
-                sx={{
-                  height: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'column',
-                  gap: 2
-                }}
-              >
-                <Typography variant="h6">
-                  No check-ins found
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Import your Swarm data to get started:
-                </Typography>
-                <Typography variant="body2" color="text.secondary" fontFamily="monospace">
-                  npm run import -- /path/to/swarm-export.json
-                </Typography>
-              </Box>
             ) : (
               <MapView checkins={checkins} loading={loading} />
             )}
