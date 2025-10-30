@@ -97,9 +97,7 @@ function FilterPanel({ onFilterChange, initialFilters = {} }) {
     }
 
     if (filters.categories && filters.categories.length > 0) {
-      // Note: Backend expects single category, so we'll use the first one
-      // Or modify backend to support multiple categories
-      appliedFilters.category = filters.categories[0];
+      appliedFilters.category = filters.categories;
     }
 
     if (filters.country) {

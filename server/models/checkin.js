@@ -33,8 +33,17 @@ class Checkin {
     }
 
     if (category) {
-      conditions.push(`venue_category = $${paramIndex++}`);
-      params.push(category);
+      if (Array.isArray(category)) {
+        // Handle array of categories (ANY of them)
+        conditions.push(`venue_category = ANY($${paramIndex})`);
+        params.push(category);
+        paramIndex++;
+      } else {
+        // Handle single category
+        conditions.push(`venue_category = $${paramIndex}`);
+        params.push(category);
+        paramIndex++;
+      }
     }
 
     if (country) {
@@ -113,8 +122,17 @@ class Checkin {
     }
 
     if (category) {
-      conditions.push(`venue_category = $${paramIndex++}`);
-      params.push(category);
+      if (Array.isArray(category)) {
+        // Handle array of categories (ANY of them)
+        conditions.push(`venue_category = ANY($${paramIndex})`);
+        params.push(category);
+        paramIndex++;
+      } else {
+        // Handle single category
+        conditions.push(`venue_category = $${paramIndex}`);
+        params.push(category);
+        paramIndex++;
+      }
     }
 
     if (country) {
