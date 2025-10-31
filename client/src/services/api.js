@@ -85,6 +85,27 @@ export const getFilterOptions = async (params = {}) => {
 };
 
 /**
+ * Get available years for year in review
+ * @param {Object} params - Parameters including token
+ * @returns {Promise<Array>} Array of years
+ */
+export const getAvailableYears = async (params = {}) => {
+  const response = await api.get('/api/year-in-review/years', { params });
+  return response.data;
+};
+
+/**
+ * Get annual summary for a specific year
+ * @param {number} year - Year to get summary for
+ * @param {Object} params - Parameters including token
+ * @returns {Promise<Object>} Annual summary data
+ */
+export const getYearInReview = async (year, params = {}) => {
+  const response = await api.get(`/api/year-in-review/${year}`, { params });
+  return response.data;
+};
+
+/**
  * Health check
  * @returns {Promise<Object>} Health status
  */

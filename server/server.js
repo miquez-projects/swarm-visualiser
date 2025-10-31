@@ -34,6 +34,7 @@ app.use('/api/import', require('./routes/import'));
 app.use('/api/checkins', require('./routes/checkins'));
 app.use('/api/stats', require('./routes/stats'));
 app.use('/api/filters', require('./routes/filters'));
+app.use('/api/year-in-review', require('./routes/yearInReview'));
 
 // 404 handler
 app.use((req, res) => {

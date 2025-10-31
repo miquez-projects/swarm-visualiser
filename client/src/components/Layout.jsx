@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
@@ -7,12 +8,15 @@ import {
   Box,
   Drawer,
   useMediaQuery,
-  useTheme as useMuiTheme
+  useTheme as useMuiTheme,
+  Button
 } from '@mui/material';
 import {
   Brightness4,
   Brightness7,
-  Menu as MenuIcon
+  Menu as MenuIcon,
+  CalendarToday,
+  Map
 } from '@mui/icons-material';
 
 const DRAWER_WIDTH = 320;
@@ -21,10 +25,15 @@ function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions, 
   const muiTheme = useMuiTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
+
+  const isYearInReview = location.pathname === '/year-in-review';
+  const isHome = location.pathname === '/';
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', flexDirection: 'column' }}>
@@ -44,6 +53,25 @@ function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions, 
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Swarm Visualizer
           </Typography>
+
+          {/* Navigation Buttons */}
+          <Button
+            color="inherit"
+            startIcon={<Map />}
+            onClick={() => navigate('/')}
+            sx={{ mr: 1, display: isHome ? 'none' : 'flex' }}
+          >
+            Map
+          </Button>
+          <Button
+            color="inherit"
+            startIcon={<CalendarToday />}
+            onClick={() => navigate('/year-in-review')}
+            sx={{ mr: 1, display: isYearInReview ? 'none' : 'flex' }}
+          >
+            Year in Review
+          </Button>
+
           {headerActions}
           <IconButton color="inherit" onClick={onToggleDarkMode}>
             {darkMode ? <Brightness7 /> : <Brightness4 />}
