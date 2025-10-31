@@ -12,12 +12,14 @@ import {
   Typography,
   Divider,
   CircularProgress,
-  Alert
+  Alert,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { FilterList, Clear } from '@mui/icons-material';
+import { FilterList, Clear, Fullscreen, FullscreenExit } from '@mui/icons-material';
 import { getFilterOptions } from '../services/api';
 
 const ITEM_HEIGHT = 48;
@@ -31,7 +33,7 @@ const MenuProps = {
   },
 };
 
-function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive = false }) {
+function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive = false, isExpanded = false, onToggleExpand }) {
   const [filters, setFilters] = useState({
     startDate: initialFilters.startDate || null,
     endDate: initialFilters.endDate || null,
@@ -142,9 +144,16 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <FilterList color="primary" />
-          <Typography variant="h6" component="h2">
+          <Typography variant="h6" component="h2" sx={{ flexGrow: 1 }}>
             Filters
           </Typography>
+          {onToggleExpand && (
+            <Tooltip title={isExpanded ? "Collapse" : "Expand Full Screen"}>
+              <IconButton onClick={onToggleExpand} size="small">
+                {isExpanded ? <FullscreenExit /> : <Fullscreen />}
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
 
         <Divider />

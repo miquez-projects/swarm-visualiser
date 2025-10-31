@@ -11,7 +11,7 @@ import {
   ToggleButton,
   ToggleButtonGroup
 } from '@mui/material';
-import { Fullscreen, FullscreenExit, CompareArrows } from '@mui/icons-material';
+import { CompareArrows } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -35,6 +35,7 @@ const COLORS = ['#1976d2', '#dc004e', '#f57c00', '#388e3c', '#7b1fa2', '#0288d1'
 function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMode = false, onComparisonModeChange }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [comparisonLoading, setComparisonLoading] = useState(false);
   const [error, setError] = useState(null);
   const [period1Start, setPeriod1Start] = useState(null);
   const [period1End, setPeriod1End] = useState(null);
@@ -70,7 +71,7 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
       }
 
       try {
-        setLoading(true);
+        setComparisonLoading(true);
         setError(null);
         const data = await compareTimePeriods({
           period1_start: period1Start.toISOString(),
@@ -84,7 +85,7 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
         console.error('Error loading comparison:', err);
         setError(err.message || 'Failed to load comparison');
       } finally {
-        setLoading(false);
+        setComparisonLoading(false);
       }
     };
 
@@ -94,8 +95,8 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
   }, [comparisonMode, period1Start, period1End, period2Start, period2End, filters]);
 
 
-  // Show loading state
-  if (loading) {
+  // Show loading state only for initial stats loading (not comparison loading)
+  if (loading && !comparisonMode) {
     return (
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
@@ -238,38 +239,30 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
           <Typography variant="h6">
             Statistics
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            {isExpanded && onComparisonModeChange && (
-              <Tooltip title="Compare two time periods">
-                <IconButton
-                  onClick={() => onComparisonModeChange(!comparisonMode)}
-                  size="small"
-                  color={comparisonMode ? "primary" : "default"}
-                >
-                  <CompareArrows />
-                </IconButton>
-              </Tooltip>
-            )}
-            {onToggleExpand && (
-              <Tooltip title={isExpanded ? "Exit full screen" : "Expand to full screen"}>
-                <IconButton
-                  onClick={onToggleExpand}
-                  size="small"
-                  color="primary"
-                >
-                  {isExpanded ? <FullscreenExit /> : <Fullscreen />}
-                </IconButton>
-              </Tooltip>
-            )}
-          </Box>
+          {isExpanded && onComparisonModeChange && (
+            <Tooltip title="Compare two time periods">
+              <IconButton
+                onClick={() => onComparisonModeChange(!comparisonMode)}
+                size="small"
+                color={comparisonMode ? "primary" : "default"}
+              >
+                <CompareArrows />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
 
         {/* Comparison Date Pickers */}
         {isExpanded && comparisonMode && (
           <Paper sx={{ p: 2, mb: 2 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Select Time Periods to Compare
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Select Time Periods to Compare
+              </Typography>
+              {comparisonLoading && (
+                <CircularProgress size={20} />
+              )}
+            </Box>
             <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, mt: 2 }}>
               {/* Period 1 */}
               <Box>
