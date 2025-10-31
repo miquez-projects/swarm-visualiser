@@ -3,6 +3,13 @@ import axios from 'axios';
 // API base URL from environment variable (set in Vercel)
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
+// Debug logging
+console.log('API Configuration:', {
+  REACT_APP_API_URL: process.env.REACT_APP_API_URL,
+  API_BASE_URL: API_BASE_URL,
+  NODE_ENV: process.env.NODE_ENV
+});
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
