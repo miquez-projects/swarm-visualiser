@@ -211,6 +211,7 @@ class Checkin {
     const topVenueResult = await db.query(topVenueQuery, params);
 
     // Determine timeline granularity based on date range
+    // Maximum granularity is monthly - we have enough screen space
     let timelineQuery;
     const dateRange = dateRangeResult.rows[0];
 
@@ -244,8 +245,8 @@ class Checkin {
           GROUP BY year, week
           ORDER BY year, week
         `;
-      } else if (daysDiff <= 730) {
-        // Monthly granularity for 2 years or less
+      } else {
+        // Monthly granularity for everything else (2 months to 15+ years)
         timelineQuery = `
           SELECT
             EXTRACT(YEAR FROM checkin_date)::int as year,
@@ -255,29 +256,6 @@ class Checkin {
           ${whereClause}
           GROUP BY year, month
           ORDER BY year, month
-        `;
-      } else if (daysDiff <= 3650) {
-        // Quarterly granularity for 10 years or less
-        timelineQuery = `
-          SELECT
-            EXTRACT(YEAR FROM checkin_date)::int as year,
-            EXTRACT(QUARTER FROM checkin_date)::int as quarter,
-            COUNT(*) as count
-          FROM checkins
-          ${whereClause}
-          GROUP BY year, quarter
-          ORDER BY year, quarter
-        `;
-      } else {
-        // Yearly granularity for more than 10 years
-        timelineQuery = `
-          SELECT
-            EXTRACT(YEAR FROM checkin_date)::int as year,
-            COUNT(*) as count
-          FROM checkins
-          ${whereClause}
-          GROUP BY year
-          ORDER BY year
         `;
       }
     } else {
