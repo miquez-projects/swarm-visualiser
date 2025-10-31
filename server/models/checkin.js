@@ -210,17 +210,90 @@ class Checkin {
     `;
     const topVenueResult = await db.query(topVenueQuery, params);
 
-    // Timeline (monthly)
-    const timelineQuery = `
-      SELECT
-        EXTRACT(YEAR FROM checkin_date)::int as year,
-        EXTRACT(MONTH FROM checkin_date)::int as month,
-        COUNT(*) as count
-      FROM checkins
-      ${whereClause}
-      GROUP BY year, month
-      ORDER BY year, month
-    `;
+    // Determine timeline granularity based on date range
+    let timelineQuery;
+    const dateRange = dateRangeResult.rows[0];
+
+    if (dateRange.first_checkin && dateRange.last_checkin) {
+      const daysDiff = Math.floor(
+        (new Date(dateRange.last_checkin) - new Date(dateRange.first_checkin)) / (1000 * 60 * 60 * 24)
+      );
+
+      if (daysDiff <= 7) {
+        // Daily granularity for 1 week or less
+        timelineQuery = `
+          SELECT
+            EXTRACT(YEAR FROM checkin_date)::int as year,
+            EXTRACT(MONTH FROM checkin_date)::int as month,
+            EXTRACT(DAY FROM checkin_date)::int as day,
+            COUNT(*) as count
+          FROM checkins
+          ${whereClause}
+          GROUP BY year, month, day
+          ORDER BY year, month, day
+        `;
+      } else if (daysDiff <= 60) {
+        // Weekly granularity for 2 months or less
+        timelineQuery = `
+          SELECT
+            EXTRACT(YEAR FROM checkin_date)::int as year,
+            EXTRACT(WEEK FROM checkin_date)::int as week,
+            COUNT(*) as count
+          FROM checkins
+          ${whereClause}
+          GROUP BY year, week
+          ORDER BY year, week
+        `;
+      } else if (daysDiff <= 730) {
+        // Monthly granularity for 2 years or less
+        timelineQuery = `
+          SELECT
+            EXTRACT(YEAR FROM checkin_date)::int as year,
+            EXTRACT(MONTH FROM checkin_date)::int as month,
+            COUNT(*) as count
+          FROM checkins
+          ${whereClause}
+          GROUP BY year, month
+          ORDER BY year, month
+        `;
+      } else if (daysDiff <= 3650) {
+        // Quarterly granularity for 10 years or less
+        timelineQuery = `
+          SELECT
+            EXTRACT(YEAR FROM checkin_date)::int as year,
+            EXTRACT(QUARTER FROM checkin_date)::int as quarter,
+            COUNT(*) as count
+          FROM checkins
+          ${whereClause}
+          GROUP BY year, quarter
+          ORDER BY year, quarter
+        `;
+      } else {
+        // Yearly granularity for more than 10 years
+        timelineQuery = `
+          SELECT
+            EXTRACT(YEAR FROM checkin_date)::int as year,
+            COUNT(*) as count
+          FROM checkins
+          ${whereClause}
+          GROUP BY year
+          ORDER BY year
+        `;
+      }
+    } else {
+      // Default to monthly if no date range
+      timelineQuery = `
+        SELECT
+          EXTRACT(YEAR FROM checkin_date)::int as year,
+          EXTRACT(MONTH FROM checkin_date)::int as month,
+          COUNT(*) as count
+        FROM checkins
+        ${whereClause}
+        GROUP BY year, month
+        ORDER BY year, month
+      `;
+    }
+
     const timelineResult = await db.query(timelineQuery, params);
 
     // Unmappable count

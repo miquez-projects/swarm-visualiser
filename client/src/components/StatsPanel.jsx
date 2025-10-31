@@ -21,7 +21,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as ChartTooltip,
   Legend,
   ResponsiveContainer
 } from 'recharts';
@@ -98,16 +98,38 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
     return `${first} - ${last}`;
   };
 
-  // Prepare timeline data
+  // Prepare timeline data - backend now provides adaptive granularity
   const prepareTimelineData = () => {
     if (!stats.timeline || stats.timeline.length === 0) return [];
 
     return stats.timeline
-      .filter(item => item.year && item.month && item.count !== undefined)
-      .map(item => ({
-        date: `${item.year}-${String(item.month).padStart(2, '0')}`,
-        count: parseInt(item.count) || 0
-      }));
+      .filter(item => item.count !== undefined)
+      .map(item => {
+        let dateLabel;
+
+        // Backend provides different fields based on granularity
+        if (item.day) {
+          // Daily: year, month, day
+          dateLabel = `${item.year}-${String(item.month).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`;
+        } else if (item.week) {
+          // Weekly: year, week
+          dateLabel = `${item.year}-W${String(item.week).padStart(2, '0')}`;
+        } else if (item.quarter) {
+          // Quarterly: year, quarter
+          dateLabel = `${item.year}-Q${item.quarter}`;
+        } else if (item.month) {
+          // Monthly: year, month
+          dateLabel = `${item.year}-${String(item.month).padStart(2, '0')}`;
+        } else {
+          // Yearly: year only
+          dateLabel = `${item.year}`;
+        }
+
+        return {
+          date: dateLabel,
+          count: parseInt(item.count) || 0
+        };
+      });
   };
 
   const chartHeight = isExpanded ? 400 : 250;
@@ -215,7 +237,7 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
                 style={{ fontSize: '12px' }}
               />
               <YAxis />
-              <Tooltip />
+              <ChartTooltip />
               <Bar dataKey="count" fill="#1976d2" />
             </BarChart>
           </ResponsiveContainer>
@@ -244,7 +266,7 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip />
+              <ChartTooltip />
             </PieChart>
           </ResponsiveContainer>
           </Paper>
@@ -267,7 +289,7 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
                 style={{ fontSize: '10px' }}
               />
               <YAxis />
-              <Tooltip />
+              <ChartTooltip />
               <Legend />
               <Line
                 type="monotone"
