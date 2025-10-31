@@ -7,15 +7,17 @@ import {
   Alert,
   Divider,
   IconButton,
-  Tooltip
+  Tooltip,
+  ToggleButton,
+  ToggleButtonGroup
 } from '@mui/material';
-import { Fullscreen, FullscreenExit } from '@mui/icons-material';
+import { Fullscreen, FullscreenExit, CompareArrows } from '@mui/icons-material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import {
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
   LineChart,
   Line,
   XAxis,
@@ -25,7 +27,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import { getStats } from '../services/api';
+import { getStats, compareTimePeriods } from '../services/api';
 
 // Color palette for charts
 const COLORS = ['#1976d2', '#dc004e', '#f57c00', '#388e3c', '#7b1fa2', '#0288d1'];
@@ -34,6 +36,12 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [comparisonMode, setComparisonMode] = useState(false);
+  const [period1Start, setPeriod1Start] = useState(null);
+  const [period1End, setPeriod1End] = useState(null);
+  const [period2Start, setPeriod2Start] = useState(null);
+  const [period2End, setPeriod2End] = useState(null);
+  const [comparisonData, setComparisonData] = useState(null);
 
   useEffect(() => {
     const loadStats = async () => {
@@ -50,41 +58,67 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
       }
     };
 
-    loadStats();
-  }, [filters]);
+    if (!comparisonMode) {
+      loadStats();
+    }
+  }, [filters, comparisonMode]);
 
-  // Prepare pie chart data
-  const preparePieData = (data) => {
-    if (!data || data.length === 0) return [];
-    return data.map(item => ({
-      name: item.category || item.country,
-      value: parseInt(item.count)
-    }));
-  };
+  // Load comparison data when dates are set
+  useEffect(() => {
+    const loadComparison = async () => {
+      if (!comparisonMode || !period1Start || !period1End || !period2Start || !period2End) {
+        return;
+      }
 
-  // Memoize pie chart data to avoid duplicate calculations
-  const pieChartData = useMemo(() =>
-    preparePieData(stats?.top_categories),
-    [stats?.top_categories]
-  );
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await compareTimePeriods({
+          period1_start: period1Start.toISOString(),
+          period1_end: period1End.toISOString(),
+          period2_start: period2Start.toISOString(),
+          period2_end: period2End.toISOString(),
+          ...filters
+        });
+        setComparisonData(data);
+      } catch (err) {
+        console.error('Error loading comparison:', err);
+        setError(err.message || 'Failed to load comparison');
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    if (comparisonMode) {
+      loadComparison();
+    }
+  }, [comparisonMode, period1Start, period1End, period2Start, period2End, filters]);
+
+
+  // Show loading state
   if (loading) {
     return (
-      <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
-        <CircularProgress />
-      </Box>
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+        <Box sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
+          <CircularProgress />
+        </Box>
+      </LocalizationProvider>
     );
   }
 
+  // Show error state
   if (error) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Alert severity="error">{error}</Alert>
-      </Box>
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+        <Box sx={{ p: 2 }}>
+          <Alert severity="error">{error}</Alert>
+        </Box>
+      </LocalizationProvider>
     );
   }
 
-  if (!stats) {
+  // For now, just show regular stats (comparison view to be implemented)
+  if (!stats && !comparisonData) {
     return null;
   }
 
@@ -136,23 +170,91 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
   const pieChartHeight = isExpanded ? 500 : 300;
 
   return (
-    <Box sx={{ p: 2, height: '100%' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-        <Typography variant="h6">
-          Statistics
-        </Typography>
-        {onToggleExpand && (
-          <Tooltip title={isExpanded ? "Exit full screen" : "Expand to full screen"}>
-            <IconButton
-              onClick={onToggleExpand}
-              size="small"
-              color="primary"
-            >
-              {isExpanded ? <FullscreenExit /> : <Fullscreen />}
-            </IconButton>
-          </Tooltip>
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <Box sx={{ p: 2, height: '100%' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Typography variant="h6">
+            Statistics
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {isExpanded && (
+              <Tooltip title="Compare two time periods">
+                <IconButton
+                  onClick={() => setComparisonMode(!comparisonMode)}
+                  size="small"
+                  color={comparisonMode ? "primary" : "default"}
+                >
+                  <CompareArrows />
+                </IconButton>
+              </Tooltip>
+            )}
+            {onToggleExpand && (
+              <Tooltip title={isExpanded ? "Exit full screen" : "Expand to full screen"}>
+                <IconButton
+                  onClick={onToggleExpand}
+                  size="small"
+                  color="primary"
+                >
+                  {isExpanded ? <FullscreenExit /> : <Fullscreen />}
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
+        </Box>
+
+        {/* Comparison Date Pickers */}
+        {isExpanded && comparisonMode && (
+          <Paper sx={{ p: 2, mb: 2 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Select Time Periods to Compare
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, mt: 2 }}>
+              {/* Period 1 */}
+              <Box>
+                <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                  Period 1
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <DatePicker
+                    label="Start Date"
+                    value={period1Start}
+                    onChange={setPeriod1Start}
+                    slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                  />
+                  <DatePicker
+                    label="End Date"
+                    value={period1End}
+                    onChange={setPeriod1End}
+                    minDate={period1Start || undefined}
+                    slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                  />
+                </Box>
+              </Box>
+
+              {/* Period 2 */}
+              <Box>
+                <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+                  Period 2
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <DatePicker
+                    label="Start Date"
+                    value={period2Start}
+                    onChange={setPeriod2Start}
+                    slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                  />
+                  <DatePicker
+                    label="End Date"
+                    value={period2End}
+                    onChange={setPeriod2End}
+                    minDate={period2Start || undefined}
+                    slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                  />
+                </Box>
+              </Box>
+            </Box>
+          </Paper>
         )}
-      </Box>
 
       {/* Summary Cards */}
       <Box sx={{
@@ -244,31 +346,27 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
           </Paper>
         )}
 
-        {/* Top Categories */}
+        {/* Top Categories - Bar Chart */}
         {stats.top_categories && stats.top_categories.length > 0 && (
           <Paper sx={{ p: 2 }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               Top 5 Categories
             </Typography>
-            <ResponsiveContainer width="100%" height={pieChartHeight}>
-            <PieChart>
-              <Pie
-                data={pieChartData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {pieChartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <ChartTooltip />
-            </PieChart>
-          </ResponsiveContainer>
+            <ResponsiveContainer width="100%" height={chartHeight}>
+              <BarChart data={stats.top_categories}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="category"
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis />
+                <ChartTooltip />
+                <Bar dataKey="count" fill="#f57c00" />
+              </BarChart>
+            </ResponsiveContainer>
           </Paper>
         )}
 
@@ -304,7 +402,8 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
           </Paper>
         )}
       </Box>
-    </Box>
+      </Box>
+    </LocalizationProvider>
   );
 }
 
