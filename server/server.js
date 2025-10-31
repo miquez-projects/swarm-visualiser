@@ -16,6 +16,18 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Debug endpoint to check encryption key setup
+app.get('/debug/encryption', (req, res) => {
+  const hasKey = !!process.env.ENCRYPTION_KEY;
+  const keyLength = process.env.ENCRYPTION_KEY ? process.env.ENCRYPTION_KEY.length : 0;
+  res.json({
+    hasEncryptionKey: hasKey,
+    keyLength: keyLength,
+    expectedLength: 64,
+    isValid: keyLength === 64
+  });
+});
+
 // API routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/import', require('./routes/import'));

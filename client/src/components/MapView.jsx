@@ -312,8 +312,9 @@ function MapView({ checkins, loading }) {
             borderRadius: 2,
             boxShadow: 24,
             p: 4,
-            maxWidth: '90vw',
-            maxHeight: '90vh',
+            width: '95vw',
+            maxWidth: 1400,
+            height: '90vh',
             overflow: 'auto',
             position: 'relative'
           }}
@@ -347,149 +348,150 @@ function MapView({ checkins, loading }) {
   );
 }
 
-// GitHub-style contribution grid component
+// GitHub-style contribution grid component - showing weeks instead of days
 function CheckinContributionGrid({ checkins }) {
-  // Group check-ins by date
-  const checkinsByDate = useMemo(() => {
+  // Group check-ins by week (using ISO week date format)
+  const checkinsByWeek = useMemo(() => {
     const groups = {};
     checkins.forEach(checkin => {
-      const date = new Date(checkin.checkin_date).toISOString().split('T')[0];
-      groups[date] = (groups[date] || 0) + 1;
+      const date = new Date(checkin.checkin_date);
+      // Get the Monday of the week this check-in belongs to
+      const day = date.getDay();
+      const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+      const monday = new Date(date);
+      monday.setDate(diff);
+      const weekKey = monday.toISOString().split('T')[0];
+
+      groups[weekKey] = (groups[weekKey] || 0) + 1;
     });
     return groups;
   }, [checkins]);
 
-  // Calculate date range for the grid (last 12 months)
-  const today = new Date();
-  const oneYearAgo = new Date(today);
-  oneYearAgo.setMonth(today.getMonth() - 12);
-
-  // Generate all weeks for the grid
-  const weeks = useMemo(() => {
-    const result = [];
-    const current = new Date(oneYearAgo);
-
-    // Start from Sunday of the week
-    current.setDate(current.getDate() - current.getDay());
-
-    while (current <= today) {
-      const week = [];
-      for (let i = 0; i < 7; i++) {
-        const dateStr = current.toISOString().split('T')[0];
-        const count = checkinsByDate[dateStr] || 0;
-        week.push({
-          date: dateStr,
-          count: count,
-          day: i
-        });
-        current.setDate(current.getDate() + 1);
-      }
-      result.push(week);
+  // Calculate date range for the grid (entire history)
+  const { startDate, endDate } = useMemo(() => {
+    if (checkins.length === 0) {
+      return { startDate: new Date(), endDate: new Date() };
     }
-    return result;
-  }, [oneYearAgo, today, checkinsByDate]);
 
-  // Get color intensity based on check-in count
+    const dates = checkins.map(c => new Date(c.checkin_date));
+    const earliest = new Date(Math.min(...dates));
+    const latest = new Date(Math.max(...dates));
+
+    // Round to Monday of the week
+    const startDay = earliest.getDay();
+    const startDiff = earliest.getDate() - startDay + (startDay === 0 ? -6 : 1);
+    earliest.setDate(startDiff);
+
+    return { startDate: earliest, endDate: latest };
+  }, [checkins]);
+
+  // Generate all weeks for the grid, organized by year and month
+  const yearsData = useMemo(() => {
+    const result = [];
+    const current = new Date(startDate);
+
+    while (current <= endDate) {
+      const year = current.getFullYear();
+      const month = current.getMonth();
+      const weekKey = current.toISOString().split('T')[0];
+      const count = checkinsByWeek[weekKey] || 0;
+
+      // Find or create year object
+      let yearObj = result.find(y => y.year === year);
+      if (!yearObj) {
+        yearObj = { year, months: [] };
+        result.push(yearObj);
+      }
+
+      // Find or create month object
+      let monthObj = yearObj.months.find(m => m.month === month);
+      if (!monthObj) {
+        monthObj = { month, weeks: [] };
+        yearObj.months.push(monthObj);
+      }
+
+      // Add week
+      monthObj.weeks.push({
+        weekStart: weekKey,
+        count: count
+      });
+
+      // Move to next week
+      current.setDate(current.getDate() + 7);
+    }
+
+    return result;
+  }, [startDate, endDate, checkinsByWeek]);
+
+  // Get color intensity based on weekly check-in count
   const getColor = (count) => {
     if (count === 0) return '#ebedf0';
-    if (count === 1) return '#9be9a8';
-    if (count === 2) return '#40c463';
-    if (count <= 4) return '#30a14e';
+    if (count <= 2) return '#9be9a8';
+    if (count <= 5) return '#40c463';
+    if (count <= 10) return '#30a14e';
     return '#216e39';
   };
 
   const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <Box sx={{ mt: 3, overflowX: 'auto' }}>
-      <Box sx={{ display: 'flex', gap: 0.5 }}>
-        {/* Day labels */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, pt: 2.5 }}>
-          {dayLabels.map((day, i) => (
-            i % 2 === 1 ? (
-              <Typography
-                key={day}
-                variant="caption"
-                sx={{
-                  height: 10,
-                  fontSize: 9,
-                  color: 'text.secondary',
-                  lineHeight: '10px'
-                }}
-              >
-                {day}
-              </Typography>
-            ) : (
-              <Box key={day} sx={{ height: 10 }} />
-            )
-          ))}
-        </Box>
+    <Box sx={{ mt: 3, overflowY: 'auto', maxHeight: 'calc(90vh - 200px)' }}>
+      {yearsData.map((yearData) => (
+        <Box key={yearData.year} sx={{ mb: 4 }}>
+          <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>
+            {yearData.year}
+          </Typography>
 
-        {/* Contribution grid */}
-        <Box>
-          {/* Month labels */}
-          <Box sx={{ display: 'flex', mb: 0.5, pl: 0.5 }}>
-            {weeks.map((week, weekIndex) => {
-              const firstDay = new Date(week[0].date);
-              const showLabel = firstDay.getDate() <= 7 || weekIndex === 0;
-              return (
-                <Box
-                  key={weekIndex}
-                  sx={{
-                    width: 10,
-                    height: 15,
-                    mr: 0.5,
-                    fontSize: 9
-                  }}
-                >
-                  {showLabel && (
-                    <Typography variant="caption" sx={{ fontSize: 9, color: 'text.secondary' }}>
-                      {monthLabels[firstDay.getMonth()]}
-                    </Typography>
-                  )}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+            {yearData.months.map((monthData) => (
+              <Box key={monthData.month} sx={{ minWidth: 120 }}>
+                <Typography variant="caption" fontWeight="bold" display="block" sx={{ mb: 1, color: 'text.secondary' }}>
+                  {monthLabels[monthData.month]}
+                </Typography>
+
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, maxWidth: 200 }}>
+                  {monthData.weeks.map((week) => {
+                    const weekDate = new Date(week.weekStart);
+                    const weekEndDate = new Date(weekDate);
+                    weekEndDate.setDate(weekDate.getDate() + 6);
+
+                    return (
+                      <Box
+                        key={week.weekStart}
+                        title={`Week of ${weekDate.toLocaleDateString()}: ${week.count} check-in${week.count !== 1 ? 's' : ''}`}
+                        sx={{
+                          width: 14,
+                          height: 14,
+                          bgcolor: getColor(week.count),
+                          borderRadius: 0.5,
+                          cursor: week.count > 0 ? 'pointer' : 'default',
+                          '&:hover': week.count > 0 ? {
+                            outline: '2px solid rgba(0,0,0,0.3)',
+                            outlineOffset: 1,
+                            transform: 'scale(1.1)'
+                          } : {}
+                        }}
+                      />
+                    );
+                  })}
                 </Box>
-              );
-            })}
-          </Box>
-
-          {/* Grid cells */}
-          <Box sx={{ display: 'flex', gap: 0.5 }}>
-            {weeks.map((week, weekIndex) => (
-              <Box key={weekIndex} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                {week.map((day) => (
-                  <Box
-                    key={day.date}
-                    title={`${day.date}: ${day.count} check-in${day.count !== 1 ? 's' : ''}`}
-                    sx={{
-                      width: 10,
-                      height: 10,
-                      bgcolor: getColor(day.count),
-                      borderRadius: 0.5,
-                      cursor: day.count > 0 ? 'pointer' : 'default',
-                      '&:hover': day.count > 0 ? {
-                        outline: '2px solid rgba(0,0,0,0.3)',
-                        outlineOffset: 1
-                      } : {}
-                    }}
-                  />
-                ))}
               </Box>
             ))}
           </Box>
         </Box>
-      </Box>
+      ))}
 
       {/* Legend */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, fontSize: 11 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
         <Typography variant="caption" color="text.secondary">Less</Typography>
         <Box sx={{ display: 'flex', gap: 0.5 }}>
-          {[0, 1, 2, 3, 5].map(count => (
+          {[0, 1, 3, 7, 12].map(count => (
             <Box
               key={count}
+              title={`${count} check-ins`}
               sx={{
-                width: 10,
-                height: 10,
+                width: 14,
+                height: 14,
                 bgcolor: getColor(count),
                 borderRadius: 0.5
               }}
