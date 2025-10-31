@@ -33,7 +33,7 @@ const MenuProps = {
   },
 };
 
-function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive = false, isExpanded = false, onToggleExpand }) {
+function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive = false, isExpanded = false, onToggleExpand, token }) {
   const [filters, setFilters] = useState({
     startDate: initialFilters.startDate || null,
     endDate: initialFilters.endDate || null,
@@ -58,7 +58,11 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
       try {
         setLoading(true);
         setError(null);
-        const options = await getFilterOptions();
+        const params = {};
+        if (token) {
+          params.token = token;
+        }
+        const options = await getFilterOptions(params);
         setFilterOptions(options);
       } catch (err) {
         console.error('Failed to load filter options:', err);
@@ -69,7 +73,7 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
     };
 
     loadFilterOptions();
-  }, []);
+  }, [token]);
 
   const handleFilterChange = (field, value) => {
     setFilters(prev => ({

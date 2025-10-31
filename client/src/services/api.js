@@ -76,10 +76,11 @@ export const compareTimePeriods = async (params) => {
 
 /**
  * Get available filter options
+ * @param {Object} params - Parameters including token
  * @returns {Promise<Object>} Filter options
  */
-export const getFilterOptions = async () => {
-  const response = await api.get('/api/filters/options');
+export const getFilterOptions = async (params = {}) => {
+  const response = await api.get('/api/filters/options', { params });
   return response.data;
 };
 

@@ -62,6 +62,7 @@ function HomePage({ darkMode, onToggleDarkMode }) {
         comparisonModeActive={comparisonMode}
         isExpanded={sidebarExpanded}
         onToggleExpand={() => setSidebarExpanded(!sidebarExpanded)}
+        token={token}
       />
       <StatsPanel
         filters={filters}
