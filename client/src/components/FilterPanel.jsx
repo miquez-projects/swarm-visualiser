@@ -31,7 +31,7 @@ const MenuProps = {
   },
 };
 
-function FilterPanel({ onFilterChange, initialFilters = {} }) {
+function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive = false }) {
   const [filters, setFilters] = useState({
     startDate: initialFilters.startDate || null,
     endDate: initialFilters.endDate || null,
@@ -158,13 +158,14 @@ function FilterPanel({ onFilterChange, initialFilters = {} }) {
         {/* Date Range */}
         <Box>
           <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-            Date Range
+            Date Range {comparisonModeActive && '(Disabled in Comparison Mode)'}
           </Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <DatePicker
               label="Start Date"
               value={filters.startDate}
               onChange={(newValue) => handleFilterChange('startDate', newValue)}
+              disabled={comparisonModeActive}
               slotProps={{
                 textField: {
                   fullWidth: true,
@@ -177,6 +178,7 @@ function FilterPanel({ onFilterChange, initialFilters = {} }) {
               value={filters.endDate}
               onChange={(newValue) => handleFilterChange('endDate', newValue)}
               minDate={filters.startDate || undefined}
+              disabled={comparisonModeActive}
               slotProps={{
                 textField: {
                   fullWidth: true,

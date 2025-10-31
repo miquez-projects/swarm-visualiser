@@ -71,13 +71,21 @@ function HomePage({ darkMode, onToggleDarkMode }) {
     </Button>
   );
 
+  const [comparisonMode, setComparisonMode] = useState(false);
+
   const sidebar = viewMode === 'map' ? (
     <Box sx={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-      <FilterPanel onFilterChange={handleFilterChange} initialFilters={filters} />
+      <FilterPanel
+        onFilterChange={handleFilterChange}
+        initialFilters={filters}
+        comparisonModeActive={comparisonMode}
+      />
       <StatsPanel
         filters={filters}
         isExpanded={sidebarExpanded}
         onToggleExpand={() => setSidebarExpanded(!sidebarExpanded)}
+        comparisonMode={comparisonMode}
+        onComparisonModeChange={setComparisonMode}
       />
     </Box>
   ) : null;

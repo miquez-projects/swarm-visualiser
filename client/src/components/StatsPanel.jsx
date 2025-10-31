@@ -32,11 +32,10 @@ import { getStats, compareTimePeriods } from '../services/api';
 // Color palette for charts
 const COLORS = ['#1976d2', '#dc004e', '#f57c00', '#388e3c', '#7b1fa2', '#0288d1'];
 
-function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
+function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMode = false, onComparisonModeChange }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [comparisonMode, setComparisonMode] = useState(false);
   const [period1Start, setPeriod1Start] = useState(null);
   const [period1End, setPeriod1End] = useState(null);
   const [period2Start, setPeriod2Start] = useState(null);
@@ -177,48 +176,22 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
       .slice(0, 5); // Top 5
   };
 
-  // Prepare comparison timeline data (merge both periods' timelines)
+  // Prepare comparison timeline data (overlapping periods with relative time indices)
   const prepareComparisonTimelineData = (period1Timeline, period2Timeline) => {
-    const combined = {};
+    // Convert timeline items to relative indices (0, 1, 2, ...)
+    const maxLength = Math.max(period1Timeline.length, period2Timeline.length);
+    const result = [];
 
-    // Helper to format timeline item
-    const formatTimelineItem = (item) => {
-      if (item.day) {
-        return `${item.year}-${String(item.month).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`;
-      } else if (item.week) {
-        return `${item.year}-W${String(item.week).padStart(2, '0')}`;
-      } else if (item.month) {
-        return `${item.year}-${String(item.month).padStart(2, '0')}`;
-      } else {
-        return `${item.year}`;
-      }
-    };
-
-    // Add period 1 data
-    period1Timeline.forEach(item => {
-      const date = formatTimelineItem(item);
-      combined[date] = {
-        date,
-        period1: parseInt(item.count) || 0,
-        period2: 0
+    for (let i = 0; i < maxLength; i++) {
+      const dataPoint = {
+        index: i + 1, // Start from 1 for better readability
+        period1: i < period1Timeline.length ? (parseInt(period1Timeline[i].count) || 0) : null,
+        period2: i < period2Timeline.length ? (parseInt(period2Timeline[i].count) || 0) : null
       };
-    });
+      result.push(dataPoint);
+    }
 
-    // Add period 2 data
-    period2Timeline.forEach(item => {
-      const date = formatTimelineItem(item);
-      if (combined[date]) {
-        combined[date].period2 = parseInt(item.count) || 0;
-      } else {
-        combined[date] = {
-          date,
-          period1: 0,
-          period2: parseInt(item.count) || 0
-        };
-      }
-    });
-
-    return Object.values(combined).sort((a, b) => a.date.localeCompare(b.date));
+    return result;
   };
 
   // Prepare timeline data - backend now provides adaptive granularity
@@ -266,10 +239,10 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
             Statistics
           </Typography>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            {isExpanded && (
+            {isExpanded && onComparisonModeChange && (
               <Tooltip title="Compare two time periods">
                 <IconButton
-                  onClick={() => setComparisonMode(!comparisonMode)}
+                  onClick={() => onComparisonModeChange(!comparisonMode)}
                   size="small"
                   color={comparisonMode ? "primary" : "default"}
                 >
@@ -509,7 +482,7 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
         {period1Data.timeline && period1Data.timeline.length > 0 && (
           <Paper sx={{ p: 2, gridColumn: isExpanded ? '1 / -1' : 'auto' }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              Check-ins Over Time
+              {showingComparison ? 'Check-ins Over Time (Overlapping Periods)' : 'Check-ins Over Time'}
             </Typography>
             <ResponsiveContainer width="100%" height={chartHeight}>
               <LineChart data={showingComparison
@@ -518,11 +491,12 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
               }>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
-                  dataKey="date"
+                  dataKey={showingComparison ? "index" : "date"}
                   angle={-45}
                   textAnchor="end"
                   height={80}
                   style={{ fontSize: '10px' }}
+                  label={showingComparison ? { value: 'Time Period Index', position: 'insideBottom', offset: -5 } : undefined}
                 />
                 <YAxis />
                 <ChartTooltip />
@@ -536,6 +510,7 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
                       name="Period 1"
                       strokeWidth={2}
                       dot={{ r: 3 }}
+                      connectNulls
                     />
                     <Line
                       type="monotone"
@@ -544,6 +519,7 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
                       name="Period 2"
                       strokeWidth={2}
                       dot={{ r: 3 }}
+                      connectNulls
                     />
                   </>
                 ) : (
