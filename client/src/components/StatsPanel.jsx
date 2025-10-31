@@ -32,7 +32,7 @@ import { getStats, compareTimePeriods } from '../services/api';
 // Color palette for charts
 const COLORS = ['#1976d2', '#dc004e', '#f57c00', '#388e3c', '#7b1fa2', '#0288d1'];
 
-function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMode = false, onComparisonModeChange }) {
+function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMode = false, onComparisonModeChange, token }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [comparisonLoading, setComparisonLoading] = useState(false);
@@ -48,7 +48,11 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
       try {
         setLoading(true);
         setError(null);
-        const data = await getStats(filters);
+        const params = { ...filters };
+        if (token) {
+          params.token = token;
+        }
+        const data = await getStats(params);
         setStats(data);
       } catch (err) {
         console.error('Error loading stats:', err);
@@ -61,7 +65,7 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
     if (!comparisonMode) {
       loadStats();
     }
-  }, [filters, comparisonMode]);
+  }, [filters, comparisonMode, token]);
 
   // Load comparison data when dates are set
   useEffect(() => {
@@ -73,13 +77,17 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
       try {
         setComparisonLoading(true);
         setError(null);
-        const data = await compareTimePeriods({
+        const params = {
           period1_start: period1Start.toISOString(),
           period1_end: period1End.toISOString(),
           period2_start: period2Start.toISOString(),
           period2_end: period2End.toISOString(),
           ...filters
-        });
+        };
+        if (token) {
+          params.token = token;
+        }
+        const data = await compareTimePeriods(params);
         setComparisonData(data);
       } catch (err) {
         console.error('Error loading comparison:', err);
@@ -92,7 +100,7 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
     if (comparisonMode) {
       loadComparison();
     }
-  }, [comparisonMode, period1Start, period1End, period2Start, period2End, filters]);
+  }, [comparisonMode, period1Start, period1End, period2Start, period2End, filters, token]);
 
 
   // Show loading state only for initial stats loading (not comparison loading)

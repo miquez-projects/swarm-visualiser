@@ -69,6 +69,7 @@ function HomePage({ darkMode, onToggleDarkMode }) {
         isExpanded={sidebarExpanded}
         comparisonMode={comparisonMode}
         onComparisonModeChange={setComparisonMode}
+        token={token}
       />
     </Box>
   );
