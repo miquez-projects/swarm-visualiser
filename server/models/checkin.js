@@ -3,11 +3,12 @@ const db = require('../db/connection');
 class Checkin {
   /**
    * Find check-ins with optional filters and pagination
-   * @param {Object} filters - { startDate, endDate, category, country, city, search, limit, offset }
+   * @param {Object} filters - { userId, startDate, endDate, category, country, city, search, limit, offset }
    * @returns {Promise<{data: Array, total: number}>}
    */
   static async find(filters = {}) {
     const {
+      userId,
       startDate,
       endDate,
       category,
@@ -21,6 +22,12 @@ class Checkin {
     const conditions = [];
     const params = [];
     let paramIndex = 1;
+
+    // Filter by user_id if provided (for multi-user support)
+    if (userId) {
+      conditions.push(`user_id = $${paramIndex++}`);
+      params.push(userId);
+    }
 
     if (startDate) {
       conditions.push(`checkin_date >= $${paramIndex++}`);
@@ -100,6 +107,7 @@ class Checkin {
    */
   static async getStats(filters = {}) {
     const {
+      userId,
       startDate,
       endDate,
       category,
@@ -110,6 +118,12 @@ class Checkin {
     const conditions = [];
     const params = [];
     let paramIndex = 1;
+
+    // Filter by user_id if provided (for multi-user support)
+    if (userId) {
+      conditions.push(`user_id = $${paramIndex++}`);
+      params.push(userId);
+    }
 
     if (startDate) {
       conditions.push(`checkin_date >= $${paramIndex++}`);
@@ -266,6 +280,37 @@ class Checkin {
   }
 
   /**
+   * Insert a single check-in
+   * @param {Object} checkin - Checkin object
+   * @returns {Promise<Object>} Inserted checkin
+   */
+  static async insert(checkin) {
+    const query = `
+      INSERT INTO checkins (
+        user_id, venue_id, venue_name, venue_category,
+        latitude, longitude, checkin_date,
+        city, country
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *
+    `;
+
+    const params = [
+      checkin.user_id || null,
+      checkin.venue_id || null,
+      checkin.venue_name,
+      checkin.venue_category || 'Unknown',
+      checkin.latitude || null,
+      checkin.longitude || null,
+      checkin.checkin_date,
+      checkin.city || 'Unknown',
+      checkin.country || 'Unknown'
+    ];
+
+    const result = await db.query(query, params);
+    return result.rows[0];
+  }
+
+  /**
    * Bulk insert check-ins (for data import)
    * @param {Array} checkins - Array of checkin objects
    * @returns {Promise<number>} Number of inserted records
@@ -282,11 +327,12 @@ class Checkin {
     }
 
     const values = checkins.map((c, index) => {
-      const offset = index * 8;
-      return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8})`;
+      const offset = index * 9;
+      return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9})`;
     }).join(',');
 
     const params = checkins.flatMap(c => [
+      c.user_id || null,
       c.venue_id || null,
       c.venue_name,
       c.venue_category || 'Unknown',
@@ -299,7 +345,7 @@ class Checkin {
 
     const query = `
       INSERT INTO checkins (
-        venue_id, venue_name, venue_category,
+        user_id, venue_id, venue_name, venue_category,
         latitude, longitude, checkin_date,
         city, country
       ) VALUES ${values}

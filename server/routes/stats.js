@@ -1,12 +1,14 @@
 const express = require('express');
 const { query, validationResult } = require('express-validator');
 const Checkin = require('../models/checkin');
+const { optionalAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
 // GET /api/stats
 router.get(
   '/',
+  optionalAuth,
   [
     query('startDate').optional().isISO8601().toDate(),
     query('endDate').optional().isISO8601().toDate(),
@@ -21,7 +23,13 @@ router.get(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const stats = await Checkin.getStats(req.query);
+      // If user is authenticated, filter to their data only
+      const filters = { ...req.query };
+      if (req.user) {
+        filters.userId = req.user.id;
+      }
+
+      const stats = await Checkin.getStats(filters);
       res.json(stats);
     } catch (error) {
       next(error);
@@ -32,6 +40,7 @@ router.get(
 // GET /api/stats/compare
 router.get(
   '/compare',
+  optionalAuth,
   [
     query('period1_start').isISO8601().toDate(),
     query('period1_end').isISO8601().toDate(),
@@ -59,6 +68,11 @@ router.get(
       } = req.query;
 
       const baseFilters = { category, country, city };
+
+      // If user is authenticated, filter to their data only
+      if (req.user) {
+        baseFilters.userId = req.user.id;
+      }
 
       // Get stats for both periods
       const [period1Stats, period2Stats] = await Promise.all([

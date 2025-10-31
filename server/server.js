@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { initQueue, getQueue, stopQueue } = require('./jobs/queue');
+const importCheckinsHandler = require('./jobs/importCheckins');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -15,6 +17,8 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/import', require('./routes/import'));
 app.use('/api/checkins', require('./routes/checkins'));
 app.use('/api/stats', require('./routes/stats'));
 app.use('/api/filters', require('./routes/filters'));
@@ -33,8 +37,42 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Initialize job queue and start server
+async function start() {
+  try {
+    // Initialize pg-boss
+    await initQueue();
+    const queue = getQueue();
+
+    // Register job handlers
+    await queue.work('import-checkins', importCheckinsHandler);
+
+    console.log('Job queue initialized and workers registered');
+
+    // Start Express server
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', async () => {
+      console.log('SIGTERM received, shutting down gracefully...');
+      await stopQueue();
+      process.exit(0);
+    });
+
+    process.on('SIGINT', async () => {
+      console.log('SIGINT received, shutting down gracefully...');
+      await stopQueue();
+      process.exit(0);
+    });
+
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+start();
 
 module.exports = app;
