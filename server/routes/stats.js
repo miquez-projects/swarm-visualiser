@@ -1,14 +1,15 @@
 const express = require('express');
 const { query, validationResult } = require('express-validator');
 const Checkin = require('../models/checkin');
-const { optionalAuth } = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
 // GET /api/stats
+// Requires authentication - returns only authenticated user's stats
 router.get(
   '/',
-  optionalAuth,
+  authenticateToken,
   [
     query('startDate').optional().isISO8601().toDate(),
     query('endDate').optional().isISO8601().toDate(),
@@ -23,11 +24,11 @@ router.get(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      // If user is authenticated, filter to their data only
-      const filters = { ...req.query };
-      if (req.user) {
-        filters.userId = req.user.id;
-      }
+      // Filter to authenticated user's data only
+      const filters = {
+        ...req.query,
+        userId: req.user.id
+      };
 
       const stats = await Checkin.getStats(filters);
       res.json(stats);
@@ -38,9 +39,10 @@ router.get(
 );
 
 // GET /api/stats/compare
+// Requires authentication - compares authenticated user's data only
 router.get(
   '/compare',
-  optionalAuth,
+  authenticateToken,
   [
     query('period1_start').isISO8601().toDate(),
     query('period1_end').isISO8601().toDate(),
@@ -67,12 +69,13 @@ router.get(
         city
       } = req.query;
 
-      const baseFilters = { category, country, city };
-
-      // If user is authenticated, filter to their data only
-      if (req.user) {
-        baseFilters.userId = req.user.id;
-      }
+      // Filter to authenticated user's data only
+      const baseFilters = {
+        category,
+        country,
+        city,
+        userId: req.user.id
+      };
 
       // Get stats for both periods
       const [period1Stats, period2Stats] = await Promise.all([

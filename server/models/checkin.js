@@ -295,33 +295,34 @@ class Checkin {
   }
 
   /**
-   * Get available filter options
+   * Get available filter options for a specific user
+   * @param {string} userId - User ID to filter options
    * @returns {Promise<Object>} Available countries, cities, categories
    */
-  static async getFilterOptions() {
+  static async getFilterOptions(userId) {
     const countriesQuery = `
       SELECT DISTINCT country
       FROM checkins
-      WHERE country IS NOT NULL
+      WHERE country IS NOT NULL AND user_id = $1
       ORDER BY country
     `;
-    const countriesResult = await db.query(countriesQuery);
+    const countriesResult = await db.query(countriesQuery, [userId]);
 
     const citiesQuery = `
       SELECT DISTINCT city
       FROM checkins
-      WHERE city IS NOT NULL
+      WHERE city IS NOT NULL AND user_id = $1
       ORDER BY city
     `;
-    const citiesResult = await db.query(citiesQuery);
+    const citiesResult = await db.query(citiesQuery, [userId]);
 
     const categoriesQuery = `
       SELECT DISTINCT venue_category
       FROM checkins
-      WHERE venue_category IS NOT NULL
+      WHERE venue_category IS NOT NULL AND user_id = $1
       ORDER BY venue_category
     `;
-    const categoriesResult = await db.query(categoriesQuery);
+    const categoriesResult = await db.query(categoriesQuery, [userId]);
 
     return {
       countries: countriesResult.rows.map(r => r.country),
