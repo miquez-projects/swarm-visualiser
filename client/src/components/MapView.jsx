@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Map, Marker, Popup } from 'react-map-gl/mapbox';
-import { Box, Typography, Chip, CircularProgress } from '@mui/material';
-import { Room } from '@mui/icons-material';
+import { Box, Typography, Chip, CircularProgress, Modal, IconButton, Link } from '@mui/material';
+import { Room, Close, CalendarMonth } from '@mui/icons-material';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
@@ -21,12 +21,38 @@ const CATEGORY_COLORS = {
 
 function MapView({ checkins, loading }) {
   const mapRef = useRef();
-  const [selectedCheckin, setSelectedCheckin] = useState(null);
+  const [selectedVenue, setSelectedVenue] = useState(null);
+  const [showCheckinGrid, setShowCheckinGrid] = useState(false);
   const [viewState, setViewState] = useState({
     longitude: 0,
     latitude: 20,
     zoom: 1.5
   });
+
+  // Group check-ins by venue
+  const venueGroups = useMemo(() => {
+    if (!checkins) return [];
+
+    const groups = {};
+    checkins.forEach(checkin => {
+      const key = checkin.venue_id || `${checkin.latitude},${checkin.longitude}`;
+      if (!groups[key]) {
+        groups[key] = {
+          venue_id: checkin.venue_id,
+          venue_name: checkin.venue_name,
+          venue_category: checkin.venue_category,
+          latitude: checkin.latitude,
+          longitude: checkin.longitude,
+          city: checkin.city,
+          country: checkin.country,
+          checkins: []
+        };
+      }
+      groups[key].checkins.push(checkin);
+    });
+
+    return Object.values(groups);
+  }, [checkins]);
 
   // Fit map to show all checkins when data changes
   useEffect(() => {
@@ -129,63 +155,117 @@ function MapView({ checkins, loading }) {
         mapboxAccessToken={MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
       >
-        {checkins && checkins.map((checkin) => {
-          if (!checkin.latitude || !checkin.longitude) return null;
+        {venueGroups && venueGroups.map((venue, index) => {
+          if (!venue.latitude || !venue.longitude) return null;
+
+          const sortedCheckins = [...venue.checkins].sort((a, b) =>
+            new Date(a.checkin_date) - new Date(b.checkin_date)
+          );
+          const firstVisit = sortedCheckins[0];
+          const lastVisit = sortedCheckins[sortedCheckins.length - 1];
 
           return (
             <Marker
-              key={checkin.id}
-              longitude={checkin.longitude}
-              latitude={checkin.latitude}
+              key={venue.venue_id || index}
+              longitude={venue.longitude}
+              latitude={venue.latitude}
               onClick={e => {
                 e.originalEvent.stopPropagation();
-                setSelectedCheckin(checkin);
+                setSelectedVenue(venue);
               }}
             >
-              <Room
-                sx={{
-                  color: getMarkerColor(checkin.venue_category),
-                  cursor: 'pointer',
-                  fontSize: 32,
-                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
-                  '&:hover': {
-                    transform: 'scale(1.2)',
-                    transition: 'transform 0.2s'
-                  }
-                }}
-              />
+              <Box sx={{ position: 'relative' }}>
+                <Room
+                  sx={{
+                    color: getMarkerColor(venue.venue_category),
+                    cursor: 'pointer',
+                    fontSize: 32,
+                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
+                    '&:hover': {
+                      transform: 'scale(1.2)',
+                      transition: 'transform 0.2s'
+                    }
+                  }}
+                />
+                {venue.checkins.length > 1 && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: -2,
+                      right: -2,
+                      bgcolor: 'white',
+                      borderRadius: '50%',
+                      width: 18,
+                      height: 18,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 10,
+                      fontWeight: 'bold',
+                      border: '1px solid #ccc'
+                    }}
+                  >
+                    {venue.checkins.length}
+                  </Box>
+                )}
+              </Box>
             </Marker>
           );
         })}
 
-        {selectedCheckin && (
+        {selectedVenue && (
           <Popup
-            longitude={selectedCheckin.longitude}
-            latitude={selectedCheckin.latitude}
+            longitude={selectedVenue.longitude}
+            latitude={selectedVenue.latitude}
             anchor="bottom"
-            onClose={() => setSelectedCheckin(null)}
+            onClose={() => setSelectedVenue(null)}
             closeOnClick={false}
           >
-            <Box sx={{ p: 1, minWidth: 200 }}>
+            <Box sx={{ p: 1, minWidth: 220 }}>
               <Typography variant="subtitle1" fontWeight="bold">
-                {selectedCheckin.venue_name}
+                {selectedVenue.venue_name}
               </Typography>
               <Chip
-                label={selectedCheckin.venue_category}
+                label={selectedVenue.venue_category}
                 size="small"
                 sx={{
                   mt: 1,
                   mb: 1,
-                  bgcolor: getMarkerColor(selectedCheckin.venue_category),
+                  bgcolor: getMarkerColor(selectedVenue.venue_category),
                   color: 'white'
                 }}
               />
               <Typography variant="body2" color="text.secondary">
-                {selectedCheckin.city}, {selectedCheckin.country}
+                {selectedVenue.city}, {selectedVenue.country}
               </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {new Date(selectedCheckin.checkin_date).toLocaleDateString()}
-              </Typography>
+              <Box sx={{ mt: 1.5, mb: 1 }}>
+                <Typography variant="body2" fontWeight="bold">
+                  Visited {selectedVenue.checkins.length} {selectedVenue.checkins.length === 1 ? 'time' : 'times'}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  First: {new Date(selectedVenue.checkins.sort((a,b) => new Date(a.checkin_date) - new Date(b.checkin_date))[0].checkin_date).toLocaleDateString()}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Last: {new Date(selectedVenue.checkins.sort((a,b) => new Date(b.checkin_date) - new Date(a.checkin_date))[0].checkin_date).toLocaleDateString()}
+                </Typography>
+              </Box>
+              <Link
+                component="button"
+                variant="caption"
+                onClick={() => {
+                  setShowCheckinGrid(true);
+                }}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  cursor: 'pointer',
+                  mt: 1
+                }}
+              >
+                <CalendarMonth fontSize="small" />
+                View all check-in dates
+              </Link>
             </Box>
           </Popup>
         )}
@@ -214,6 +294,209 @@ function MapView({ checkins, loading }) {
             <Typography variant="caption">{category}</Typography>
           </Box>
         ))}
+      </Box>
+
+      {/* Check-in Grid Modal */}
+      <Modal
+        open={showCheckinGrid && selectedVenue !== null}
+        onClose={() => setShowCheckinGrid(false)}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <Box
+          sx={{
+            bgcolor: 'background.paper',
+            borderRadius: 2,
+            boxShadow: 24,
+            p: 4,
+            maxWidth: '90vw',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            position: 'relative'
+          }}
+        >
+          <IconButton
+            onClick={() => setShowCheckinGrid(false)}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8
+            }}
+          >
+            <Close />
+          </IconButton>
+
+          {selectedVenue && (
+            <>
+              <Typography variant="h5" fontWeight="bold" gutterBottom>
+                {selectedVenue.venue_name}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                {selectedVenue.checkins.length} check-ins
+              </Typography>
+
+              <CheckinContributionGrid checkins={selectedVenue.checkins} />
+            </>
+          )}
+        </Box>
+      </Modal>
+    </Box>
+  );
+}
+
+// GitHub-style contribution grid component
+function CheckinContributionGrid({ checkins }) {
+  // Group check-ins by date
+  const checkinsByDate = useMemo(() => {
+    const groups = {};
+    checkins.forEach(checkin => {
+      const date = new Date(checkin.checkin_date).toISOString().split('T')[0];
+      groups[date] = (groups[date] || 0) + 1;
+    });
+    return groups;
+  }, [checkins]);
+
+  // Calculate date range for the grid (last 12 months)
+  const today = new Date();
+  const oneYearAgo = new Date(today);
+  oneYearAgo.setMonth(today.getMonth() - 12);
+
+  // Generate all weeks for the grid
+  const weeks = useMemo(() => {
+    const result = [];
+    const current = new Date(oneYearAgo);
+
+    // Start from Sunday of the week
+    current.setDate(current.getDate() - current.getDay());
+
+    while (current <= today) {
+      const week = [];
+      for (let i = 0; i < 7; i++) {
+        const dateStr = current.toISOString().split('T')[0];
+        const count = checkinsByDate[dateStr] || 0;
+        week.push({
+          date: dateStr,
+          count: count,
+          day: i
+        });
+        current.setDate(current.getDate() + 1);
+      }
+      result.push(week);
+    }
+    return result;
+  }, [oneYearAgo, today, checkinsByDate]);
+
+  // Get color intensity based on check-in count
+  const getColor = (count) => {
+    if (count === 0) return '#ebedf0';
+    if (count === 1) return '#9be9a8';
+    if (count === 2) return '#40c463';
+    if (count <= 4) return '#30a14e';
+    return '#216e39';
+  };
+
+  const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  return (
+    <Box sx={{ mt: 3, overflowX: 'auto' }}>
+      <Box sx={{ display: 'flex', gap: 0.5 }}>
+        {/* Day labels */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, pt: 2.5 }}>
+          {dayLabels.map((day, i) => (
+            i % 2 === 1 ? (
+              <Typography
+                key={day}
+                variant="caption"
+                sx={{
+                  height: 10,
+                  fontSize: 9,
+                  color: 'text.secondary',
+                  lineHeight: '10px'
+                }}
+              >
+                {day}
+              </Typography>
+            ) : (
+              <Box key={day} sx={{ height: 10 }} />
+            )
+          ))}
+        </Box>
+
+        {/* Contribution grid */}
+        <Box>
+          {/* Month labels */}
+          <Box sx={{ display: 'flex', mb: 0.5, pl: 0.5 }}>
+            {weeks.map((week, weekIndex) => {
+              const firstDay = new Date(week[0].date);
+              const showLabel = firstDay.getDate() <= 7 || weekIndex === 0;
+              return (
+                <Box
+                  key={weekIndex}
+                  sx={{
+                    width: 10,
+                    height: 15,
+                    mr: 0.5,
+                    fontSize: 9
+                  }}
+                >
+                  {showLabel && (
+                    <Typography variant="caption" sx={{ fontSize: 9, color: 'text.secondary' }}>
+                      {monthLabels[firstDay.getMonth()]}
+                    </Typography>
+                  )}
+                </Box>
+              );
+            })}
+          </Box>
+
+          {/* Grid cells */}
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            {weeks.map((week, weekIndex) => (
+              <Box key={weekIndex} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                {week.map((day) => (
+                  <Box
+                    key={day.date}
+                    title={`${day.date}: ${day.count} check-in${day.count !== 1 ? 's' : ''}`}
+                    sx={{
+                      width: 10,
+                      height: 10,
+                      bgcolor: getColor(day.count),
+                      borderRadius: 0.5,
+                      cursor: day.count > 0 ? 'pointer' : 'default',
+                      '&:hover': day.count > 0 ? {
+                        outline: '2px solid rgba(0,0,0,0.3)',
+                        outlineOffset: 1
+                      } : {}
+                    }}
+                  />
+                ))}
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Legend */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2, fontSize: 11 }}>
+        <Typography variant="caption" color="text.secondary">Less</Typography>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          {[0, 1, 2, 3, 5].map(count => (
+            <Box
+              key={count}
+              sx={{
+                width: 10,
+                height: 10,
+                bgcolor: getColor(count),
+                borderRadius: 0.5
+              }}
+            />
+          ))}
+        </Box>
+        <Typography variant="caption" color="text.secondary">More</Typography>
       </Box>
     </Box>
   );
