@@ -17,7 +17,7 @@ import {
 
 const DRAWER_WIDTH = 320;
 
-function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions }) {
+function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions, sidebarExpanded = false }) {
   const muiTheme = useMuiTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -57,11 +57,16 @@ function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions }
         {!isMobile && sidebar && (
           <Box
             sx={{
-              width: DRAWER_WIDTH,
+              width: sidebarExpanded ? '100%' : DRAWER_WIDTH,
               flexShrink: 0,
-              borderRight: 1,
+              borderRight: sidebarExpanded ? 0 : 1,
               borderColor: 'divider',
-              overflowY: 'auto'
+              overflowY: 'auto',
+              transition: 'width 0.3s ease-in-out',
+              zIndex: sidebarExpanded ? 1200 : 'auto',
+              position: sidebarExpanded ? 'absolute' : 'relative',
+              height: sidebarExpanded ? '100%' : 'auto',
+              bgcolor: 'background.default'
             }}
           >
             {sidebar}
@@ -87,7 +92,7 @@ function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions }
         )}
 
         {/* Main Content */}
-        <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
+        <Box sx={{ flexGrow: 1, overflow: 'hidden', display: sidebarExpanded && !isMobile ? 'none' : 'block' }}>
           {children}
         </Box>
       </Box>

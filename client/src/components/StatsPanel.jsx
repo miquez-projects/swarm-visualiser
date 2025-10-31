@@ -5,8 +5,11 @@ import {
   Paper,
   CircularProgress,
   Alert,
-  Divider
+  Divider,
+  IconButton,
+  Tooltip
 } from '@mui/material';
+import { Fullscreen, FullscreenExit } from '@mui/icons-material';
 import {
   BarChart,
   Bar,
@@ -27,7 +30,7 @@ import { getStats } from '../services/api';
 // Color palette for charts
 const COLORS = ['#1976d2', '#dc004e', '#f57c00', '#388e3c', '#7b1fa2', '#0288d1'];
 
-function StatsPanel({ filters }) {
+function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -107,73 +110,101 @@ function StatsPanel({ filters }) {
       }));
   };
 
+  const chartHeight = isExpanded ? 400 : 250;
+  const pieChartHeight = isExpanded ? 500 : 300;
+
   return (
     <Box sx={{ p: 2, height: '100%' }}>
-      <Typography variant="h6" gutterBottom>
-        Statistics
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Typography variant="h6">
+          Statistics
+        </Typography>
+        {onToggleExpand && (
+          <Tooltip title={isExpanded ? "Exit full screen" : "Expand to full screen"}>
+            <IconButton
+              onClick={onToggleExpand}
+              size="small"
+              color="primary"
+            >
+              {isExpanded ? <FullscreenExit /> : <Fullscreen />}
+            </IconButton>
+          </Tooltip>
+        )}
+      </Box>
 
-      {/* Total Check-ins */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Typography variant="body2" color="text.secondary">
-          Total Check-ins
-        </Typography>
-        <Typography variant="h4" sx={{ mt: 1 }}>
-          {stats.total_checkins.toLocaleString()}
-        </Typography>
-      </Paper>
-
-      {/* Date Range */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Typography variant="body2" color="text.secondary">
-          Date Range
-        </Typography>
-        <Typography variant="body1" sx={{ mt: 1 }}>
-          {formatDateRange()}
-        </Typography>
-      </Paper>
-
-      {/* Unmappable Count */}
-      {stats.unmappable_count > 0 && (
-        <Paper sx={{ p: 2, mb: 2 }}>
+      {/* Summary Cards */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: isExpanded ? 'repeat(auto-fit, minmax(250px, 1fr))' : '1fr',
+        gap: 2,
+        mb: 2
+      }}>
+        {/* Total Check-ins */}
+        <Paper sx={{ p: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            Unmappable Check-ins
+            Total Check-ins
           </Typography>
-          <Typography variant="h6" sx={{ mt: 1 }}>
-            {stats.unmappable_count.toLocaleString()}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            (Missing location data)
+          <Typography variant="h4" sx={{ mt: 1 }}>
+            {stats.total_checkins.toLocaleString()}
           </Typography>
         </Paper>
-      )}
+
+        {/* Date Range */}
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            Date Range
+          </Typography>
+          <Typography variant="body1" sx={{ mt: 1 }}>
+            {formatDateRange()}
+          </Typography>
+        </Paper>
+
+        {/* Unmappable Count */}
+        {stats.unmappable_count > 0 && (
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="body2" color="text.secondary">
+              Unmappable Check-ins
+            </Typography>
+            <Typography variant="h6" sx={{ mt: 1 }}>
+              {stats.unmappable_count.toLocaleString()}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              (Missing location data)
+            </Typography>
+          </Paper>
+        )}
+
+        {/* Most Visited Venue */}
+        {stats.top_venue && (
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Most Visited Venue
+            </Typography>
+            <Typography variant="body1" fontWeight="bold">
+              {stats.top_venue.venue_name}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {stats.top_venue.count} visit{stats.top_venue.count !== 1 ? 's' : ''}
+            </Typography>
+          </Paper>
+        )}
+      </Box>
 
       <Divider sx={{ my: 2 }} />
 
-      {/* Most Visited Venue */}
-      {stats.top_venue && (
-        <Paper sx={{ p: 2, mb: 2 }}>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            Most Visited Venue
-          </Typography>
-          <Typography variant="body1" fontWeight="bold">
-            {stats.top_venue.venue_name}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {stats.top_venue.count} visit{stats.top_venue.count !== 1 ? 's' : ''}
-          </Typography>
-        </Paper>
-      )}
-
-      <Divider sx={{ my: 2 }} />
-
-      {/* Top Countries */}
-      {stats.top_countries && stats.top_countries.length > 0 && (
-        <Paper sx={{ p: 2, mb: 2 }}>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            Top 5 Countries
-          </Typography>
-          <ResponsiveContainer width="100%" height={250}>
+      {/* Charts Grid */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: isExpanded ? 'repeat(auto-fit, minmax(500px, 1fr))' : '1fr',
+        gap: 2
+      }}>
+        {/* Top Countries */}
+        {stats.top_countries && stats.top_countries.length > 0 && (
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Top 5 Countries
+            </Typography>
+            <ResponsiveContainer width="100%" height={chartHeight}>
             <BarChart data={stats.top_countries}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
@@ -188,16 +219,16 @@ function StatsPanel({ filters }) {
               <Bar dataKey="count" fill="#1976d2" />
             </BarChart>
           </ResponsiveContainer>
-        </Paper>
-      )}
+          </Paper>
+        )}
 
-      {/* Top Categories */}
-      {stats.top_categories && stats.top_categories.length > 0 && (
-        <Paper sx={{ p: 2, mb: 2 }}>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            Top 5 Categories
-          </Typography>
-          <ResponsiveContainer width="100%" height={300}>
+        {/* Top Categories */}
+        {stats.top_categories && stats.top_categories.length > 0 && (
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Top 5 Categories
+            </Typography>
+            <ResponsiveContainer width="100%" height={pieChartHeight}>
             <PieChart>
               <Pie
                 data={pieChartData}
@@ -216,16 +247,16 @@ function StatsPanel({ filters }) {
               <Tooltip />
             </PieChart>
           </ResponsiveContainer>
-        </Paper>
-      )}
+          </Paper>
+        )}
 
-      {/* Timeline Chart */}
-      {stats.timeline && stats.timeline.length > 0 && (
-        <Paper sx={{ p: 2, mb: 2 }}>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            Check-ins Over Time
-          </Typography>
-          <ResponsiveContainer width="100%" height={250}>
+        {/* Timeline Chart */}
+        {stats.timeline && stats.timeline.length > 0 && (
+          <Paper sx={{ p: 2, gridColumn: isExpanded ? '1 / -1' : 'auto' }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Check-ins Over Time
+            </Typography>
+            <ResponsiveContainer width="100%" height={chartHeight}>
             <LineChart data={prepareTimelineData()}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
@@ -248,8 +279,9 @@ function StatsPanel({ filters }) {
               />
             </LineChart>
           </ResponsiveContainer>
-        </Paper>
-      )}
+          </Paper>
+        )}
+      </Box>
     </Box>
   );
 }

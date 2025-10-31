@@ -18,6 +18,7 @@ function HomePage({ darkMode, onToggleDarkMode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({});
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   useEffect(() => {
     // Store token in localStorage if it's in URL
@@ -73,7 +74,11 @@ function HomePage({ darkMode, onToggleDarkMode }) {
   const sidebar = viewMode === 'map' ? (
     <Box sx={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       <FilterPanel onFilterChange={handleFilterChange} initialFilters={filters} />
-      <StatsPanel filters={filters} />
+      <StatsPanel
+        filters={filters}
+        isExpanded={sidebarExpanded}
+        onToggleExpand={() => setSidebarExpanded(!sidebarExpanded)}
+      />
     </Box>
   ) : null;
 
@@ -83,6 +88,7 @@ function HomePage({ darkMode, onToggleDarkMode }) {
       onToggleDarkMode={onToggleDarkMode}
       sidebar={sidebar}
       headerActions={headerActions}
+      sidebarExpanded={sidebarExpanded}
     >
       {viewMode === 'comparison' ? (
         <ComparisonView onClose={() => setViewMode('map')} />
