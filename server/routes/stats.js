@@ -12,7 +12,7 @@ router.get(
   [
     query('startDate').optional().isISO8601().toDate(),
     query('endDate').optional().isISO8601().toDate(),
-    query('category').optional().isString(),
+    query('category').optional(),
     query('country').optional().isString(),
     query('city').optional().isString()
   ],
@@ -46,7 +46,7 @@ router.get(
     query('period1_end').isISO8601().toDate(),
     query('period2_start').isISO8601().toDate(),
     query('period2_end').isISO8601().toDate(),
-    query('category').optional().isString(),
+    query('category').optional(),
     query('country').optional().isString(),
     query('city').optional().isString()
   ],

@@ -13,7 +13,7 @@ router.get(
   [
     query('startDate').optional().isISO8601().toDate(),
     query('endDate').optional().isISO8601().toDate(),
-    query('category').optional().isString(),
+    query('category').optional(),
     query('country').optional().isString(),
     query('city').optional().isString(),
     query('search').optional().isString(),
