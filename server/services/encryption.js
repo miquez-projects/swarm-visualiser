@@ -2,8 +2,19 @@ const crypto = require('crypto');
 
 // In production, this should be a strong, randomly generated key stored securely
 // For now, we'll derive it from an environment variable
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY ||
-  crypto.scryptSync(process.env.DATABASE_URL || 'default-secret', 'salt', 32);
+let ENCRYPTION_KEY;
+if (process.env.ENCRYPTION_KEY) {
+  // If ENCRYPTION_KEY is provided as hex string, convert to buffer
+  ENCRYPTION_KEY = Buffer.from(process.env.ENCRYPTION_KEY, 'hex');
+  // Ensure it's exactly 32 bytes
+  if (ENCRYPTION_KEY.length !== 32) {
+    // If not valid hex or wrong length, derive from it
+    ENCRYPTION_KEY = crypto.scryptSync(process.env.ENCRYPTION_KEY, 'salt', 32);
+  }
+} else {
+  // Fallback: derive from DATABASE_URL
+  ENCRYPTION_KEY = crypto.scryptSync(process.env.DATABASE_URL || 'default-secret', 'salt', 32);
+}
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
