@@ -148,7 +148,7 @@ function YearInReviewPage({ darkMode, onToggleDarkMode }) {
     <Layout darkMode={darkMode} onToggleDarkMode={onToggleDarkMode}>
       <Box
         sx={{
-          minHeight: '100vh',
+          height: '100%',
           bgcolor: 'background.default',
           p: 3,
           overflowY: 'auto'
