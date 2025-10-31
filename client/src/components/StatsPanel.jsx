@@ -117,19 +117,108 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
     );
   }
 
-  // For now, just show regular stats (comparison view to be implemented)
+  // Check if we have data to display
   if (!stats && !comparisonData) {
     return null;
   }
 
+  // Determine if we're showing comparison
+  const showingComparison = comparisonMode && comparisonData && comparisonData.period1 && comparisonData.period2;
+
+  // Use comparison data if available, otherwise regular stats
+  const period1Data = showingComparison ? comparisonData.period1 : stats;
+  const period2Data = showingComparison ? comparisonData.period2 : null;
+
   // Format date range
-  const formatDateRange = () => {
-    if (!stats.date_range || !stats.date_range.first_checkin || !stats.date_range.last_checkin) {
+  const formatDateRange = (data) => {
+    if (!data || !data.date_range || !data.date_range.first_checkin || !data.date_range.last_checkin) {
       return 'No data';
     }
-    const first = new Date(stats.date_range.first_checkin).toLocaleDateString();
-    const last = new Date(stats.date_range.last_checkin).toLocaleDateString();
+    const first = new Date(data.date_range.first_checkin).toLocaleDateString();
+    const last = new Date(data.date_range.last_checkin).toLocaleDateString();
     return `${first} - ${last}`;
+  };
+
+  // Prepare comparison data for bar charts (merge both periods)
+  const prepareComparisonBarData = (period1Array, period2Array, keyField) => {
+    const combined = {};
+
+    // Add period 1 data
+    period1Array.forEach(item => {
+      const key = item[keyField];
+      combined[key] = {
+        name: key,
+        period1: parseInt(item.count) || 0,
+        period2: 0
+      };
+    });
+
+    // Add period 2 data
+    period2Array.forEach(item => {
+      const key = item[keyField];
+      if (combined[key]) {
+        combined[key].period2 = parseInt(item.count) || 0;
+      } else {
+        combined[key] = {
+          name: key,
+          period1: 0,
+          period2: parseInt(item.count) || 0
+        };
+      }
+    });
+
+    // Convert to array and sort by total count
+    return Object.values(combined)
+      .map(item => ({
+        ...item,
+        total: item.period1 + item.period2
+      }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5); // Top 5
+  };
+
+  // Prepare comparison timeline data (merge both periods' timelines)
+  const prepareComparisonTimelineData = (period1Timeline, period2Timeline) => {
+    const combined = {};
+
+    // Helper to format timeline item
+    const formatTimelineItem = (item) => {
+      if (item.day) {
+        return `${item.year}-${String(item.month).padStart(2, '0')}-${String(item.day).padStart(2, '0')}`;
+      } else if (item.week) {
+        return `${item.year}-W${String(item.week).padStart(2, '0')}`;
+      } else if (item.month) {
+        return `${item.year}-${String(item.month).padStart(2, '0')}`;
+      } else {
+        return `${item.year}`;
+      }
+    };
+
+    // Add period 1 data
+    period1Timeline.forEach(item => {
+      const date = formatTimelineItem(item);
+      combined[date] = {
+        date,
+        period1: parseInt(item.count) || 0,
+        period2: 0
+      };
+    });
+
+    // Add period 2 data
+    period2Timeline.forEach(item => {
+      const date = formatTimelineItem(item);
+      if (combined[date]) {
+        combined[date].period2 = parseInt(item.count) || 0;
+      } else {
+        combined[date] = {
+          date,
+          period1: 0,
+          period2: parseInt(item.count) || 0
+        };
+      }
+    });
+
+    return Object.values(combined).sort((a, b) => a.date.localeCompare(b.date));
   };
 
   // Prepare timeline data - backend now provides adaptive granularity
@@ -268,47 +357,71 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
           <Typography variant="body2" color="text.secondary">
             Total Check-ins
           </Typography>
-          <Typography variant="h4" sx={{ mt: 1 }}>
-            {stats.total_checkins.toLocaleString()}
-          </Typography>
+          {showingComparison ? (
+            <Box sx={{ display: 'flex', gap: 2, mt: 1, alignItems: 'baseline' }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary" display="block">Period 1</Typography>
+                <Typography variant="h5" color="primary">
+                  {period1Data.total_checkins.toLocaleString()}
+                </Typography>
+              </Box>
+              <Typography variant="h6" color="text.secondary">vs</Typography>
+              <Box>
+                <Typography variant="caption" color="text.secondary" display="block">Period 2</Typography>
+                <Typography variant="h5" color="secondary">
+                  {period2Data.total_checkins.toLocaleString()}
+                </Typography>
+              </Box>
+            </Box>
+          ) : (
+            <Typography variant="h4" sx={{ mt: 1 }}>
+              {period1Data.total_checkins.toLocaleString()}
+            </Typography>
+          )}
         </Paper>
 
         {/* Date Range */}
-        <Paper sx={{ p: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            Date Range
-          </Typography>
-          <Typography variant="body1" sx={{ mt: 1 }}>
-            {formatDateRange()}
-          </Typography>
-        </Paper>
-
-        {/* Unmappable Count */}
-        {stats.unmappable_count > 0 && (
+        {!showingComparison && (
           <Paper sx={{ p: 2 }}>
             <Typography variant="body2" color="text.secondary">
-              Unmappable Check-ins
+              Date Range
             </Typography>
-            <Typography variant="h6" sx={{ mt: 1 }}>
-              {stats.unmappable_count.toLocaleString()}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              (Missing location data)
+            <Typography variant="body1" sx={{ mt: 1 }}>
+              {formatDateRange(period1Data)}
             </Typography>
           </Paper>
         )}
 
         {/* Most Visited Venue */}
-        {stats.top_venue && (
+        {period1Data.top_venue && !showingComparison && (
           <Paper sx={{ p: 2 }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               Most Visited Venue
             </Typography>
             <Typography variant="body1" fontWeight="bold">
-              {stats.top_venue.venue_name}
+              {period1Data.top_venue.venue_name}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {stats.top_venue.count} visit{stats.top_venue.count !== 1 ? 's' : ''}
+              {period1Data.top_venue.count} visit{period1Data.top_venue.count !== 1 ? 's' : ''}
+            </Typography>
+          </Paper>
+        )}
+
+        {/* Comparison Summary */}
+        {showingComparison && comparisonData.comparison && (
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Change
+            </Typography>
+            <Typography variant="h5" sx={{
+              color: comparisonData.comparison.checkins_change >= 0 ? 'success.main' : 'error.main'
+            }}>
+              {comparisonData.comparison.checkins_change >= 0 ? '+' : ''}
+              {comparisonData.comparison.checkins_change.toLocaleString()}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              ({comparisonData.comparison.checkins_change_percent >= 0 ? '+' : ''}
+              {comparisonData.comparison.checkins_change_percent}% change)
             </Typography>
           </Paper>
         )}
@@ -323,40 +436,19 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
         gap: 2
       }}>
         {/* Top Countries */}
-        {stats.top_countries && stats.top_countries.length > 0 && (
+        {period1Data.top_countries && period1Data.top_countries.length > 0 && (
           <Paper sx={{ p: 2 }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               Top 5 Countries
             </Typography>
             <ResponsiveContainer width="100%" height={chartHeight}>
-            <BarChart data={stats.top_countries}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="country"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                style={{ fontSize: '12px' }}
-              />
-              <YAxis />
-              <ChartTooltip />
-              <Bar dataKey="count" fill="#1976d2" />
-            </BarChart>
-          </ResponsiveContainer>
-          </Paper>
-        )}
-
-        {/* Top Categories - Bar Chart */}
-        {stats.top_categories && stats.top_categories.length > 0 && (
-          <Paper sx={{ p: 2 }}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Top 5 Categories
-            </Typography>
-            <ResponsiveContainer width="100%" height={chartHeight}>
-              <BarChart data={stats.top_categories}>
+              <BarChart data={showingComparison
+                ? prepareComparisonBarData(period1Data.top_countries, period2Data.top_countries, 'country')
+                : period1Data.top_countries
+              }>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
-                  dataKey="category"
+                  dataKey={showingComparison ? "name" : "country"}
                   angle={-45}
                   textAnchor="end"
                   height={80}
@@ -364,41 +456,108 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand }) {
                 />
                 <YAxis />
                 <ChartTooltip />
-                <Bar dataKey="count" fill="#f57c00" />
+                {showingComparison ? (
+                  <>
+                    <Legend />
+                    <Bar dataKey="period1" fill="#1976d2" name="Period 1" />
+                    <Bar dataKey="period2" fill="#dc004e" name="Period 2" />
+                  </>
+                ) : (
+                  <Bar dataKey="count" fill="#1976d2" />
+                )}
+              </BarChart>
+            </ResponsiveContainer>
+          </Paper>
+        )}
+
+        {/* Top Categories - Bar Chart */}
+        {period1Data.top_categories && period1Data.top_categories.length > 0 && (
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Top 5 Categories
+            </Typography>
+            <ResponsiveContainer width="100%" height={chartHeight}>
+              <BarChart data={showingComparison
+                ? prepareComparisonBarData(period1Data.top_categories, period2Data.top_categories, 'category')
+                : period1Data.top_categories
+              }>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey={showingComparison ? "name" : "category"}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis />
+                <ChartTooltip />
+                {showingComparison ? (
+                  <>
+                    <Legend />
+                    <Bar dataKey="period1" fill="#1976d2" name="Period 1" />
+                    <Bar dataKey="period2" fill="#dc004e" name="Period 2" />
+                  </>
+                ) : (
+                  <Bar dataKey="count" fill="#f57c00" />
+                )}
               </BarChart>
             </ResponsiveContainer>
           </Paper>
         )}
 
         {/* Timeline Chart */}
-        {stats.timeline && stats.timeline.length > 0 && (
+        {period1Data.timeline && period1Data.timeline.length > 0 && (
           <Paper sx={{ p: 2, gridColumn: isExpanded ? '1 / -1' : 'auto' }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
               Check-ins Over Time
             </Typography>
             <ResponsiveContainer width="100%" height={chartHeight}>
-            <LineChart data={prepareTimelineData()}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="date"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                style={{ fontSize: '10px' }}
-              />
-              <YAxis />
-              <ChartTooltip />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="count"
-                stroke="#1976d2"
-                name="Check-ins"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+              <LineChart data={showingComparison
+                ? prepareComparisonTimelineData(period1Data.timeline, period2Data.timeline)
+                : prepareTimelineData()
+              }>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="date"
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  style={{ fontSize: '10px' }}
+                />
+                <YAxis />
+                <ChartTooltip />
+                <Legend />
+                {showingComparison ? (
+                  <>
+                    <Line
+                      type="monotone"
+                      dataKey="period1"
+                      stroke="#1976d2"
+                      name="Period 1"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="period2"
+                      stroke="#dc004e"
+                      name="Period 2"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                    />
+                  </>
+                ) : (
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#1976d2"
+                    name="Check-ins"
+                    strokeWidth={2}
+                    dot={{ r: 3 }}
+                  />
+                )}
+              </LineChart>
+            </ResponsiveContainer>
           </Paper>
         )}
       </Box>
