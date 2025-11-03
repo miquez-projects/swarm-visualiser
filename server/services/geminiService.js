@@ -23,7 +23,7 @@ const tools = {
     {
       name: 'query_checkins',
       description: 'Query user\'s Foursquare check-in data. Use this to answer questions about check-in history, locations, venues, categories, dates, and statistics.',
-    parameters: {
+      parameters: {
       type: 'object',
       properties: {
         queryType: {
@@ -104,6 +104,7 @@ const tools = {
         limit: { type: 'integer', description: 'Maximum number of results' }
       },
       required: ['queryType']
+      }
     }
   ]
 };
