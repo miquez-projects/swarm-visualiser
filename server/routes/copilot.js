@@ -143,11 +143,13 @@ router.post(
         }
       }
 
-      console.log('Final AI response:', result.response.text());
+      // Get response text once (text() can only be called once)
+      const responseText = result.response.text();
+      console.log('Final AI response:', responseText);
 
       // Return final response
       res.json({
-        response: result.response.text()
+        response: responseText
       });
 
     } catch (error) {
