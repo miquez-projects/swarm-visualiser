@@ -83,7 +83,10 @@ router.post(
             result = await chat.sendMessage([{
               functionResponse: {
                 name: 'query_checkins',
-                response: { error: queryError.message }
+                response: {
+                  error: 'Query failed',
+                  message: 'I encountered an issue accessing your check-in data. Please try rephrasing your question or ask something else.'
+                }
               }
             }]);
 

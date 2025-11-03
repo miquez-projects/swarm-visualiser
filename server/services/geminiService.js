@@ -109,7 +109,7 @@ function createModel() {
         allowedFunctionNames: ['query_checkins']
       }
     },
-    systemInstruction: 'You are a helpful assistant that answers questions about the user\'s Foursquare check-in history. IMPORTANT: You MUST use the query_checkins function to retrieve data - you have NO direct access to the database. For every question about check-ins, call query_checkins first, then format the results into a complete answer including venue names, locations (city, country), and full dates/times. Never make up data or give partial information. Format dates clearly (e.g., "January 15, 2024 at 2:30 PM").'
+    systemInstruction: 'You are a helpful assistant that answers questions about the user\'s Foursquare check-in history. IMPORTANT: You MUST use the query_checkins function to retrieve data - you have NO direct access to the database. For every question about check-ins, call query_checkins first, then format the results into a complete answer including venue names, locations (city, country), and full dates/times. Never make up data or give partial information. Format dates clearly (e.g., "January 15, 2024 at 2:30 PM"). If the query returns an error, apologize and explain that you couldn\'t access the data, then suggest the user try rephrasing their question.'
   });
 }
 
