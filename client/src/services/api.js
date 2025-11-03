@@ -114,4 +114,25 @@ export const healthCheck = async () => {
   return response.data;
 };
 
+/**
+ * Send message to AI copilot
+ * @param {string} message - User message
+ * @param {Array} conversationHistory - Previous messages
+ * @param {string} token - Auth token
+ * @returns {Promise<Object>} AI response
+ */
+export const sendCopilotMessage = async (message, conversationHistory, token) => {
+  const params = {};
+  if (token) {
+    params.token = token;
+  }
+
+  const response = await api.post('/api/copilot/chat', {
+    message,
+    conversationHistory: conversationHistory.length > 10 ? [] : conversationHistory
+  }, { params });
+
+  return response.data;
+};
+
 export default api;
