@@ -75,8 +75,20 @@ const queryCheckinsTool = {
           type: 'object',
           description: 'Sort order',
           properties: {
-            field: { type: 'string', description: 'Field to sort by' },
+            field: {
+              type: 'string',
+              enum: ['id', 'venue_name', 'venue_category', 'city', 'state', 'country', 'checkin_date', 'checkin_time', 'timezone', 'created_at'],
+              description: 'Field to sort by - use checkin_date for dates, not "date"'
+            },
             direction: { type: 'string', enum: ['ASC', 'DESC'], description: 'Sort direction' }
+          }
+        },
+        select: {
+          type: 'array',
+          description: 'Fields to return in results',
+          items: {
+            type: 'string',
+            enum: ['id', 'venue_name', 'venue_category', 'city', 'state', 'country', 'checkin_date', 'checkin_time', 'timezone', 'created_at']
           }
         },
         limit: { type: 'integer', description: 'Maximum number of results' }
