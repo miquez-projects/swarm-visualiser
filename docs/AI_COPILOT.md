@@ -9,6 +9,7 @@ The copilot acts as a knowledgeable travel companion with perfect recall, provid
 ## Features
 
 - **Natural Language Queries**: Ask questions in plain English
+- **Trip Context Awareness**: Understands "that trip" and expands to full continuous stays in a country
 - **Persistent Chat Sessions**: Server-side sessions reduce token usage and maintain context
 - **Secure Query Execution**: All queries are user-scoped and validated
 - **Chat History**: Conversations persist in browser localStorage (up to 50 messages)
@@ -20,12 +21,20 @@ The copilot acts as a knowledgeable travel companion with perfect recall, provid
 
 ## Example Questions
 
+**Basic Queries:**
 - "Where did I last check in in Slovenia?"
 - "How many check-ins do I have?"
 - "What are my top 5 categories?"
 - "How many times did I check in per month in 2024?"
 - "Which venues have I visited most?"
 - "When was my first check-in?"
+
+**Trip Context Queries:**
+- "Where did I last check in in Sweden?" → "Tell me more about that trip"
+- "When did I visit France in 2020?" → "What else did I do on that trip?"
+- "Show me my last check-in at an airport" → "Tell me about that trip"
+
+**Advanced Queries:**
 - "Show me all check-ins in Sweden before June 2022"
 - "How many restaurants have I been to in France?"
 - "What ski resorts have I visited?"
@@ -261,6 +270,35 @@ Edit `systemInstruction` in `server/services/geminiService.js` to change:
 - **Memory Protection**: Prevents unbounded memory growth
 - **Fair Resource Use**: Least recently used sessions evicted first
 - **Max Sessions**: 1000 concurrent (way more than needed for personal use)
+
+### How Trip Context Awareness Works
+
+**Problem:** User asks "Tell me more about that trip" but AI only knows about the single check-in mentioned.
+
+**Solution:** AI is instructed to:
+1. **Extract context** from its previous response (country + date)
+2. **Query broader window** (~2 weeks before/after that date in that country)
+3. **Identify boundaries**:
+   - Entry: First check-in where previous was different country or 24+ hour gap
+   - Exit: Last check-in before next is different country or 24+ hour gap
+4. **Present full trip**: Arrival → highlights → departure with duration
+
+**Example:**
+```
+User: "When did I last check in in Sweden?"
+AI: "Stockholm Arlanda Airport, June 15, 2022"
+
+User: "Tell me more about that trip"
+AI queries: Sweden check-ins June 1-29, 2022
+AI finds: Entry June 12 (Malmö), Exit June 16 (Arlanda)
+AI responds: "That was a 4-day trip to Sweden, June 12-16. You arrived
+in Malmö, spent 2 days in Stockholm visiting [venues], then departed
+via Arlanda."
+```
+
+**Trip Definition:** A continuous stay in one country. Leaving and returning = separate trips.
+
+**Implementation:** Pure prompt engineering - no code changes, just enhanced system instruction.
 
 ## Development
 
