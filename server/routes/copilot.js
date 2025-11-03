@@ -24,7 +24,7 @@ router.post(
     }
 
     const { message, conversationHistory = [] } = req.body;
-    const userId = req.user.id;
+    const userId = String(req.user.id);
 
     try {
       // Get or create chat session
