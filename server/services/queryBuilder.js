@@ -1,4 +1,4 @@
-const db = require('../db/db');
+const db = require('../db/connection');
 
 // Whitelisted fields
 const ALLOWED_FIELDS = {
