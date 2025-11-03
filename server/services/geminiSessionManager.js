@@ -97,26 +97,35 @@ class GeminiSessionManager {
       throw new Error('conversationHistory must be an array');
     }
 
-    return conversationHistory.map((msg, index) => {
-      // Validate each message structure
-      if (!msg || typeof msg !== 'object') {
-        throw new Error(`Invalid message at index ${index}: must be an object`);
-      }
-      if (!msg.role || typeof msg.role !== 'string') {
-        throw new Error(`Invalid message at index ${index}: role must be a non-empty string`);
-      }
-      if (!msg.content || typeof msg.content !== 'string') {
-        throw new Error(`Invalid message at index ${index}: content must be a non-empty string`);
-      }
-      if (!['user', 'assistant'].includes(msg.role)) {
-        throw new Error(`Invalid message at index ${index}: role must be either 'user' or 'assistant'`);
-      }
-
-      return {
+    return conversationHistory
+      .filter((msg, index) => {
+        // Skip invalid messages instead of throwing
+        if (!msg || typeof msg !== 'object') {
+          console.warn(`Skipping invalid message at index ${index}: not an object`);
+          return false;
+        }
+        if (!msg.role || typeof msg.role !== 'string') {
+          console.warn(`Skipping invalid message at index ${index}: invalid role`);
+          return false;
+        }
+        if (typeof msg.content !== 'string') {
+          console.warn(`Skipping invalid message at index ${index}: content not a string`);
+          return false;
+        }
+        if (msg.content.trim().length === 0) {
+          console.warn(`Skipping empty message at index ${index}`);
+          return false;
+        }
+        if (!['user', 'assistant'].includes(msg.role)) {
+          console.warn(`Skipping invalid message at index ${index}: invalid role value`);
+          return false;
+        }
+        return true;
+      })
+      .map((msg) => ({
         role: msg.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: msg.content }]
-      };
-    });
+      }));
   }
 
   /**
