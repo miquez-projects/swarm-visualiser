@@ -102,8 +102,17 @@ class QueryBuilder {
       }
 
       if (params.filters.dateRange) {
-        conditions.push(`checkin_date BETWEEN $${paramIndex++} AND $${paramIndex++}`);
-        values.push(params.filters.dateRange.start, params.filters.dateRange.end);
+        const { start, end } = params.filters.dateRange;
+        if (start && end) {
+          conditions.push(`checkin_date BETWEEN $${paramIndex++} AND $${paramIndex++}`);
+          values.push(start, end);
+        } else if (start) {
+          conditions.push(`checkin_date >= $${paramIndex++}`);
+          values.push(start);
+        } else if (end) {
+          conditions.push(`checkin_date <= $${paramIndex++}`);
+          values.push(end);
+        }
       }
     }
 
@@ -142,8 +151,17 @@ class QueryBuilder {
       }
 
       if (params.filters.dateRange) {
-        conditions.push(`checkin_date BETWEEN $${paramIndex++} AND $${paramIndex++}`);
-        values.push(params.filters.dateRange.start, params.filters.dateRange.end);
+        const { start, end } = params.filters.dateRange;
+        if (start && end) {
+          conditions.push(`checkin_date BETWEEN $${paramIndex++} AND $${paramIndex++}`);
+          values.push(start, end);
+        } else if (start) {
+          conditions.push(`checkin_date >= $${paramIndex++}`);
+          values.push(start);
+        } else if (end) {
+          conditions.push(`checkin_date <= $${paramIndex++}`);
+          values.push(end);
+        }
       }
     }
 
@@ -198,8 +216,17 @@ class QueryBuilder {
       }
 
       if (params.filters.dateRange) {
-        conditions.push(`checkin_date BETWEEN $${paramIndex++} AND $${paramIndex++}`);
-        values.push(params.filters.dateRange.start, params.filters.dateRange.end);
+        const { start, end } = params.filters.dateRange;
+        if (start && end) {
+          conditions.push(`checkin_date BETWEEN $${paramIndex++} AND $${paramIndex++}`);
+          values.push(start, end);
+        } else if (start) {
+          conditions.push(`checkin_date >= $${paramIndex++}`);
+          values.push(start);
+        } else if (end) {
+          conditions.push(`checkin_date <= $${paramIndex++}`);
+          values.push(end);
+        }
       }
     }
 
