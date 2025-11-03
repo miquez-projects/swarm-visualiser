@@ -6,11 +6,52 @@ const activeSessions = new Map();
 // Session timeout: 30 minutes
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
+// Maximum number of concurrent sessions to prevent memory leaks
+const MAX_SESSIONS = 1000;
+
 class GeminiSessionManager {
+  constructor() {
+    this.cleanupIntervalId = null;
+  }
+  /**
+   * Validate user ID format
+   */
+  validateUserId(userId) {
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      throw new Error('Invalid userId: must be a non-empty string');
+    }
+    if (userId.length > 255) {
+      throw new Error('Invalid userId: exceeds maximum length of 255 characters');
+    }
+  }
+
+  /**
+   * Evict least recently used session when MAX_SESSIONS is reached
+   */
+  evictLRUSession() {
+    let oldestUserId = null;
+    let oldestActivity = Infinity;
+
+    for (const [userId, session] of activeSessions.entries()) {
+      if (session.lastActivity < oldestActivity) {
+        oldestActivity = session.lastActivity;
+        oldestUserId = userId;
+      }
+    }
+
+    if (oldestUserId) {
+      activeSessions.delete(oldestUserId);
+      console.log(`Evicted LRU session for user ${oldestUserId} (last activity: ${new Date(oldestActivity).toISOString()})`);
+    }
+  }
+
   /**
    * Get existing session or create new one with history
    */
   getOrCreateSession(userId, conversationHistory = []) {
+    // Validate user ID
+    this.validateUserId(userId);
+
     const existing = activeSessions.get(userId);
 
     // Reuse if session exists and is recent
@@ -19,18 +60,28 @@ class GeminiSessionManager {
       return existing.chat;
     }
 
+    // Check if we need to evict a session before creating a new one
+    if (activeSessions.size >= MAX_SESSIONS) {
+      this.evictLRUSession();
+    }
+
     // Create new session with history from localStorage
-    const model = createModel();
-    const chat = model.startChat({
-      history: this.formatHistory(conversationHistory)
-    });
+    try {
+      const model = createModel();
+      const chat = model.startChat({
+        history: this.formatHistory(conversationHistory)
+      });
 
-    activeSessions.set(userId, {
-      chat,
-      lastActivity: Date.now()
-    });
+      activeSessions.set(userId, {
+        chat,
+        lastActivity: Date.now()
+      });
 
-    return chat;
+      return chat;
+    } catch (error) {
+      console.error('Failed to create Gemini chat session:', error);
+      throw new Error(`Failed to create chat session: ${error.message}`);
+    }
   }
 
   /**
@@ -41,10 +92,31 @@ class GeminiSessionManager {
       return [];
     }
 
-    return conversationHistory.map(msg => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }]
-    }));
+    // Validate conversation history structure
+    if (!Array.isArray(conversationHistory)) {
+      throw new Error('conversationHistory must be an array');
+    }
+
+    return conversationHistory.map((msg, index) => {
+      // Validate each message structure
+      if (!msg || typeof msg !== 'object') {
+        throw new Error(`Invalid message at index ${index}: must be an object`);
+      }
+      if (!msg.role || typeof msg.role !== 'string') {
+        throw new Error(`Invalid message at index ${index}: role must be a non-empty string`);
+      }
+      if (!msg.content || typeof msg.content !== 'string') {
+        throw new Error(`Invalid message at index ${index}: content must be a non-empty string`);
+      }
+      if (!['user', 'assistant'].includes(msg.role)) {
+        throw new Error(`Invalid message at index ${index}: role must be either 'user' or 'assistant'`);
+      }
+
+      return {
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: msg.content }]
+      };
+    });
   }
 
   /**
@@ -63,8 +135,23 @@ class GeminiSessionManager {
    * Start periodic cleanup
    */
   startCleanupInterval() {
-    setInterval(() => this.cleanup(), 10 * 60 * 1000); // Every 10 minutes
+    if (this.cleanupIntervalId) {
+      console.warn('Cleanup interval already running');
+      return;
+    }
+    this.cleanupIntervalId = setInterval(() => this.cleanup(), 10 * 60 * 1000); // Every 10 minutes
     console.log('Gemini session cleanup interval started');
+  }
+
+  /**
+   * Stop periodic cleanup
+   */
+  stopCleanupInterval() {
+    if (this.cleanupIntervalId) {
+      clearInterval(this.cleanupIntervalId);
+      this.cleanupIntervalId = null;
+      console.log('Gemini session cleanup interval stopped');
+    }
   }
 
   /**

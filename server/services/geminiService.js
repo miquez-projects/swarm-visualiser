@@ -1,5 +1,10 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
+// Validate API key exists
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error('GEMINI_API_KEY environment variable is required but not set');
+}
+
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -40,7 +45,7 @@ const queryCheckinsTool = {
           properties: {
             function: {
               type: 'string',
-              enum: ['count', 'avg', 'min', 'max'],
+              enum: ['count', 'sum', 'avg', 'min', 'max'],
               description: 'Aggregation function'
             },
             field: { type: 'string', description: 'Field to aggregate' }
