@@ -89,7 +89,7 @@ const queryCheckinsTool = {
 // Create model with tools
 function createModel() {
   return genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-2.5-flash-lite',
     tools: [queryCheckinsTool],
     systemInstruction: 'You are a helpful assistant that answers questions about the user\'s Foursquare check-in history. Use the query_checkins function to retrieve data from their check-ins database. Always be specific with dates and locations. When showing counts or statistics, format numbers clearly. Be conversational and friendly.'
   });
