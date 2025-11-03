@@ -29,9 +29,9 @@ class QueryBuilder {
     let responseLimit = null;
 
     if (queryType === 'checkins') {
-      // Apply stricter limit for individual records to save tokens
+      // Apply limit for individual records to manage context
       const originalLimit = params.limit;
-      params.limit = params.limit ? Math.min(params.limit, 15) : 15;
+      params.limit = params.limit ? Math.min(params.limit, 500) : 500;
       responseLimit = params.limit;
 
       query = this.buildCheckinsQuery(params, userId);
