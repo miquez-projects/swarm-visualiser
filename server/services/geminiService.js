@@ -101,7 +101,7 @@ const queryCheckinsTool = {
 // Create model with tools
 function createModel() {
   return genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-2.5-flash-lite',
     tools: [queryCheckinsTool],
     toolConfig: {
       functionCallingConfig: {
