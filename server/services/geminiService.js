@@ -111,7 +111,7 @@ const tools = {
 // Create model with tools
 function createModel() {
   return genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash-lite',
+    model: 'gemini-2.5-flash',
     tools: [tools],
     toolConfig: {
       functionCallingConfig: {
