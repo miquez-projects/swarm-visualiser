@@ -22,7 +22,7 @@ const tools = {
     },
     {
       name: 'query_checkins',
-      description: 'Query user\'s Foursquare check-in data. Use this to answer questions about check-in history, locations, venues, categories, dates, and statistics.',
+      description: 'Query user\'s Foursquare check-in data. Use this to answer questions about check-in history, locations, venues, categories, dates, and statistics. Note: Individual check-in listings are limited to 15 results to conserve context. If the response includes a "note" field, inform the user that results are limited.',
       parameters: {
       type: 'object',
       properties: {

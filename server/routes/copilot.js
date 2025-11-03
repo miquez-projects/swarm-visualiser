@@ -99,11 +99,20 @@ router.post(
 
             console.log('Query results:', JSON.stringify(queryResults, null, 2));
 
-            // Send results back to AI
+            // Send results back to AI with metadata
+            const response = {
+              results: queryResults.data
+            };
+
+            // Add metadata message if results are limited
+            if (queryResults.metadata && queryResults.metadata.limited) {
+              response.note = queryResults.metadata.message;
+            }
+
             result = await chat.sendMessage([{
               functionResponse: {
                 name: 'query_checkins',
-                response: { results: queryResults }
+                response
               }
             }]);
 

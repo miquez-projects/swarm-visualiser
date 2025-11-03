@@ -26,21 +26,89 @@ class QueryBuilder {
     const { queryType } = params;
 
     let query;
+    let responseLimit = null;
+
     if (queryType === 'checkins') {
+      // Apply stricter limit for individual records to save tokens
+      const originalLimit = params.limit;
+      params.limit = params.limit ? Math.min(params.limit, 15) : 15;
+      responseLimit = params.limit;
+
       query = this.buildCheckinsQuery(params, userId);
+
+      // Get total count for metadata
+      const countQuery = this.buildCountQuery(params, userId);
+      const countResult = await db.query(countQuery.sql, countQuery.values);
+      const totalCount = parseInt(countResult.rows[0].count, 10);
+
+      const result = await db.query(query.sql, query.values);
+
+      return {
+        data: result.rows,
+        metadata: {
+          returned: result.rows.length,
+          total: totalCount,
+          limited: totalCount > result.rows.length,
+          message: totalCount > result.rows.length
+            ? `Showing ${result.rows.length} of ${totalCount} results. Results are limited to save context.`
+            : null
+        }
+      };
     } else if (queryType === 'aggregation') {
       query = this.buildAggregationQuery(params, userId);
+      const result = await db.query(query.sql, query.values);
+
+      return {
+        data: result.rows,
+        metadata: {
+          returned: result.rows.length,
+          total: result.rows.length,
+          limited: false
+        }
+      };
     } else {
       throw new Error('Invalid query type');
     }
+  }
 
-    try {
-      const result = await db.query(query.sql, query.values);
-      return result.rows;
-    } catch (error) {
-      console.error('Query execution error:', error);
-      throw new Error('Failed to execute query');
+  /**
+   * Build a COUNT query to get total results
+   */
+  buildCountQuery(params, userId) {
+    const conditions = ['user_id = $1'];
+    const values = [userId];
+    let paramIndex = 2;
+
+    // Apply same filters as main query
+    if (params.filters) {
+      if (params.filters.country) {
+        conditions.push(`country = $${paramIndex++}`);
+        values.push(params.filters.country);
+      }
+
+      if (params.filters.city) {
+        conditions.push(`city = $${paramIndex++}`);
+        values.push(params.filters.city);
+      }
+
+      if (params.filters.category) {
+        conditions.push(`venue_category = $${paramIndex++}`);
+        values.push(params.filters.category);
+      }
+
+      if (params.filters.venueName) {
+        conditions.push(`venue_name ILIKE $${paramIndex++}`);
+        values.push(`%${params.filters.venueName}%`);
+      }
+
+      if (params.filters.dateRange) {
+        conditions.push(`checkin_date BETWEEN $${paramIndex++} AND $${paramIndex++}`);
+        values.push(params.filters.dateRange.start, params.filters.dateRange.end);
+      }
     }
+
+    const sql = `SELECT COUNT(*) as count FROM checkins WHERE ${conditions.join(' AND ')}`;
+    return { sql, values };
   }
 
   /**
