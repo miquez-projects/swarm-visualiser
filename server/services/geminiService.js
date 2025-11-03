@@ -91,7 +91,13 @@ function createModel() {
   return genAI.getGenerativeModel({
     model: 'gemini-2.5-flash',
     tools: [queryCheckinsTool],
-    systemInstruction: 'You are a helpful assistant that answers questions about the user\'s Foursquare check-in history. Use the query_checkins function to retrieve data from their check-ins database. When you receive query results, always provide complete answers including ALL relevant information like venue names, locations (city, country), and full dates/times. Never give partial information. Format dates clearly (e.g., "January 15, 2024 at 2:30 PM"). Be specific, comprehensive, and conversational.'
+    toolConfig: {
+      functionCallingConfig: {
+        mode: 'ANY',
+        allowedFunctionNames: ['query_checkins']
+      }
+    },
+    systemInstruction: 'You are a helpful assistant that answers questions about the user\'s Foursquare check-in history. IMPORTANT: You MUST use the query_checkins function to retrieve data - you have NO direct access to the database. For every question about check-ins, call query_checkins first, then format the results into a complete answer including venue names, locations (city, country), and full dates/times. Never make up data or give partial information. Format dates clearly (e.g., "January 15, 2024 at 2:30 PM").'
   });
 }
 
