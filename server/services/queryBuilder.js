@@ -9,7 +9,6 @@ const ALLOWED_FIELDS = {
 };
 
 const ALLOWED_AGGREGATIONS = ['count', 'avg', 'min', 'max', 'sum'];
-const ALLOWED_GROUP_BY = ['country', 'city', 'venue_category', 'venue_name', 'checkin_date'];
 
 // Date granularity SQL templates
 const DATE_GRANULARITIES = {
@@ -94,7 +93,7 @@ class QueryBuilder {
     }
 
     // Add LIMIT
-    const limit = params.limit ? Math.min(parseInt(params.limit), 1000) : 100;
+    const limit = params.limit ? Math.min(parseInt(params.limit, 10), 1000) : 100;
     sql += ` LIMIT ${limit}`;
 
     return { sql, values };
@@ -137,7 +136,9 @@ class QueryBuilder {
       throw new Error('Invalid aggregation function');
     }
 
-    const aggField = params.aggregation?.field || '*';
+    const aggField = params.aggregation?.field
+      ? this.validateField(params.aggregation.field)
+      : '*';
 
     // Build GROUP BY fields
     let groupByClause = '';
@@ -167,7 +168,7 @@ class QueryBuilder {
     }
 
     // Add LIMIT
-    const limit = params.limit ? Math.min(parseInt(params.limit), 1000) : 100;
+    const limit = params.limit ? Math.min(parseInt(params.limit, 10), 1000) : 100;
     sql += ` LIMIT ${limit}`;
 
     return { sql, values };
