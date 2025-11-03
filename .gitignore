@@ -32,3 +32,6 @@ logs/
 # Database
 *.db
 *.sqlite
+
+# Git worktrees
+.worktrees/
