@@ -1,0 +1,215 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Box,
+  Fab,
+  Paper,
+  CircularProgress,
+  Typography,
+  Slide,
+  Alert
+} from '@mui/material';
+import { Chat } from '@mui/icons-material';
+import ChatHeader from './ChatHeader';
+import ChatMessage from './ChatMessage';
+import ChatInput from './ChatInput';
+import { sendCopilotMessage } from '../../services/api';
+import {
+  loadMessages,
+  saveMessages,
+  clearMessages,
+  loadCopilotState,
+  saveCopilotState
+} from '../../utils/copilotStorage';
+
+function CopilotChat({ token }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const messagesEndRef = useRef(null);
+
+  // Load state and messages on mount
+  useEffect(() => {
+    const savedState = loadCopilotState();
+    setIsOpen(savedState.isOpen || false);
+    setIsExpanded(savedState.isExpanded || false);
+
+    const savedMessages = loadMessages();
+    setMessages(savedMessages);
+  }, []);
+
+  // Save state when it changes
+  useEffect(() => {
+    saveCopilotState({ isOpen, isExpanded });
+  }, [isOpen, isExpanded]);
+
+  // Save messages when they change
+  useEffect(() => {
+    saveMessages(messages);
+  }, [messages]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSendMessage = async (message) => {
+    setError(null);
+
+    // Add user message
+    const userMessage = {
+      role: 'user',
+      content: message,
+      timestamp: new Date().toISOString()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+
+    try {
+      // Send to API
+      const response = await sendCopilotMessage(message, messages, token);
+
+      // Add AI response
+      const aiMessage = {
+        role: 'assistant',
+        content: response.response,
+        timestamp: new Date().toISOString()
+      };
+
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (err) {
+      console.error('Failed to send message:', err);
+      setError('Unable to reach AI service. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClear = () => {
+    if (window.confirm('Clear all chat history?')) {
+      setMessages([]);
+      clearMessages();
+    }
+  };
+
+  const handleToggleExpand = () => {
+    setIsExpanded(!isExpanded);
+  };
+
+  const handleMinimize = () => {
+    setIsOpen(false);
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+  };
+
+  const handleOpen = () => {
+    setIsOpen(true);
+  };
+
+  // Chat panel dimensions
+  const width = isExpanded ? 800 : 400;
+  const height = 600;
+
+  return (
+    <>
+      {/* Floating Action Button */}
+      {!isOpen && (
+        <Fab
+          color="primary"
+          onClick={handleOpen}
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            zIndex: 1000
+          }}
+        >
+          <Chat />
+        </Fab>
+      )}
+
+      {/* Chat Panel */}
+      <Slide direction="up" in={isOpen} mountOnEnter unmountOnExit>
+        <Paper
+          elevation={8}
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            width: { xs: 'calc(100vw - 48px)', sm: width },
+            height: { xs: 'calc(100vh - 48px)', sm: height },
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 1300,
+            maxWidth: '90vw'
+          }}
+        >
+          {/* Header */}
+          <ChatHeader
+            onClose={handleClose}
+            onMinimize={handleMinimize}
+            onToggleExpand={handleToggleExpand}
+            isExpanded={isExpanded}
+            onClear={handleClear}
+          />
+
+          {/* Messages */}
+          <Box
+            sx={{
+              flexGrow: 1,
+              overflowY: 'auto',
+              p: 2,
+              bgcolor: 'background.default'
+            }}
+          >
+            {messages.length === 0 && (
+              <Box sx={{ textAlign: 'center', mt: 4 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Ask me anything about your check-ins!
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                  Try: "Where did I last check in in Slovenia?"
+                </Typography>
+              </Box>
+            )}
+
+            {messages.map((msg, index) => (
+              <ChatMessage
+                key={index}
+                role={msg.role}
+                content={msg.content}
+                timestamp={msg.timestamp}
+              />
+            ))}
+
+            {isLoading && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <CircularProgress size={20} />
+                <Typography variant="body2" color="text.secondary">
+                  Thinking...
+                </Typography>
+              </Box>
+            )}
+
+            {error && (
+              <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+
+            <div ref={messagesEndRef} />
+          </Box>
+
+          {/* Input */}
+          <ChatInput onSend={handleSendMessage} disabled={isLoading} />
+        </Paper>
+      </Slide>
+    </>
+  );
+}
+
+export default CopilotChat;
