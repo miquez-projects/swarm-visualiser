@@ -38,7 +38,7 @@ router.post(
       // Extract function calls - try both old and new SDK methods
       let functionCalls = [];
       if (typeof result.response.functionCalls === 'function') {
-        functionCalls = result.response.functionCalls();
+        functionCalls = result.response.functionCalls() || [];
       } else if (Array.isArray(result.response.functionCalls)) {
         functionCalls = result.response.functionCalls;
       }
@@ -46,7 +46,7 @@ router.post(
       console.log('Extracted function calls:', functionCalls.length);
 
       // Handle function calls
-      while (functionCalls.length > 0) {
+      while (functionCalls && functionCalls.length > 0) {
         const functionCall = functionCalls.shift();
         console.log('Processing function call:', JSON.stringify(functionCall, null, 2));
 
@@ -70,9 +70,9 @@ router.post(
 
             // Re-extract function calls from new response
             if (typeof result.response.functionCalls === 'function') {
-              functionCalls = result.response.functionCalls();
+              functionCalls = result.response.functionCalls() || [];
             } else if (Array.isArray(result.response.functionCalls)) {
-              functionCalls = result.response.functionCalls;
+              functionCalls = result.response.functionCalls || [];
             } else {
               functionCalls = [];
             }
