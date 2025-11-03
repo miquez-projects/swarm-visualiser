@@ -33,6 +33,10 @@ router.post(
       // Send user message
       let result = await chat.sendMessage(message);
 
+      console.log('AI response candidates:', JSON.stringify(result.response.candidates, null, 2));
+      console.log('Has function calls?', !!result.response.functionCalls);
+      console.log('Function calls length:', result.response.functionCalls?.length || 0);
+
       // Handle function calls
       while (result.response.functionCalls && result.response.functionCalls.length > 0) {
         const functionCall = result.response.functionCalls[0];
