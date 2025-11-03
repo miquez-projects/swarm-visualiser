@@ -1,10 +1,10 @@
 const db = require('../db/connection');
 
-// Whitelisted fields
+// Whitelisted fields (must match actual database schema)
 const ALLOWED_FIELDS = {
   checkins: [
-    'id', 'venue_name', 'venue_category', 'city', 'state', 'country',
-    'checkin_date', 'checkin_time', 'timezone', 'created_at'
+    'id', 'venue_id', 'venue_name', 'venue_category', 'city', 'country',
+    'checkin_date', 'latitude', 'longitude', 'created_at'
   ]
 };
 
@@ -80,7 +80,7 @@ class QueryBuilder {
     }
 
     // Build SELECT clause
-    const fields = params.select || ['venue_name', 'city', 'country', 'checkin_date', 'checkin_time'];
+    const fields = params.select || ['venue_name', 'city', 'country', 'checkin_date'];
     const validatedFields = fields.map(f => this.validateField(f)).join(', ');
 
     let sql = `SELECT ${validatedFields} FROM checkins WHERE ${conditions.join(' AND ')}`;
