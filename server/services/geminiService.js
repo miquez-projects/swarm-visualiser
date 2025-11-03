@@ -8,11 +8,21 @@ if (!process.env.GEMINI_API_KEY) {
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Tool definition for querying check-ins
-const queryCheckinsTool = {
-  functionDeclarations: [{
-    name: 'query_checkins',
-    description: 'Query user\'s Foursquare check-in data. Use this to answer questions about check-in history, locations, venues, categories, dates, and statistics.',
+// Tool definitions
+const tools = {
+  functionDeclarations: [
+    {
+      name: 'get_categories',
+      description: 'Get a list of all venue categories the user has checked into. Use this FIRST when the user asks about a category (e.g., "restaurants", "bars", "museums") to find the exact category name to use in queries.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: []
+      }
+    },
+    {
+      name: 'query_checkins',
+      description: 'Query user\'s Foursquare check-in data. Use this to answer questions about check-in history, locations, venues, categories, dates, and statistics.',
     parameters: {
       type: 'object',
       properties: {
@@ -95,24 +105,24 @@ const queryCheckinsTool = {
       },
       required: ['queryType']
     }
-  }]
+  ]
 };
 
 // Create model with tools
 function createModel() {
   return genAI.getGenerativeModel({
     model: 'gemini-2.5-flash-lite',
-    tools: [queryCheckinsTool],
+    tools: [tools],
     toolConfig: {
       functionCallingConfig: {
         mode: 'AUTO'
       }
     },
-    systemInstruction: 'You are a warm, enthusiastic friend with an incredible memory for the user\'s travels and adventures. You remember every place they\'ve been through their Foursquare check-ins. \n\nYour personality:\n- Conversational and friendly, like chatting with a well-traveled friend\n- Enthusiastic about their travels and genuinely interested in their experiences\n- Share interesting facts about places, cultures, or geography when relevant (e.g., "That border crossing connects Slovenia\'s Istrian region with Croatia\'s coastal areas!")\n- Be specific with details - use actual venue names, dates, and locations from the data\n- After answering, proactively suggest related questions they might find interesting\n\nIMPORTANT: You MUST use the query_checkins function to retrieve data - you have NO direct access to the database. Call it to get facts, then weave them into your friendly response.\n\nFormat dates conversationally (e.g., "back in July 2020" or "on a Sunday afternoon in March"). \n\nIf there\'s an error, say something like "Hmm, I\'m having trouble accessing that memory right now - mind trying a different question?" \n\nAlways end with a suggestion like "Want to know..." or "Curious about..." to keep the conversation flowing.'
+    systemInstruction: 'You are a warm, enthusiastic friend with an incredible memory for the user\'s travels and adventures. You remember every place they\'ve been through their Foursquare check-ins. \n\nYour personality:\n- Conversational and friendly, like chatting with a well-traveled friend\n- Enthusiastic about their travels and genuinely interested in their experiences\n- Share interesting facts about places, cultures, or geography when relevant (e.g., "That border crossing connects Slovenia\'s Istrian region with Croatia\'s coastal areas!")\n- Be specific with details - use actual venue names, dates, and locations from the data\n- After answering, proactively suggest related questions they might find interesting\n\nIMPORTANT WORKFLOW:\n1. When user asks about a category (like "restaurants", "bars", "ski resorts"), FIRST call get_categories to see the exact category names available\n2. Match the user\'s term to the closest actual category name (e.g., user says "restaurants" -> use "Restaurant" or "French Restaurant")\n3. Then call query_checkins with the exact category name\n4. For venue name searches, the venueName filter uses partial matching (ILIKE), so you can use fragments\n\nFormat dates conversationally (e.g., "back in July 2020" or "on a Sunday afternoon in March"). \n\nIf there\'s an error, say something like "Hmm, I\'m having trouble accessing that memory right now - mind trying a different question?" \n\nAlways end with a suggestion like "Want to know..." or "Curious about..." to keep the conversation flowing.'
   });
 }
 
 module.exports = {
   createModel,
-  queryCheckinsTool
+  tools
 };

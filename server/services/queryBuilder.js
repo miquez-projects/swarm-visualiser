@@ -180,6 +180,26 @@ class QueryBuilder {
   }
 
   /**
+   * Get distinct categories for the user
+   */
+  async getCategories(userId) {
+    const sql = `
+      SELECT DISTINCT venue_category
+      FROM checkins
+      WHERE user_id = $1 AND venue_category IS NOT NULL
+      ORDER BY venue_category
+    `;
+
+    try {
+      const result = await db.query(sql, [userId]);
+      return result.rows.map(row => row.venue_category);
+    } catch (error) {
+      console.error('Get categories error:', error);
+      throw new Error('Failed to fetch categories');
+    }
+  }
+
+  /**
    * Validate field name is whitelisted
    */
   validateField(field) {

@@ -50,7 +50,46 @@ router.post(
         const functionCall = functionCalls.shift();
         console.log('Processing function call:', JSON.stringify(functionCall, null, 2));
 
-        if (functionCall.name === 'query_checkins') {
+        if (functionCall.name === 'get_categories') {
+          try {
+            // Get list of categories
+            const categories = await queryBuilder.getCategories(userId);
+
+            console.log('Categories:', JSON.stringify(categories, null, 2));
+
+            // Send results back to AI
+            result = await chat.sendMessage([{
+              functionResponse: {
+                name: 'get_categories',
+                response: { categories }
+              }
+            }]);
+
+            // Re-extract function calls from new response
+            if (typeof result.response.functionCalls === 'function') {
+              functionCalls = result.response.functionCalls() || [];
+            } else if (Array.isArray(result.response.functionCalls)) {
+              functionCalls = result.response.functionCalls || [];
+            } else {
+              functionCalls = [];
+            }
+          } catch (categoryError) {
+            console.error('Get categories error:', categoryError);
+
+            // Send error to AI
+            result = await chat.sendMessage([{
+              functionResponse: {
+                name: 'get_categories',
+                response: {
+                  error: 'Failed to fetch categories',
+                  message: 'I had trouble getting the category list. Let me try to answer your question anyway.'
+                }
+              }
+            }]);
+
+            functionCalls = [];
+          }
+        } else if (functionCall.name === 'query_checkins') {
           try {
             // Execute query with user scoping
             const queryResults = await queryBuilder.executeQuery(
