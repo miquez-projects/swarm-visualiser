@@ -124,6 +124,11 @@ class QueryBuilder {
         values.push(params.filters.category);
       }
 
+      if (params.filters.venueName) {
+        conditions.push(`venue_name ILIKE $${paramIndex++}`);
+        values.push(`%${params.filters.venueName}%`);
+      }
+
       if (params.filters.dateRange) {
         conditions.push(`checkin_date BETWEEN $${paramIndex++} AND $${paramIndex++}`);
         values.push(params.filters.dateRange.start, params.filters.dateRange.end);
