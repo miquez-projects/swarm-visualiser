@@ -34,13 +34,21 @@ router.post(
       let result = await chat.sendMessage(message);
 
       console.log('AI response candidates:', JSON.stringify(result.response.candidates, null, 2));
-      console.log('Has function calls?', !!result.response.functionCalls);
-      console.log('Function calls length:', result.response.functionCalls?.length || 0);
+
+      // Extract function calls - try both old and new SDK methods
+      let functionCalls = [];
+      if (typeof result.response.functionCalls === 'function') {
+        functionCalls = result.response.functionCalls();
+      } else if (Array.isArray(result.response.functionCalls)) {
+        functionCalls = result.response.functionCalls;
+      }
+
+      console.log('Extracted function calls:', functionCalls.length);
 
       // Handle function calls
-      while (result.response.functionCalls && result.response.functionCalls.length > 0) {
-        const functionCall = result.response.functionCalls[0];
-        console.log('Function call:', JSON.stringify(functionCall, null, 2));
+      while (functionCalls.length > 0) {
+        const functionCall = functionCalls.shift();
+        console.log('Processing function call:', JSON.stringify(functionCall, null, 2));
 
         if (functionCall.name === 'query_checkins') {
           try {
@@ -59,6 +67,15 @@ router.post(
                 response: { results: queryResults }
               }
             }]);
+
+            // Re-extract function calls from new response
+            if (typeof result.response.functionCalls === 'function') {
+              functionCalls = result.response.functionCalls();
+            } else if (Array.isArray(result.response.functionCalls)) {
+              functionCalls = result.response.functionCalls;
+            } else {
+              functionCalls = [];
+            }
           } catch (queryError) {
             console.error('Query execution error:', queryError);
 
@@ -69,6 +86,8 @@ router.post(
                 response: { error: queryError.message }
               }
             }]);
+
+            functionCalls = [];
           }
         }
       }
