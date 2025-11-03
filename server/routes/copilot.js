@@ -36,6 +36,7 @@ router.post(
       // Handle function calls
       while (result.response.functionCalls && result.response.functionCalls.length > 0) {
         const functionCall = result.response.functionCalls[0];
+        console.log('Function call:', JSON.stringify(functionCall, null, 2));
 
         if (functionCall.name === 'query_checkins') {
           try {
@@ -44,6 +45,8 @@ router.post(
               functionCall.args,
               userId
             );
+
+            console.log('Query results:', JSON.stringify(queryResults, null, 2));
 
             // Send results back to AI
             result = await chat.sendMessage([{
@@ -65,6 +68,8 @@ router.post(
           }
         }
       }
+
+      console.log('Final AI response:', result.response.text());
 
       // Return final response
       res.json({
