@@ -35,6 +35,7 @@ app.use('/api/checkins', require('./routes/checkins'));
 app.use('/api/stats', require('./routes/stats'));
 app.use('/api/filters', require('./routes/filters'));
 app.use('/api/year-in-review', require('./routes/yearInReview'));
+app.use('/api/copilot', require('./routes/copilot'));
 
 // 404 handler
 app.use((req, res) => {
@@ -61,6 +62,10 @@ async function start() {
     await queue.work('import-checkins', importCheckinsHandler);
 
     console.log('Job queue initialized and workers registered');
+
+    // Start Gemini session cleanup
+    const sessionManager = require('./services/geminiSessionManager');
+    sessionManager.startCleanupInterval();
 
     // Start Express server
     app.listen(PORT, () => {
