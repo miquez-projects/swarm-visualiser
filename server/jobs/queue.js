@@ -29,6 +29,8 @@ async function initQueue() {
     retentionDays: 1,
     // Monitor state changes every 60 seconds (was 10)
     monitorStateIntervalSeconds: 60,
+    // Check for new jobs every 60 seconds (default is much more frequent)
+    newJobCheckInterval: 60000,  // milliseconds
     // Retry configuration
     retryLimit: 3,
     retryDelay: 60,
