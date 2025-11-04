@@ -1,4 +1,6 @@
 const PgBoss = require('pg-boss');
+const { pool } = require('../db/connection');
+const dailySyncOrchestrator = require('./dailySyncOrchestrator');
 
 let boss = null;
 
@@ -12,13 +14,17 @@ async function initQueue() {
   }
 
   boss = new PgBoss({
-    connectionString: process.env.DATABASE_URL,
-    // Run maintenance every 5 minutes
-    maintenanceIntervalSeconds: 300,
+    db: pool,  // Use shared connection pool instead of connectionString
+    // Run maintenance every 10 minutes
+    maintenanceIntervalSeconds: 600,
     // Delete completed jobs after 1 day
     retentionDays: 1,
-    // Monitor state changes
-    monitorStateIntervalSeconds: 10
+    // Monitor state changes every 60 seconds (was 10)
+    monitorStateIntervalSeconds: 60,
+    // Retry configuration
+    retryLimit: 3,
+    retryDelay: 60,
+    retryBackoff: true
   });
 
   boss.on('error', error => {
@@ -33,6 +39,14 @@ async function initQueue() {
 
   await boss.start();
   console.log('pg-boss job queue started');
+
+  // Register daily sync orchestrator handler
+  await boss.work('daily-sync-orchestrator', dailySyncOrchestrator);
+  console.log('Registered handler: daily-sync-orchestrator');
+
+  // Schedule daily sync at 2:00 AM UTC
+  await boss.schedule('daily-sync-orchestrator', '0 2 * * *', {}, { tz: 'UTC' });
+  console.log('Scheduled daily-sync-orchestrator: 2:00 AM UTC daily');
 
   return boss;
 }
