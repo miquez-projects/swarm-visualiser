@@ -22,15 +22,15 @@ async function initQueue() {
   }
 
   boss = new PgBoss({
-    db: dbAdapter,  // Use adapter to bridge pg-boss to node-postgres Pool
+    connectionString: process.env.DATABASE_URL,
     // Run maintenance every 10 minutes
     maintenanceIntervalSeconds: 600,
     // Delete completed jobs after 1 day
     retentionDays: 1,
     // Monitor state changes every 60 seconds (was 10)
     monitorStateIntervalSeconds: 60,
-    // Check for new jobs every 60 seconds (default is much more frequent)
-    newJobCheckInterval: 60000,  // milliseconds
+    // Disable scheduler polling (we only have one scheduled job)
+    noScheduling: false,
     // Retry configuration
     retryLimit: 3,
     retryDelay: 60,
