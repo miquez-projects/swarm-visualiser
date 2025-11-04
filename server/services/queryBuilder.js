@@ -96,6 +96,11 @@ class QueryBuilder {
         values.push(params.filters.category);
       }
 
+      if (params.filters.categoryPattern) {
+        conditions.push(`venue_category ILIKE $${paramIndex++}`);
+        values.push(`%${params.filters.categoryPattern}%`);
+      }
+
       if (params.filters.venueName) {
         conditions.push(`venue_name ILIKE $${paramIndex++}`);
         values.push(`%${params.filters.venueName}%`);
@@ -143,6 +148,11 @@ class QueryBuilder {
       if (params.filters.category) {
         conditions.push(`venue_category = $${paramIndex++}`);
         values.push(params.filters.category);
+      }
+
+      if (params.filters.categoryPattern) {
+        conditions.push(`venue_category ILIKE $${paramIndex++}`);
+        values.push(`%${params.filters.categoryPattern}%`);
       }
 
       if (params.filters.venueName) {
@@ -208,6 +218,11 @@ class QueryBuilder {
       if (params.filters.category) {
         conditions.push(`venue_category = $${paramIndex++}`);
         values.push(params.filters.category);
+      }
+
+      if (params.filters.categoryPattern) {
+        conditions.push(`venue_category ILIKE $${paramIndex++}`);
+        values.push(`%${params.filters.categoryPattern}%`);
       }
 
       if (params.filters.venueName) {
