@@ -25,6 +25,9 @@ async function authenticateToken(req, res, next) {
       });
     }
 
+    // Update last login timestamp for activity tracking
+    await User.update(user.id, { lastLoginAt: new Date() });
+
     // Attach user to request
     req.user = user;
     req.token = token;
@@ -50,6 +53,9 @@ async function optionalAuth(req, res, next) {
     if (token) {
       const user = await User.findBySecretToken(token);
       if (user) {
+        // Update last login timestamp
+        await User.update(user.id, { lastLoginAt: new Date() });
+
         req.user = user;
         req.token = token;
       }
