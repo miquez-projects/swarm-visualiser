@@ -2,6 +2,14 @@ const PgBoss = require('pg-boss');
 const { pool } = require('../db/connection');
 const dailySyncOrchestrator = require('./dailySyncOrchestrator');
 
+// Create adapter for pg-boss to use shared connection pool
+// pg-boss expects executeSql method, but node-postgres Pool uses query method
+const dbAdapter = {
+  async executeSql(text, values) {
+    return await pool.query(text, values);
+  }
+};
+
 let boss = null;
 
 /**
@@ -14,7 +22,7 @@ async function initQueue() {
   }
 
   boss = new PgBoss({
-    db: pool,  // Use shared connection pool instead of connectionString
+    db: dbAdapter,  // Use adapter to bridge pg-boss to node-postgres Pool
     // Run maintenance every 10 minutes
     maintenanceIntervalSeconds: 600,
     // Delete completed jobs after 1 day
