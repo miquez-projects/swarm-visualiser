@@ -36,6 +36,7 @@ app.use('/api/stats', require('./routes/stats'));
 app.use('/api/filters', require('./routes/filters'));
 app.use('/api/year-in-review', require('./routes/yearInReview'));
 app.use('/api/copilot', require('./routes/copilot'));
+app.use('/api/admin', require('./routes/admin'));
 
 // 404 handler
 app.use((req, res) => {
