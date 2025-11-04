@@ -8,6 +8,7 @@ A web application to visualize and analyze 15 years of Swarm/Foursquare check-in
 - **Analytics Dashboard**: Trends and statistics
 - **AI Copilot**: Ask natural language questions about your check-in history
 - **Time Period Comparison**: Compare different date ranges
+- **Daily Auto-Sync**: Automatic check-in synchronization at 2 AM UTC
 
 ## Tech Stack
 - Frontend: React + Material-UI + Mapbox GL JS
@@ -49,4 +50,12 @@ npm run db:migrate
 
 # Start development servers
 npm run dev
+```
+
+### Database Migrations
+
+Run all migrations to ensure schema is up-to-date:
+```bash
+node server/db/run-migration.js migrations/001_add_multi_user_support.sql
+node server/db/run-migration.js migrations/002_add_last_login_at.sql
 ```
