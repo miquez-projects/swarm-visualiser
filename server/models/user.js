@@ -135,14 +135,14 @@ class User {
 
   /**
    * Get all active users (for daily sync)
-   * Active = has access token AND logged in within last 30 days
+   * Active = has access token AND (logged in within last 30 days OR never logged in)
    * @returns {Promise<Array>}
    */
   static async findActive() {
     const query = `
       SELECT * FROM users
       WHERE access_token_encrypted IS NOT NULL
-      AND last_login_at > NOW() - INTERVAL '30 days'
+      AND (last_login_at > NOW() - INTERVAL '30 days' OR last_login_at IS NULL)
       ORDER BY id ASC
     `;
     const result = await db.query(query);
