@@ -1,5 +1,10 @@
 const User = require('../models/user');
 
+// Throttle last_login_at updates to reduce database load
+// Only update if last update was more than 5 minutes ago
+const lastLoginCache = new Map(); // userId -> lastUpdateTime
+const UPDATE_THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Middleware to authenticate user via magic link token
  * Expects token in query parameter: ?token=xxx
@@ -25,8 +30,16 @@ async function authenticateToken(req, res, next) {
       });
     }
 
-    // Update last login timestamp for activity tracking
-    await User.update(user.id, { lastLoginAt: new Date() });
+    // Update last login timestamp for activity tracking (throttled to every 5 minutes)
+    const now = Date.now();
+    const lastUpdate = lastLoginCache.get(user.id);
+    if (!lastUpdate || (now - lastUpdate) > UPDATE_THROTTLE_MS) {
+      // Fire-and-forget to avoid blocking request
+      User.update(user.id, { lastLoginAt: new Date() }).catch(err =>
+        console.error('Failed to update last_login_at:', err)
+      );
+      lastLoginCache.set(user.id, now);
+    }
 
     // Attach user to request
     req.user = user;
@@ -53,8 +66,16 @@ async function optionalAuth(req, res, next) {
     if (token) {
       const user = await User.findBySecretToken(token);
       if (user) {
-        // Update last login timestamp
-        await User.update(user.id, { lastLoginAt: new Date() });
+        // Update last login timestamp for activity tracking (throttled to every 5 minutes)
+        const now = Date.now();
+        const lastUpdate = lastLoginCache.get(user.id);
+        if (!lastUpdate || (now - lastUpdate) > UPDATE_THROTTLE_MS) {
+          // Fire-and-forget to avoid blocking request
+          User.update(user.id, { lastLoginAt: new Date() }).catch(err =>
+            console.error('Failed to update last_login_at:', err)
+          );
+          lastLoginCache.set(user.id, now);
+        }
 
         req.user = user;
         req.token = token;
