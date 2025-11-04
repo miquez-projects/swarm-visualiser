@@ -124,11 +124,27 @@ class User {
   }
 
   /**
-   * Get all users (for weekly sync cron job)
+   * Get all users (for admin purposes)
    * @returns {Promise<Array>}
    */
   static async findAll() {
     const query = 'SELECT * FROM users WHERE access_token_encrypted IS NOT NULL';
+    const result = await db.query(query);
+    return result.rows;
+  }
+
+  /**
+   * Get all active users (for daily sync)
+   * Active = has access token AND logged in within last 30 days
+   * @returns {Promise<Array>}
+   */
+  static async findActive() {
+    const query = `
+      SELECT * FROM users
+      WHERE access_token_encrypted IS NOT NULL
+      AND last_login_at > NOW() - INTERVAL '30 days'
+      ORDER BY id ASC
+    `;
     const result = await db.query(query);
     return result.rows;
   }
