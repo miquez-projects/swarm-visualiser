@@ -1,6 +1,6 @@
 const User = require('../models/user');
 const ImportJob = require('../models/importJob');
-const { getQueue } = require('./queue');
+const queueModule = require('./queue');
 
 /**
  * Daily sync orchestrator job handler
@@ -25,7 +25,7 @@ async function dailySyncOrchestrator(job) {
       return;
     }
 
-    const queue = getQueue();
+    const queue = queueModule.getQueue();
     let queuedCount = 0;
 
     // Queue import job for each user with staggered delays
