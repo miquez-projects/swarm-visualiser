@@ -29,11 +29,14 @@ async function dailySyncOrchestrator(job) {
     let queuedCount = 0;
 
     // Queue import job for each user with staggered delays
+    // Note: For >20 active users, consider batch-fetching import jobs to reduce DB queries
     for (let i = 0; i < activeUsers.length; i++) {
       const user = activeUsers[i];
       const delayMinutes = i * 2; // 0, 2, 4, 6, 8... minutes
 
       // Check if user already has a running import
+      // Note: On orchestrator retry, duplicate detection prevents re-queueing users
+      // that still have pending/running imports from the previous attempt
       const existingJobs = await ImportJob.findByUserId(user.id);
       const runningJob = existingJobs.find(
         j => j.status === 'running' || j.status === 'pending'
@@ -67,7 +70,7 @@ async function dailySyncOrchestrator(job) {
       queuedCount++;
 
       console.log(
-        `[DAILY-SYNC] Queued user ${user.id} (${user.display_name}) - starts in ${delayMinutes} min`
+        `[DAILY-SYNC] Queued user ${user.id} (${user.display_name || 'Unknown'}) - starts in ${delayMinutes} min`
       );
     }
 
