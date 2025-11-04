@@ -1,6 +1,6 @@
 const User = require('../models/user');
 const ImportJob = require('../models/importJob');
-const queueModule = require('./queue');
+// Note: queue module is lazy-loaded inside the function to avoid circular dependency
 
 /**
  * Daily sync orchestrator job handler
@@ -25,7 +25,9 @@ async function dailySyncOrchestrator(job) {
       return;
     }
 
-    const queue = queueModule.getQueue();
+    // Lazy-load queue module to avoid circular dependency
+    const { getQueue } = require('./queue');
+    const queue = getQueue();
     let queuedCount = 0;
 
     // Queue import job for each user with staggered delays
