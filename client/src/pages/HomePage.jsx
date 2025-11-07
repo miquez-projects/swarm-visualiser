@@ -45,6 +45,20 @@ function HomePage({ darkMode, onToggleDarkMode }) {
     };
   }, []);
 
+  const calculateBounds = useCallback((venues) => {
+    if (!venues || venues.length === 0) return null;
+
+    const lngs = venues.map(v => v.longitude).filter(lng => lng != null);
+    const lats = venues.map(v => v.latitude).filter(lat => lat != null);
+
+    if (lngs.length === 0 || lats.length === 0) return null;
+
+    return [
+      [Math.min(...lngs), Math.min(...lats)], // Southwest
+      [Math.max(...lngs), Math.max(...lats)]  // Northeast
+    ];
+  }, []);
+
   useEffect(() => {
     // Store token in localStorage if it's in URL
     if (searchParams.get('token')) {
@@ -79,10 +93,58 @@ function HomePage({ darkMode, onToggleDarkMode }) {
     }
   }, [filters, token]);
 
-  const handleFilterChange = (newFilters) => {
+  const handleFilterChange = useCallback(async (newFilters) => {
     setFilters(newFilters);
-    loadCheckins(newFilters);
-  };
+
+    // Load filtered data WITHOUT bounds (use semantic filters only)
+    try {
+      setLoading(true);
+      setError(null);
+
+      const params = {
+        ...newFilters
+      };
+
+      // Add token if available
+      if (token) {
+        params.token = token;
+      }
+
+      const response = await getCheckins(params);
+      setCheckins(response.data);
+
+      // Auto-fit map to filtered results
+      if (response.data && response.data.length > 0) {
+        const bounds = calculateBounds(response.data);
+
+        if (bounds && mapRef.current) {
+          let maxZoom = 12;
+
+          if (response.data.length === 1) {
+            maxZoom = 15; // Close zoom for single venue
+          } else if (response.data.length <= 10) {
+            maxZoom = 12; // Medium zoom
+          } else {
+            maxZoom = 10; // Wider view
+          }
+
+          mapRef.current.fitBounds(bounds, {
+            padding: 40,
+            maxZoom,
+            duration: 1000
+          });
+
+          // Clear lastLoadedBounds so viewport loading doesn't skip
+          setLastLoadedBounds(null);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading check-ins:', err);
+      setError(err.message || 'Failed to load check-ins');
+    } finally {
+      setLoading(false);
+    }
+  }, [token, calculateBounds]);
 
   // Handle viewport changes (pan/zoom)
   const handleViewportChange = useCallback((viewState) => {
