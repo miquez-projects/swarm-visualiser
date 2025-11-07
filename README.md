@@ -4,9 +4,13 @@ A web application to visualize and analyze 15 years of Swarm/Foursquare check-in
 
 ## Features
 - **Interactive Map**: 27k+ check-ins visualized with Mapbox GL JS
+  - **Smart Clustering**: Automatic grouping at low zoom levels for clarity
+  - **Viewport Loading**: Venues load dynamically as you explore the map
+  - **Filter Integration**: Search and filter with automatic map navigation
 - **Advanced Filtering**: Filter by date, category, location
 - **Analytics Dashboard**: Trends and statistics
 - **AI Copilot**: Ask natural language questions about your check-in history
+  - **Clickable Venues**: Jump to venues mentioned in responses
 - **Time Period Comparison**: Compare different date ranges
 - **Daily Auto-Sync**: Automatic check-in synchronization at 2 AM UTC
 
@@ -22,6 +26,7 @@ A web application to visualize and analyze 15 years of Swarm/Foursquare check-in
 - `/docs` - Design and planning documents
 
 ## Documentation
+- [Map Features Documentation](docs/MAP_FEATURES.md) - Clustering, viewport loading, and copilot integration
 - [AI Copilot Documentation](docs/AI_COPILOT.md) - Natural language query interface
 - [AI Copilot Deployment Guide](docs/AI_COPILOT_DEPLOYMENT.md) - Production deployment
 - [Multi-User Implementation](MULTI_USER_IMPLEMENTATION.md) - Authentication & data isolation
