@@ -5,7 +5,7 @@ import MapView from '../components/MapView';
 import FilterPanel from '../components/FilterPanel';
 import StatsPanel from '../components/StatsPanel';
 import { getCheckins } from '../services/api';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Snackbar, Alert } from '@mui/material';
 
 function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
   const [searchParams] = useSearchParams();
@@ -13,10 +13,10 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
 
   const [checkins, setCheckins] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({});
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [comparisonMode, setComparisonMode] = useState(false);
+  const [error, setError] = useState(null);
 
   // Viewport tracking state
   const [currentBounds, setCurrentBounds] = useState(null);
@@ -70,7 +70,7 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
     loadCheckins();
   }, [token, loadCheckins]);
 
-  const loadCheckins = useCallback(async (filterOverrides = {}) => {
+  const loadCheckins = useCallback(async (filterOverrides = {}, retryCount = 0) => {
     try {
       setLoading(true);
       setError(null);
@@ -89,7 +89,14 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
       setCheckins(response.data);
     } catch (err) {
       console.error('Error loading check-ins:', err);
-      setError(err.message || 'Failed to load check-ins');
+      setError('Failed to load venues. Please try again.');
+
+      // Auto-retry once after 3 seconds
+      if (retryCount === 0) {
+        setTimeout(() => {
+          loadCheckins(filterOverrides, 1);
+        }, 3000);
+      }
     } finally {
       setLoading(false);
     }
@@ -224,32 +231,29 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
       sidebar={sidebar}
       sidebarExpanded={sidebarExpanded}
     >
-      {error ? (
-        <Box
-          sx={{
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'column',
-            gap: 2
-          }}
+      <MapView
+        checkins={checkins}
+        loading={loading}
+        viewportLoading={viewportLoading}
+        mapRef={mapRef}
+        onViewportChange={handleViewportChange}
+      />
+
+      {error && (
+        <Snackbar
+          open={Boolean(error)}
+          autoHideDuration={6000}
+          onClose={() => setError(null)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
-          <Typography variant="h6" color="error">
-            Error: {error}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Make sure the server is running on http://localhost:3001
-          </Typography>
-        </Box>
-      ) : (
-        <MapView
-          checkins={checkins}
-          loading={loading}
-          viewportLoading={viewportLoading}
-          mapRef={mapRef}
-          onViewportChange={handleViewportChange}
-        />
+          <Alert
+            onClose={() => setError(null)}
+            severity="error"
+            sx={{ width: '100%' }}
+          >
+            {error}
+          </Alert>
+        </Snackbar>
       )}
     </Layout>
   );
