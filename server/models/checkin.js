@@ -15,6 +15,8 @@ class Checkin {
       country,
       city,
       search,
+      bounds,  // NEW
+      zoom,    // NEW
       limit = 1000,
       offset = 0
     } = filters;
@@ -68,6 +70,21 @@ class Checkin {
       params.push(`%${search}%`);
     }
 
+    // Geographic bounds filtering (optional - for map viewport queries)
+    if (bounds) {
+      const [minLng, minLat, maxLng, maxLat] = bounds.split(',').map(Number);
+
+      // Validate bounds
+      if (isNaN(minLng) || isNaN(minLat) || isNaN(maxLng) || isNaN(maxLat)) {
+        throw new Error('Invalid bounds format. Expected: minLng,minLat,maxLng,maxLat');
+      }
+
+      conditions.push(`latitude BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
+      conditions.push(`longitude BETWEEN $${paramIndex + 2} AND $${paramIndex + 3}`);
+      params.push(minLat, maxLat, minLng, maxLng);
+      paramIndex += 4;
+    }
+
     const whereClause = conditions.length > 0
       ? `WHERE ${conditions.join(' AND ')}`
       : '';
@@ -77,20 +94,46 @@ class Checkin {
     const countResult = await db.query(countQuery, params);
     const total = parseInt(countResult.rows[0].count);
 
-    // Get paginated data
-    const dataParams = [...params, limit, offset];
-    const dataQuery = `
-      SELECT
+    // Determine query strategy based on zoom level
+    let dataQuery;
+
+    if (zoom !== undefined && zoom < 7 && !country && !city && !category && !search) {
+      // Low zoom (0-6) without semantic filters: Use spatial sampling
+      // Returns one check-in per ~11km grid cell for geographic distribution
+      dataQuery = `
+        SELECT DISTINCT ON (
+          FLOOR(latitude * 10),
+          FLOOR(longitude * 10)
+        )
         id, venue_id, venue_name, venue_category,
         latitude, longitude, checkin_date,
         city, country
-      FROM checkins
-      ${whereClause}
-      ORDER BY checkin_date DESC
-      LIMIT $${paramIndex++} OFFSET $${paramIndex++}
-    `;
+        FROM checkins
+        ${whereClause}
+        ORDER BY
+          FLOOR(latitude * 10),
+          FLOOR(longitude * 10),
+          id DESC
+        LIMIT $${paramIndex}
+      `;
+      params.push(limit);
+    } else {
+      // High zoom (7+) or filtered: Return all matching records
+      dataQuery = `
+        SELECT
+          id, venue_id, venue_name, venue_category,
+          latitude, longitude, checkin_date,
+          city, country
+        FROM checkins
+        ${whereClause}
+        ORDER BY checkin_date DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+      params.push(limit, offset);
+      paramIndex += 2;
+    }
 
-    const dataResult = await db.query(dataQuery, dataParams);
+    const dataResult = await db.query(dataQuery, params);
 
     return {
       data: dataResult.rows,
