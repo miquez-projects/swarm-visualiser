@@ -19,8 +19,7 @@ const CATEGORY_COLORS = {
   'Unknown': '#95a5a6'
 };
 
-function MapView({ checkins, loading }) {
-  const mapRef = useRef();
+function MapView({ checkins, loading, mapRef, onViewportChange }) {
   const [selectedVenue, setSelectedVenue] = useState(null);
   const [showCheckinGrid, setShowCheckinGrid] = useState(false);
   const [viewState, setViewState] = useState({
@@ -208,7 +207,10 @@ function MapView({ checkins, loading }) {
       <Map
         ref={mapRef}
         {...viewState}
-        onMove={evt => setViewState(evt.viewState)}
+        onMove={(evt) => {
+          setViewState(evt.viewState);
+          onViewportChange?.(evt.viewState);
+        }}
         onClick={(e) => {
           const features = e.features;
           if (!features || features.length === 0) return;
