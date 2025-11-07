@@ -3,7 +3,7 @@ const db = require('../db/connection');
 class Checkin {
   /**
    * Find check-ins with optional filters and pagination
-   * @param {Object} filters - { userId, startDate, endDate, category, country, city, search, limit, offset }
+   * @param {Object} filters - { userId, startDate, endDate, category, country, city, search, bounds, zoom, limit, offset }
    * @returns {Promise<{data: Array, total: number}>}
    */
   static async find(filters = {}) {
@@ -79,6 +79,16 @@ class Checkin {
         throw new Error('Invalid bounds format. Expected: minLng,minLat,maxLng,maxLat');
       }
 
+      // Validate coordinate ranges
+      if (minLat < -90 || maxLat > 90 || minLng < -180 || maxLng > 180) {
+        throw new Error('Invalid bounds range. Latitude must be -90 to 90, longitude must be -180 to 180');
+      }
+
+      // Validate min < max
+      if (minLat >= maxLat || minLng >= maxLng) {
+        throw new Error('Invalid bounds: min values must be less than max values');
+      }
+
       conditions.push(`latitude BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
       conditions.push(`longitude BETWEEN $${paramIndex + 2} AND $${paramIndex + 3}`);
       params.push(minLat, maxLat, minLng, maxLng);
@@ -90,6 +100,7 @@ class Checkin {
       : '';
 
     // Get total count
+    // whereClause is safe - constructed from parameterized conditions only
     const countQuery = `SELECT COUNT(*) FROM checkins ${whereClause}`;
     const countResult = await db.query(countQuery, params);
     const total = parseInt(countResult.rows[0].count);
@@ -100,6 +111,7 @@ class Checkin {
     if (zoom !== undefined && zoom < 7 && !country && !city && !category && !search) {
       // Low zoom (0-6) without semantic filters: Use spatial sampling
       // Returns one check-in per ~11km grid cell for geographic distribution
+      // whereClause is safe - constructed from parameterized conditions only
       dataQuery = `
         SELECT DISTINCT ON (
           FLOOR(latitude * 10),
@@ -119,6 +131,7 @@ class Checkin {
       params.push(limit);
     } else {
       // High zoom (7+) or filtered: Return all matching records
+      // whereClause is safe - constructed from parameterized conditions only
       dataQuery = `
         SELECT
           id, venue_id, venue_name, venue_category,
