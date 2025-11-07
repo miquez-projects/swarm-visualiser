@@ -17,7 +17,11 @@ router.get(
     query('country').optional().isString(),
     query('city').optional().isString(),
     query('search').optional().isString(),
-    query('limit').optional().isInt({ min: 1, max: 5000 }).toInt(),
+    query('bounds').optional().isString()
+      .matches(/^-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*,-?\d+\.?\d*$/)
+      .withMessage('bounds must be in format: minLng,minLat,maxLng,maxLat'),
+    query('zoom').optional().isInt({ min: 0, max: 20 }).toInt(),
+    query('limit').optional().isInt({ min: 1, max: 10000 }).toInt(),
     query('offset').optional().isInt({ min: 0 }).toInt()
   ],
   async (req, res, next) => {
