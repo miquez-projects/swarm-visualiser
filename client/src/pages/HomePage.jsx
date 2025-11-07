@@ -22,6 +22,7 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
   const [currentBounds, setCurrentBounds] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(1.5);
   const [lastLoadedBounds, setLastLoadedBounds] = useState(null);
+  const [viewportLoading, setViewportLoading] = useState(false);
   const localMapRef = useRef(null);
   const mapRef = externalMapRef || localMapRef;
 
@@ -175,16 +176,22 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
     }
 
     // Debounce: Only load after user stops moving for 500ms
-    const timer = setTimeout(() => {
-      const bufferPercent = currentZoom >= 7 ? 0.2 : 0.5;
-      const bufferedBounds = addBuffer(currentBounds, bufferPercent);
+    const timer = setTimeout(async () => {
+      setViewportLoading(true);
 
-      loadCheckins({
-        bounds: `${bufferedBounds.minLng},${bufferedBounds.minLat},${bufferedBounds.maxLng},${bufferedBounds.maxLat}`,
-        zoom: Math.floor(currentZoom)
-      });
+      try {
+        const bufferPercent = currentZoom >= 7 ? 0.2 : 0.5;
+        const bufferedBounds = addBuffer(currentBounds, bufferPercent);
 
-      setLastLoadedBounds(bufferedBounds);
+        await loadCheckins({
+          bounds: `${bufferedBounds.minLng},${bufferedBounds.minLat},${bufferedBounds.maxLng},${bufferedBounds.maxLat}`,
+          zoom: Math.floor(currentZoom)
+        });
+
+        setLastLoadedBounds(bufferedBounds);
+      } finally {
+        setViewportLoading(false);
+      }
     }, 500);
 
     return () => clearTimeout(timer);
@@ -239,6 +246,7 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
         <MapView
           checkins={checkins}
           loading={loading}
+          viewportLoading={viewportLoading}
           mapRef={mapRef}
           onViewportChange={handleViewportChange}
         />

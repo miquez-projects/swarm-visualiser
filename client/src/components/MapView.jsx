@@ -20,7 +20,7 @@ const CATEGORY_COLORS = {
   'Unknown': '#95a5a6'
 };
 
-function MapView({ checkins, loading, mapRef, onViewportChange }) {
+function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange }) {
   const [selectedVenue, setSelectedVenue] = useState(null);
   const [showCheckinGrid, setShowCheckinGrid] = useState(false);
   const [viewState, setViewState] = useState({
@@ -180,6 +180,28 @@ function MapView({ checkins, loading, mapRef, onViewportChange }) {
           }}
         >
           <CircularProgress />
+        </Box>
+      )}
+
+      {viewportLoading && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            bgcolor: 'background.paper',
+            px: 2,
+            py: 1,
+            borderRadius: 1,
+            boxShadow: 2,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            zIndex: 1000
+          }}
+        >
+          <CircularProgress size={16} />
+          <Typography variant="body2">Loading venues...</Typography>
         </Box>
       )}
 
@@ -458,6 +480,7 @@ MapView.propTypes = {
     checkin_date: PropTypes.string
   })).isRequired,
   loading: PropTypes.bool.isRequired,
+  viewportLoading: PropTypes.bool,
   mapRef: PropTypes.shape({
     current: PropTypes.any
   }).isRequired,
