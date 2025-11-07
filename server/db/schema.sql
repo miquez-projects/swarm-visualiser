@@ -23,9 +23,6 @@ CREATE INDEX IF NOT EXISTS idx_category ON checkins(venue_category);
 CREATE INDEX IF NOT EXISTS idx_location ON checkins USING GIST(location);
 CREATE INDEX IF NOT EXISTS idx_city ON checkins(city);
 
--- Composite index for viewport-based queries
-CREATE INDEX IF NOT EXISTS idx_user_lat_lng ON checkins(user_id, latitude, longitude);
-
 -- Function to automatically create geography point from lat/lng
 CREATE OR REPLACE FUNCTION update_location()
 RETURNS TRIGGER AS $$
