@@ -209,6 +209,19 @@ function MapView({ checkins, loading }) {
         ref={mapRef}
         {...viewState}
         onMove={evt => setViewState(evt.viewState)}
+        onClick={(e) => {
+          const features = e.features;
+          if (!features || features.length === 0) return;
+
+          const feature = features[0];
+          if (feature.layer.id === 'clusters') {
+            handleClusterClick(e);
+          } else if (feature.layer.id === 'unclustered-point') {
+            handlePointClick(e);
+          }
+        }}
+        interactiveLayerIds={['clusters', 'unclustered-point']}
+        cursor="pointer"
         mapStyle="mapbox://styles/mapbox/streets-v12"
         mapboxAccessToken={MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
@@ -247,7 +260,6 @@ function MapView({ checkins, loading }) {
                 40
               ]
             }}
-            onClick={handleClusterClick}
           />
 
           {/* Cluster count labels */}
@@ -288,7 +300,6 @@ function MapView({ checkins, loading }) {
               'circle-stroke-width': 2,
               'circle-stroke-color': '#fff'
             }}
-            onClick={handlePointClick}
           />
         </Source>
 
