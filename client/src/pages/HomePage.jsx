@@ -52,8 +52,7 @@ function HomePage({ darkMode, onToggleDarkMode }) {
     }
 
     loadCheckins();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, loadCheckins]);
 
   const loadCheckins = useCallback(async (filterOverrides = {}) => {
     try {

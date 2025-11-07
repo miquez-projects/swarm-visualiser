@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import PropTypes from 'prop-types';
 import { Map, Source, Layer, Popup } from 'react-map-gl/mapbox';
 import { Box, Typography, Chip, CircularProgress, Modal, IconButton, Link } from '@mui/material';
 import { Room, Close, CalendarMonth } from '@mui/icons-material';
@@ -27,6 +28,7 @@ function MapView({ checkins, loading, mapRef, onViewportChange }) {
     latitude: 20,
     zoom: 1.5
   });
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Group check-ins by venue
   const venueGroups = useMemo(() => {
@@ -73,9 +75,10 @@ function MapView({ checkins, loading, mapRef, onViewportChange }) {
     }))
   }), [venueGroups]);
 
-  // Fit map to show all checkins when data changes
+  // Fit map to show all checkins on initial load only
   useEffect(() => {
     if (!mapRef.current || !checkins || checkins.length === 0) return;
+    if (!isInitialLoad) return; // Only auto-fit on initial load
 
     const validCheckins = checkins.filter(c => c.latitude && c.longitude);
     if (validCheckins.length === 0) return;
@@ -94,7 +97,10 @@ function MapView({ checkins, loading, mapRef, onViewportChange }) {
       maxZoom: 12,
       duration: 1000
     });
-  }, [checkins]);
+
+    // Mark initial load as complete
+    setIsInitialLoad(false);
+  }, [checkins, isInitialLoad, mapRef]);
 
   const getMarkerColor = (category) => {
     return CATEGORY_COLORS[category] || CATEGORY_COLORS['Unknown'];
@@ -439,6 +445,24 @@ function MapView({ checkins, loading, mapRef, onViewportChange }) {
     </Box>
   );
 }
+
+MapView.propTypes = {
+  checkins: PropTypes.arrayOf(PropTypes.shape({
+    venue_id: PropTypes.string,
+    venue_name: PropTypes.string,
+    venue_category: PropTypes.string,
+    latitude: PropTypes.number,
+    longitude: PropTypes.number,
+    city: PropTypes.string,
+    country: PropTypes.string,
+    checkin_date: PropTypes.string
+  })).isRequired,
+  loading: PropTypes.bool.isRequired,
+  mapRef: PropTypes.shape({
+    current: PropTypes.any
+  }).isRequired,
+  onViewportChange: PropTypes.func
+};
 
 // GitHub-style contribution grid component - showing weeks instead of days
 function CheckinContributionGrid({ checkins }) {
