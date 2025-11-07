@@ -7,7 +7,7 @@ import StatsPanel from '../components/StatsPanel';
 import { getCheckins } from '../services/api';
 import { Box, Typography } from '@mui/material';
 
-function HomePage({ darkMode, onToggleDarkMode }) {
+function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || localStorage.getItem('authToken');
 
@@ -22,7 +22,8 @@ function HomePage({ darkMode, onToggleDarkMode }) {
   const [currentBounds, setCurrentBounds] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(1.5);
   const [lastLoadedBounds, setLastLoadedBounds] = useState(null);
-  const mapRef = useRef(null);
+  const localMapRef = useRef(null);
+  const mapRef = externalMapRef || localMapRef;
 
   // Check if inner bounds fully contained within outer bounds
   const boundsContained = useCallback((inner, outer) => {
