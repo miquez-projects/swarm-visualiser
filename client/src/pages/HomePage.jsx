@@ -61,15 +61,6 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
     ];
   }, []);
 
-  useEffect(() => {
-    // Store token in localStorage if it's in URL
-    if (searchParams.get('token')) {
-      localStorage.setItem('authToken', searchParams.get('token'));
-    }
-
-    loadCheckins();
-  }, [token, loadCheckins]);
-
   const loadCheckins = useCallback(async (filterOverrides = {}, retryCount = 0) => {
     try {
       setLoading(true);
@@ -101,6 +92,15 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
       setLoading(false);
     }
   }, [filters, token]);
+
+  useEffect(() => {
+    // Store token in localStorage if it's in URL
+    if (searchParams.get('token')) {
+      localStorage.setItem('authToken', searchParams.get('token'));
+    }
+
+    loadCheckins();
+  }, [token, loadCheckins]);
 
   const handleFilterChange = useCallback(async (newFilters) => {
     setFilters(newFilters);
