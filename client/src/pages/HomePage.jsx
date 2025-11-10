@@ -34,16 +34,16 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
            inner.maxLat <= outer.maxLat;
   }, []);
 
-  // Add buffer percentage to bounds
+  // Add buffer percentage to bounds (clamped to valid lat/lng ranges)
   const addBuffer = useCallback((bounds, percent) => {
     const lngRange = bounds.maxLng - bounds.minLng;
     const latRange = bounds.maxLat - bounds.minLat;
 
     return {
-      minLng: bounds.minLng - (lngRange * percent),
-      maxLng: bounds.maxLng + (lngRange * percent),
-      minLat: bounds.minLat - (latRange * percent),
-      maxLat: bounds.maxLat + (latRange * percent)
+      minLng: Math.max(-180, bounds.minLng - (lngRange * percent)),
+      maxLng: Math.min(180, bounds.maxLng + (lngRange * percent)),
+      minLat: Math.max(-90, bounds.minLat - (latRange * percent)),
+      maxLat: Math.min(90, bounds.maxLat + (latRange * percent))
     };
   }, []);
 
