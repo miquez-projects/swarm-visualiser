@@ -15,7 +15,8 @@ import {
   IconButton,
   Tooltip,
   Autocomplete,
-  Link
+  Link,
+  Checkbox
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -319,16 +320,11 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
             onChange={handleCategoryChange}
             onClose={() => setCategorySearchTerm('')}
             filterOptions={(options) => options}
-            renderTags={(value, getTagProps) =>
-              value.map((option, index) => (
-                <Chip
-                  key={option}
-                  label={option}
-                  size="small"
-                  {...getTagProps({ index })}
-                />
-              ))
-            }
+            renderTags={(value) => (
+              <Typography variant="body2" sx={{ ml: 1 }}>
+                {value.length > 0 ? `${value.length} selected` : ''}
+              </Typography>
+            )}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -347,8 +343,12 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
                 hasSearchTerm={!!categorySearchTerm}
               />
             )}
-            renderOption={(props, option) => (
+            renderOption={(props, option, { selected }) => (
               <li {...props} key={option}>
+                <Checkbox
+                  checked={selected}
+                  sx={{ mr: 1 }}
+                />
                 {option}
               </li>
             )}
