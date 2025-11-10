@@ -108,7 +108,12 @@ class Checkin {
     // Determine query strategy based on zoom level
     let dataQuery;
 
-    if (zoom !== undefined && zoom < 7 && !country && !city && !category && !search) {
+    // Debug logging for sampling decision
+    console.log('[CHECKIN] Query params:', { zoom, country, city, category, search, bounds });
+    const shouldSample = zoom !== undefined && zoom < 7 && !country && !city && !category && !search;
+    console.log('[CHECKIN] Sampling decision:', shouldSample);
+
+    if (shouldSample) {
       // Low zoom (0-6) without semantic filters: Use spatial sampling
       // Returns one check-in per ~11km grid cell for geographic distribution
       // whereClause is safe - constructed from parameterized conditions only
@@ -147,6 +152,8 @@ class Checkin {
     }
 
     const dataResult = await db.query(dataQuery, params);
+
+    console.log('[CHECKIN] Results:', { returned: dataResult.rows.length, total, sampled: shouldSample });
 
     return {
       data: dataResult.rows,
