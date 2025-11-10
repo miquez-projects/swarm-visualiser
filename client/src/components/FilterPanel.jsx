@@ -175,10 +175,16 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
   const handleSelectAllCategories = () => {
     // Merge search results with existing selections (no duplicates)
     const newSelections = [...new Set([...filters.categories, ...searchFilteredCategories])];
+    // Save current search term before updating
+    const currentSearch = categorySearchTerm;
     setFilters(prev => ({
       ...prev,
       categories: newSelections
     }));
+    // Restore search term after a brief delay to override Autocomplete's reset
+    setTimeout(() => {
+      setCategorySearchTerm(currentSearch);
+    }, 0);
   };
 
   const handleClearCategories = () => {
@@ -359,7 +365,11 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
                 >
                   <Checkbox
                     checked={selected}
-                    sx={{ mr: 1 }}
+                    sx={{
+                      mr: 0.5,
+                      py: 0.5,
+                      px: 0.5
+                    }}
                   />
                   {option}
                 </Box>
