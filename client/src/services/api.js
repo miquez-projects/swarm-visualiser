@@ -135,4 +135,41 @@ export const sendCopilotMessage = async (message, conversationHistory, token) =>
   return response.data;
 };
 
+/**
+ * Start a new check-in sync
+ * @param {string} token - Auth token
+ * @returns {Promise<Object>} Job info { jobId, status, message }
+ */
+export const startSync = async (token) => {
+  const response = await api.post('/api/import/start', {}, {
+    params: { token }
+  });
+  return response.data;
+};
+
+/**
+ * Get sync job status
+ * @param {string} jobId - Import job ID
+ * @param {string} token - Auth token
+ * @returns {Promise<Object>} Status info
+ */
+export const getSyncStatus = async (jobId, token) => {
+  const response = await api.get(`/api/import/status/${jobId}`, {
+    params: { token }
+  });
+  return response.data;
+};
+
+/**
+ * Get latest import job for current user
+ * @param {string} token - Auth token
+ * @returns {Promise<Object>} Latest job or null
+ */
+export const getLatestImport = async (token) => {
+  const response = await api.get('/api/import/latest', {
+    params: { token }
+  });
+  return response.data;
+};
+
 export default api;
