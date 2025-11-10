@@ -223,6 +223,10 @@ class Checkin {
     const totalQuery = `SELECT COUNT(*) as total FROM checkins ${whereClause}`;
     const totalResult = await db.query(totalQuery, params);
 
+    // Total unique venues
+    const venuesQuery = `SELECT COUNT(DISTINCT venue_id) as total FROM checkins ${whereClause}`;
+    const venuesResult = await db.query(venuesQuery, params);
+
     // Date range
     const dateRangeQuery = `
       SELECT
@@ -341,6 +345,7 @@ class Checkin {
 
     return {
       total_checkins: parseInt(totalResult.rows[0].total),
+      total_venues: parseInt(venuesResult.rows[0].total),
       date_range: dateRangeResult.rows[0],
       top_countries: topCountriesResult.rows,
       top_categories: topCategoriesResult.rows,

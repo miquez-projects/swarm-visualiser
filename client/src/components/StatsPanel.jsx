@@ -354,6 +354,34 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
           )}
         </Paper>
 
+        {/* Total Venues */}
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            Total Venues
+          </Typography>
+          {showingComparison ? (
+            <Box sx={{ display: 'flex', gap: 2, mt: 1, alignItems: 'baseline' }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary" display="block">Period 1</Typography>
+                <Typography variant="h5" color="primary">
+                  {period1Data.total_venues.toLocaleString()}
+                </Typography>
+              </Box>
+              <Typography variant="h6" color="text.secondary">vs</Typography>
+              <Box>
+                <Typography variant="caption" color="text.secondary" display="block">Period 2</Typography>
+                <Typography variant="h5" color="secondary">
+                  {period2Data.total_venues.toLocaleString()}
+                </Typography>
+              </Box>
+            </Box>
+          ) : (
+            <Typography variant="h4" sx={{ mt: 1 }}>
+              {period1Data.total_venues.toLocaleString()}
+            </Typography>
+          )}
+        </Paper>
+
         {/* Date Range */}
         {!showingComparison && (
           <Paper sx={{ p: 2 }}>
