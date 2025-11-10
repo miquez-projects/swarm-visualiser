@@ -126,13 +126,13 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
   const [error, setError] = useState(null);
 
   // Filter categories based on search term
-  // Always include selected categories even if they don't match the search
   const searchFilteredCategories = filterOptions.categories.filter(cat =>
     cat.toLowerCase().includes(categorySearchTerm.toLowerCase())
   );
 
+  // Only show categories matching the search (don't include non-matching selected items)
   const filteredCategories = categorySearchTerm
-    ? [...new Set([...searchFilteredCategories, ...filters.categories])]
+    ? searchFilteredCategories
     : filterOptions.categories;
 
   // Load filter options on mount
@@ -338,15 +338,33 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
                 hasSearchTerm={!!categorySearchTerm}
               />
             )}
-            renderOption={(props, option, { selected }) => (
-              <li {...props} key={option}>
-                <Checkbox
-                  checked={selected}
-                  sx={{ mr: 1 }}
-                />
-                {option}
-              </li>
-            )}
+            renderOption={(props, option, { selected }) => {
+              const { key, ...otherProps } = props;
+              return (
+                <Box
+                  component="li"
+                  {...otherProps}
+                  key={option}
+                  sx={{
+                    display: 'flex !important',
+                    alignItems: 'center',
+                    '& .MuiCheckbox-root': {
+                      opacity: selected ? 1 : 0,
+                      transition: 'opacity 0.2s'
+                    },
+                    '&:hover .MuiCheckbox-root': {
+                      opacity: 1
+                    }
+                  }}
+                >
+                  <Checkbox
+                    checked={selected}
+                    sx={{ mr: 1 }}
+                  />
+                  {option}
+                </Box>
+              );
+            }}
             isOptionEqualToValue={(option, value) => option === value}
           />
         </Box>
