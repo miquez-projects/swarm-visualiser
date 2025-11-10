@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Map, Source, Layer, Popup } from 'react-map-gl/mapbox';
 import { Box, Typography, Chip, CircularProgress, Modal, IconButton, Link } from '@mui/material';
@@ -111,7 +111,7 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange 
     const feature = event.features?.[0];
     if (!feature) return;
 
-    const { venueId, venueName, checkinCount, category, city, country } = feature.properties;
+    const { venueId } = feature.properties;
     const [longitude, latitude] = feature.geometry.coordinates;
 
     // Find full venue data
@@ -142,7 +142,8 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange 
         duration: 500
       });
     });
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mapRef is stable (ref), no need to include
 
   if (!MAPBOX_TOKEN) {
     return (
