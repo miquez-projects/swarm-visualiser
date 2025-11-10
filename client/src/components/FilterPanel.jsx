@@ -20,19 +20,17 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { FilterList, Clear, Fullscreen, FullscreenExit, Search } from '@mui/icons-material';
+import { FilterList, Clear, Fullscreen, FullscreenExit } from '@mui/icons-material';
 import { getFilterOptions } from '../services/api';
 
 // Custom listbox component for category dropdown with search and actions
 const CustomCategoryListbox = React.forwardRef(function CustomCategoryListbox(props, ref) {
   const {
-    categorySearchTerm,
-    setCategorySearchTerm,
-    filteredCategories,
     searchFilteredCount,
     selectedCategories,
     onSelectAll,
     onClear,
+    hasSearchTerm,
     ...other
   } = props;
 
@@ -78,22 +76,8 @@ const CustomCategoryListbox = React.forwardRef(function CustomCategoryListbox(pr
         </Typography>
       </Box>
 
-      {/* Search field */}
-      <Box sx={{ p: 2, pt: 1.5 }}>
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Search categories..."
-          value={categorySearchTerm}
-          onChange={(e) => setCategorySearchTerm(e.target.value)}
-          InputProps={{
-            endAdornment: <Search sx={{ color: 'text.secondary' }} />
-          }}
-        />
-      </Box>
-
       {/* Options list */}
-      {searchFilteredCount === 0 && categorySearchTerm ? (
+      {searchFilteredCount === 0 && hasSearchTerm ? (
         <Box sx={{ p: 3, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">
             No categories found
@@ -187,8 +171,8 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
   };
 
   const handleSelectAllCategories = () => {
-    // Merge filtered categories with existing selections (no duplicates)
-    const newSelections = [...new Set([...filters.categories, ...filteredCategories])];
+    // Merge search results with existing selections (no duplicates)
+    const newSelections = [...new Set([...filters.categories, ...searchFilteredCategories])];
     setFilters(prev => ({
       ...prev,
       categories: newSelections
@@ -326,8 +310,13 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
             disableCloseOnSelect
             options={filteredCategories}
             value={filters.categories}
+            inputValue={categorySearchTerm}
+            onInputChange={(event, newInputValue) => {
+              setCategorySearchTerm(newInputValue);
+            }}
             onChange={handleCategoryChange}
             onClose={() => setCategorySearchTerm('')}
+            filterOptions={(options) => options}
             renderTags={(value, getTagProps) =>
               value.map((option, index) => (
                 <Chip
@@ -349,13 +338,11 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
             ListboxComponent={(listboxProps) => (
               <CustomCategoryListbox
                 {...listboxProps}
-                categorySearchTerm={categorySearchTerm}
-                setCategorySearchTerm={setCategorySearchTerm}
-                filteredCategories={filteredCategories}
                 searchFilteredCount={searchFilteredCategories.length}
                 selectedCategories={filters.categories}
                 onSelectAll={handleSelectAllCategories}
                 onClear={handleClearCategories}
+                hasSearchTerm={!!categorySearchTerm}
               />
             )}
             renderOption={(props, option) => (
