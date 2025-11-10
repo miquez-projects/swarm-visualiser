@@ -92,19 +92,27 @@ const CustomCategoryListbox = React.forwardRef(function CustomCategoryListbox(pr
       </Box>
 
       {/* Options list */}
-      <Box
-        ref={ref}
-        {...other}
-        component="ul"
-        sx={{
-          margin: 0,
-          padding: 0,
-          listStyle: 'none',
-          maxHeight: '300px',
-          overflow: 'auto',
-          ...other.sx
-        }}
-      />
+      {filteredCategories.length === 0 ? (
+        <Box sx={{ p: 3, textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            {categorySearchTerm ? 'No categories found' : 'No categories available'}
+          </Typography>
+        </Box>
+      ) : (
+        <Box
+          ref={ref}
+          {...other}
+          component="ul"
+          sx={{
+            margin: 0,
+            padding: 0,
+            listStyle: 'none',
+            maxHeight: '300px',
+            overflow: 'auto',
+            ...other.sx
+          }}
+        />
+      )}
     </Box>
   );
 });
