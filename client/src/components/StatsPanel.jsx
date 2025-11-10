@@ -27,7 +27,7 @@ import {
 } from 'recharts';
 import { getStats, compareTimePeriods } from '../services/api';
 
-function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMode = false, onComparisonModeChange, token }) {
+function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMode = false, onComparisonModeChange, token, refreshTrigger = 0 }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [comparisonLoading, setComparisonLoading] = useState(false);
@@ -60,7 +60,7 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
     if (!comparisonMode) {
       loadStats();
     }
-  }, [filters, comparisonMode, token]);
+  }, [filters, comparisonMode, token, refreshTrigger]);
 
   // Load comparison data when dates are set
   useEffect(() => {

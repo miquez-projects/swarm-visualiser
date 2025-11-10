@@ -18,6 +18,7 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [comparisonMode, setComparisonMode] = useState(false);
   const [error, setError] = useState(null);
+  const [statsRefreshTrigger, setStatsRefreshTrigger] = useState(0);
 
   // Viewport tracking state
   const [currentBounds, setCurrentBounds] = useState(null);
@@ -224,6 +225,7 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
         comparisonMode={comparisonMode}
         onComparisonModeChange={setComparisonMode}
         token={token}
+        refreshTrigger={statsRefreshTrigger}
       />
     </Box>
   );
@@ -231,7 +233,10 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
   const headerActions = token ? (
     <SyncButton
       token={token}
-      onSyncComplete={() => loadCheckins()}
+      onSyncComplete={() => {
+        loadCheckins();
+        setStatsRefreshTrigger(prev => prev + 1);
+      }}
     />
   ) : null;
 
