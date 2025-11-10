@@ -4,6 +4,7 @@ import Layout from '../components/Layout';
 import MapView from '../components/MapView';
 import FilterPanel from '../components/FilterPanel';
 import StatsPanel from '../components/StatsPanel';
+import SyncButton from '../components/SyncButton';
 import { getCheckins } from '../services/api';
 import { Box, Snackbar, Alert } from '@mui/material';
 
@@ -227,12 +228,20 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
     </Box>
   );
 
+  const headerActions = token ? (
+    <SyncButton
+      token={token}
+      onSyncComplete={() => loadCheckins()}
+    />
+  ) : null;
+
   return (
     <Layout
       darkMode={darkMode}
       onToggleDarkMode={onToggleDarkMode}
       sidebar={sidebar}
       sidebarExpanded={sidebarExpanded}
+      headerActions={headerActions}
     >
       <MapView
         checkins={checkins}
