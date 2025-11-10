@@ -50,8 +50,9 @@ const CustomCategoryListbox = React.forwardRef(function CustomCategoryListbox(pr
           <Link
             component="button"
             variant="body2"
-            onClick={(e) => {
+            onMouseDown={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               onSelectAll();
             }}
             sx={{ cursor: 'pointer' }}
@@ -62,8 +63,9 @@ const CustomCategoryListbox = React.forwardRef(function CustomCategoryListbox(pr
           <Link
             component="button"
             variant="body2"
-            onClick={(e) => {
+            onMouseDown={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               onClear();
             }}
             sx={{ cursor: 'pointer' }}
