@@ -14,12 +14,14 @@ import {
   CircularProgress,
   Alert,
   IconButton,
-  Tooltip
+  Tooltip,
+  Autocomplete,
+  Link
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { FilterList, Clear, Fullscreen, FullscreenExit } from '@mui/icons-material';
+import { FilterList, Clear, Fullscreen, FullscreenExit, Search } from '@mui/icons-material';
 import { getFilterOptions } from '../services/api';
 
 const ITEM_HEIGHT = 48;
@@ -43,6 +45,8 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
     search: initialFilters.search || ''
   });
 
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
+
   const [filterOptions, setFilterOptions] = useState({
     countries: [],
     cities: [],
@@ -51,6 +55,11 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Filter categories based on search term
+  const filteredCategories = filterOptions.categories.filter(cat =>
+    cat.toLowerCase().includes(categorySearchTerm.toLowerCase())
+  );
 
   // Load filter options on mount
   useEffect(() => {
