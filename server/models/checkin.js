@@ -17,9 +17,16 @@ class Checkin {
       search,
       bounds,  // NEW
       zoom,    // NEW
-      limit = 1000,
+      limit,
       offset = 0
     } = filters;
+
+    // Smart limit: Use provided limit, or default based on whether filters are active
+    // When semantic filters are applied (country/city/category/search), users expect all results
+    // When just viewing map without filters, limit to 5000 for performance
+    const hasSemanticFilter = country || city || category || search;
+    const defaultLimit = hasSemanticFilter ? 50000 : 5000;
+    const effectiveLimit = limit || defaultLimit;
 
     const conditions = [];
     const params = [];
@@ -133,7 +140,7 @@ class Checkin {
           id DESC
         LIMIT $${paramIndex}
       `;
-      params.push(limit);
+      params.push(effectiveLimit);
     } else {
       // High zoom (7+) or filtered: Return all matching records
       // whereClause is safe - constructed from parameterized conditions only
@@ -147,18 +154,18 @@ class Checkin {
         ORDER BY checkin_date DESC
         LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
       `;
-      params.push(limit, offset);
+      params.push(effectiveLimit, offset);
       paramIndex += 2;
     }
 
     const dataResult = await db.query(dataQuery, params);
 
-    console.log('[CHECKIN] Results:', { returned: dataResult.rows.length, total, sampled: shouldSample });
+    console.log('[CHECKIN] Results:', { returned: dataResult.rows.length, total, sampled: shouldSample, limit: effectiveLimit });
 
     return {
       data: dataResult.rows,
       total,
-      limit,
+      limit: effectiveLimit,
       offset
     };
   }
