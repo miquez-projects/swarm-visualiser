@@ -8,7 +8,6 @@ import {
   Select,
   MenuItem,
   Chip,
-  OutlinedInput,
   Typography,
   Divider,
   CircularProgress,
@@ -23,17 +22,6 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { FilterList, Clear, Fullscreen, FullscreenExit, Search } from '@mui/icons-material';
 import { getFilterOptions } from '../services/api';
-
-const ITEM_HEIGHT = 48;
-const ITEM_PADDING_TOP = 8;
-const MenuProps = {
-  PaperProps: {
-    style: {
-      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-      width: 250,
-    },
-  },
-};
 
 // Custom listbox component for category dropdown with search and actions
 const CustomCategoryListbox = React.forwardRef(function CustomCategoryListbox(props, ref) {
@@ -319,31 +307,48 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
           <Typography variant="subtitle2" color="text.secondary" gutterBottom>
             Categories
           </Typography>
-          <FormControl fullWidth size="small">
-            <InputLabel id="categories-label">Select Categories</InputLabel>
-            <Select
-              labelId="categories-label"
-              id="categories-select"
-              multiple
-              value={filters.categories}
-              onChange={handleCategoryChange}
-              input={<OutlinedInput label="Select Categories" />}
-              renderValue={(selected) => (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                  {selected.map((value) => (
-                    <Chip key={value} label={value} size="small" />
-                  ))}
-                </Box>
-              )}
-              MenuProps={MenuProps}
-            >
-              {filterOptions.categories.map((category) => (
-                <MenuItem key={category} value={category}>
-                  {category}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Autocomplete
+            multiple
+            disableCloseOnSelect
+            options={filteredCategories}
+            value={filters.categories}
+            onChange={handleCategoryChange}
+            renderTags={(value, getTagProps) =>
+              value.map((option, index) => (
+                <Chip
+                  key={option}
+                  label={option}
+                  size="small"
+                  {...getTagProps({ index })}
+                />
+              ))
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Select Categories"
+                size="small"
+                placeholder={filters.categories.length === 0 ? "Search and select..." : ""}
+              />
+            )}
+            ListboxComponent={(listboxProps) => (
+              <CustomCategoryListbox
+                {...listboxProps}
+                categorySearchTerm={categorySearchTerm}
+                setCategorySearchTerm={setCategorySearchTerm}
+                filteredCategories={filteredCategories}
+                selectedCategories={filters.categories}
+                onSelectAll={handleSelectAllCategories}
+                onClear={handleClearCategories}
+              />
+            )}
+            renderOption={(props, option) => (
+              <li {...props} key={option}>
+                {option}
+              </li>
+            )}
+            isOptionEqualToValue={(option, value) => option === value}
+          />
         </Box>
 
         <Divider />
