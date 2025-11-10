@@ -29,6 +29,7 @@ const CustomCategoryListbox = React.forwardRef(function CustomCategoryListbox(pr
     categorySearchTerm,
     setCategorySearchTerm,
     filteredCategories,
+    searchFilteredCount,
     selectedCategories,
     onSelectAll,
     onClear,
@@ -73,7 +74,7 @@ const CustomCategoryListbox = React.forwardRef(function CustomCategoryListbox(pr
           </Link>
         </Box>
         <Typography variant="body2" color="text.secondary">
-          Displaying {filteredCategories.length}
+          Displaying {searchFilteredCount}
         </Typography>
       </Box>
 
@@ -92,10 +93,10 @@ const CustomCategoryListbox = React.forwardRef(function CustomCategoryListbox(pr
       </Box>
 
       {/* Options list */}
-      {filteredCategories.length === 0 ? (
+      {searchFilteredCount === 0 && categorySearchTerm ? (
         <Box sx={{ p: 3, textAlign: 'center' }}>
           <Typography variant="body2" color="text.secondary">
-            {categorySearchTerm ? 'No categories found' : 'No categories available'}
+            No categories found
           </Typography>
         </Box>
       ) : (
@@ -139,9 +140,14 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
   const [error, setError] = useState(null);
 
   // Filter categories based on search term
-  const filteredCategories = filterOptions.categories.filter(cat =>
+  // Always include selected categories even if they don't match the search
+  const searchFilteredCategories = filterOptions.categories.filter(cat =>
     cat.toLowerCase().includes(categorySearchTerm.toLowerCase())
   );
+
+  const filteredCategories = categorySearchTerm
+    ? [...new Set([...searchFilteredCategories, ...filters.categories])]
+    : filterOptions.categories;
 
   // Load filter options on mount
   useEffect(() => {
@@ -321,6 +327,7 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
             options={filteredCategories}
             value={filters.categories}
             onChange={handleCategoryChange}
+            onClose={() => setCategorySearchTerm('')}
             renderTags={(value, getTagProps) =>
               value.map((option, index) => (
                 <Chip
@@ -345,6 +352,7 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
                 categorySearchTerm={categorySearchTerm}
                 setCategorySearchTerm={setCategorySearchTerm}
                 filteredCategories={filteredCategories}
+                searchFilteredCount={searchFilteredCategories.length}
                 selectedCategories={filters.categories}
                 onSelectAll={handleSelectAllCategories}
                 onClear={handleClearCategories}
