@@ -177,11 +177,26 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
     }));
   };
 
-  const handleCategoryChange = (event) => {
-    const value = event.target.value;
+  const handleCategoryChange = (event, newValue) => {
     setFilters(prev => ({
       ...prev,
-      categories: typeof value === 'string' ? value.split(',') : value
+      categories: newValue
+    }));
+  };
+
+  const handleSelectAllCategories = () => {
+    // Merge filtered categories with existing selections (no duplicates)
+    const newSelections = [...new Set([...filters.categories, ...filteredCategories])];
+    setFilters(prev => ({
+      ...prev,
+      categories: newSelections
+    }));
+  };
+
+  const handleClearCategories = () => {
+    setFilters(prev => ({
+      ...prev,
+      categories: []
     }));
   };
 
