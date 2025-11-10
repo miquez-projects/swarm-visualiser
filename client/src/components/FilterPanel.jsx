@@ -35,6 +35,92 @@ const MenuProps = {
   },
 };
 
+// Custom listbox component for category dropdown with search and actions
+const CustomCategoryListbox = React.forwardRef(function CustomCategoryListbox(props, ref) {
+  const {
+    categorySearchTerm,
+    setCategorySearchTerm,
+    filteredCategories,
+    selectedCategories,
+    onSelectAll,
+    onClear,
+    ...other
+  } = props;
+
+  return (
+    <Box>
+      {/* Header with actions and counter */}
+      <Box sx={{
+        p: 2,
+        pb: 1,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderBottom: '1px solid',
+        borderColor: 'divider'
+      }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Link
+            component="button"
+            variant="body2"
+            onClick={(e) => {
+              e.preventDefault();
+              onSelectAll();
+            }}
+            sx={{ cursor: 'pointer' }}
+          >
+            Select all
+          </Link>
+          <Typography variant="body2" color="text.secondary">·</Typography>
+          <Link
+            component="button"
+            variant="body2"
+            onClick={(e) => {
+              e.preventDefault();
+              onClear();
+            }}
+            sx={{ cursor: 'pointer' }}
+          >
+            Clear
+          </Link>
+        </Box>
+        <Typography variant="body2" color="text.secondary">
+          Displaying {filteredCategories.length}
+        </Typography>
+      </Box>
+
+      {/* Search field */}
+      <Box sx={{ p: 2, pt: 1.5 }}>
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Search categories..."
+          value={categorySearchTerm}
+          onChange={(e) => setCategorySearchTerm(e.target.value)}
+          InputProps={{
+            endAdornment: <Search sx={{ color: 'text.secondary' }} />
+          }}
+        />
+      </Box>
+
+      {/* Options list */}
+      <Box
+        ref={ref}
+        {...other}
+        component="ul"
+        sx={{
+          margin: 0,
+          padding: 0,
+          listStyle: 'none',
+          maxHeight: '300px',
+          overflow: 'auto',
+          ...other.sx
+        }}
+      />
+    </Box>
+  );
+});
+
 function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive = false, isExpanded = false, onToggleExpand, token }) {
   const [filters, setFilters] = useState({
     startDate: initialFilters.startDate || null,
