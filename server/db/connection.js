@@ -8,7 +8,11 @@ const isRemoteDatabase = process.env.DATABASE_URL &&
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: isRemoteDatabase ? { rejectUnauthorized: false } : false
+  ssl: isRemoteDatabase ? { rejectUnauthorized: false } : false,
+  // Pool configuration to reduce connection churn
+  max: 10, // Maximum number of clients in the pool
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 5000 // Return an error after 5 seconds if connection could not be established
 });
 
 // Test connection
