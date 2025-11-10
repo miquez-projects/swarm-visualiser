@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import PropTypes from 'prop-types';
 import {
   Box,
   Fab,
@@ -21,13 +22,20 @@ import {
   saveCopilotState
 } from '../../utils/copilotStorage';
 
-function CopilotChat({ token }) {
+function CopilotChat({ token, onVenueClick }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
+
+  const handleVenueClick = (venue) => {
+    // Close copilot to show map
+    setIsOpen(false);
+    // Call parent handler
+    onVenueClick?.(venue);
+  };
 
   // Load state and messages on mount
   useEffect(() => {
@@ -183,6 +191,7 @@ function CopilotChat({ token }) {
                 role={msg.role}
                 content={msg.content}
                 timestamp={msg.timestamp}
+                onVenueClick={handleVenueClick}
               />
             ))}
 
@@ -211,5 +220,10 @@ function CopilotChat({ token }) {
     </>
   );
 }
+
+CopilotChat.propTypes = {
+  token: PropTypes.string.isRequired,
+  onVenueClick: PropTypes.func
+};
 
 export default CopilotChat;

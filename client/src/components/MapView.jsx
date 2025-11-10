@@ -1,5 +1,6 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { Map, Marker, Popup } from 'react-map-gl/mapbox';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import PropTypes from 'prop-types';
+import { Map, Source, Layer, Popup } from 'react-map-gl/mapbox';
 import { Box, Typography, Chip, CircularProgress, Modal, IconButton, Link } from '@mui/material';
 import { Room, Close, CalendarMonth } from '@mui/icons-material';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -19,8 +20,7 @@ const CATEGORY_COLORS = {
   'Unknown': '#95a5a6'
 };
 
-function MapView({ checkins, loading }) {
-  const mapRef = useRef();
+function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange }) {
   const [selectedVenue, setSelectedVenue] = useState(null);
   const [showCheckinGrid, setShowCheckinGrid] = useState(false);
   const [viewState, setViewState] = useState({
@@ -28,6 +28,7 @@ function MapView({ checkins, loading }) {
     latitude: 20,
     zoom: 1.5
   });
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Group check-ins by venue
   const venueGroups = useMemo(() => {
@@ -54,9 +55,30 @@ function MapView({ checkins, loading }) {
     return Object.values(groups);
   }, [checkins]);
 
-  // Fit map to show all checkins when data changes
+  // Convert venue groups to GeoJSON for clustering
+  const checkinsGeoJSON = useMemo(() => ({
+    type: "FeatureCollection",
+    features: venueGroups.map(venue => ({
+      type: "Feature",
+      geometry: {
+        type: "Point",
+        coordinates: [venue.longitude, venue.latitude]
+      },
+      properties: {
+        venueId: venue.venue_id,
+        venueName: venue.venue_name,
+        checkinCount: venue.checkins.length,
+        category: venue.venue_category,
+        city: venue.city,
+        country: venue.country
+      }
+    }))
+  }), [venueGroups]);
+
+  // Fit map to show all checkins on initial load only
   useEffect(() => {
     if (!mapRef.current || !checkins || checkins.length === 0) return;
+    if (!isInitialLoad) return; // Only auto-fit on initial load
 
     const validCheckins = checkins.filter(c => c.latitude && c.longitude);
     if (validCheckins.length === 0) return;
@@ -75,11 +97,53 @@ function MapView({ checkins, loading }) {
       maxZoom: 12,
       duration: 1000
     });
-  }, [checkins]);
+
+    // Mark initial load as complete
+    setIsInitialLoad(false);
+  }, [checkins, isInitialLoad, mapRef]);
 
   const getMarkerColor = (category) => {
     return CATEGORY_COLORS[category] || CATEGORY_COLORS['Unknown'];
   };
+
+  // Handle clicks on unclustered points (individual venues)
+  const handlePointClick = useCallback((event) => {
+    const feature = event.features?.[0];
+    if (!feature) return;
+
+    const { venueId } = feature.properties;
+    const [longitude, latitude] = feature.geometry.coordinates;
+
+    // Find full venue data
+    const venue = venueGroups.find(v => v.venue_id === venueId);
+    if (venue) {
+      setSelectedVenue({
+        ...venue,
+        latitude,
+        longitude
+      });
+    }
+  }, [venueGroups]);
+
+  // Handle clicks on clusters (zoom in)
+  const handleClusterClick = useCallback((event) => {
+    const feature = event.features?.[0];
+    if (!feature) return;
+
+    const clusterId = feature.properties.cluster_id;
+    const mapboxSource = mapRef.current?.getSource('checkins');
+
+    mapboxSource?.getClusterExpansionZoom(clusterId, (err, zoom) => {
+      if (err) return;
+
+      mapRef.current?.easeTo({
+        center: feature.geometry.coordinates,
+        zoom,
+        duration: 500
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mapRef is stable (ref), no need to include
 
   if (!MAPBOX_TOKEN) {
     return (
@@ -120,6 +184,28 @@ function MapView({ checkins, loading }) {
         </Box>
       )}
 
+      {viewportLoading && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            bgcolor: 'background.paper',
+            px: 2,
+            py: 1,
+            borderRadius: 1,
+            boxShadow: 2,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            zIndex: 1000
+          }}
+        >
+          <CircularProgress size={16} />
+          <Typography variant="body2">Loading venues...</Typography>
+        </Box>
+      )}
+
       {!loading && checkins.length === 0 && (
         <Box
           sx={{
@@ -150,68 +236,103 @@ function MapView({ checkins, loading }) {
       <Map
         ref={mapRef}
         {...viewState}
-        onMove={evt => setViewState(evt.viewState)}
+        onMove={(evt) => {
+          setViewState(evt.viewState);
+          onViewportChange?.(evt.viewState);
+        }}
+        onClick={(e) => {
+          const features = e.features;
+          if (!features || features.length === 0) return;
+
+          const feature = features[0];
+          if (feature.layer.id === 'clusters') {
+            handleClusterClick(e);
+          } else if (feature.layer.id === 'unclustered-point') {
+            handlePointClick(e);
+          }
+        }}
+        interactiveLayerIds={['clusters', 'unclustered-point']}
+        cursor="pointer"
         mapStyle="mapbox://styles/mapbox/streets-v12"
         mapboxAccessToken={MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
       >
-        {venueGroups && venueGroups.map((venue, index) => {
-          if (!venue.latitude || !venue.longitude) return null;
+        {/* Clustering source */}
+        <Source
+          id="checkins"
+          type="geojson"
+          data={checkinsGeoJSON}
+          cluster={true}
+          clusterMaxZoom={6}
+          clusterRadius={50}
+        >
+          {/* Cluster circles */}
+          <Layer
+            id="clusters"
+            type="circle"
+            filter={['has', 'point_count']}
+            paint={{
+              'circle-color': [
+                'step',
+                ['get', 'point_count'],
+                '#51bbd6',
+                100,
+                '#f1f075',
+                750,
+                '#f28cb1'
+              ],
+              'circle-radius': [
+                'step',
+                ['get', 'point_count'],
+                20,
+                100,
+                30,
+                750,
+                40
+              ]
+            }}
+          />
 
-          const sortedCheckins = [...venue.checkins].sort((a, b) =>
-            new Date(a.checkin_date) - new Date(b.checkin_date)
-          );
-          const firstVisit = sortedCheckins[0];
-          const lastVisit = sortedCheckins[sortedCheckins.length - 1];
+          {/* Cluster count labels */}
+          <Layer
+            id="cluster-count"
+            type="symbol"
+            filter={['has', 'point_count']}
+            layout={{
+              'text-field': '{point_count_abbreviated}',
+              'text-size': 12,
+              'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold']
+            }}
+            paint={{
+              'text-color': '#ffffff'
+            }}
+          />
 
-          return (
-            <Marker
-              key={venue.venue_id || index}
-              longitude={venue.longitude}
-              latitude={venue.latitude}
-              onClick={e => {
-                e.originalEvent.stopPropagation();
-                setSelectedVenue(venue);
-              }}
-            >
-              <Box sx={{ position: 'relative' }}>
-                <Room
-                  sx={{
-                    color: getMarkerColor(venue.venue_category),
-                    cursor: 'pointer',
-                    fontSize: 32,
-                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
-                    '&:hover': {
-                      transform: 'scale(1.2)',
-                      transition: 'transform 0.2s'
-                    }
-                  }}
-                />
-                {venue.checkins.length > 1 && (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: -2,
-                      right: -2,
-                      bgcolor: 'white',
-                      borderRadius: '50%',
-                      width: 18,
-                      height: 18,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 10,
-                      fontWeight: 'bold',
-                      border: '1px solid #ccc'
-                    }}
-                  >
-                    {venue.checkins.length}
-                  </Box>
-                )}
-              </Box>
-            </Marker>
-          );
-        })}
+          {/* Individual unclustered points */}
+          <Layer
+            id="unclustered-point"
+            type="circle"
+            filter={['!', ['has', 'point_count']]}
+            paint={{
+              'circle-color': [
+                'match',
+                ['get', 'category'],
+                'Restaurant', '#e74c3c',
+                'Bar', '#9b59b6',
+                'Café', '#f39c12',
+                'Coffee Shop', '#d35400',
+                'Museum', '#3498db',
+                'Park', '#27ae60',
+                'Hotel', '#16a085',
+                'Shop', '#e67e22',
+                '#95a5a6' // default
+              ],
+              'circle-radius': 8,
+              'circle-stroke-width': 2,
+              'circle-stroke-color': '#fff'
+            }}
+          />
+        </Source>
 
         {selectedVenue && (
           <Popup
@@ -347,6 +468,25 @@ function MapView({ checkins, loading }) {
     </Box>
   );
 }
+
+MapView.propTypes = {
+  checkins: PropTypes.arrayOf(PropTypes.shape({
+    venue_id: PropTypes.string,
+    venue_name: PropTypes.string,
+    venue_category: PropTypes.string,
+    latitude: PropTypes.number,
+    longitude: PropTypes.number,
+    city: PropTypes.string,
+    country: PropTypes.string,
+    checkin_date: PropTypes.string
+  })).isRequired,
+  loading: PropTypes.bool.isRequired,
+  viewportLoading: PropTypes.bool,
+  mapRef: PropTypes.shape({
+    current: PropTypes.any
+  }).isRequired,
+  onViewportChange: PropTypes.func
+};
 
 // GitHub-style contribution grid component - showing weeks instead of days
 function CheckinContributionGrid({ checkins }) {

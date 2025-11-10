@@ -32,7 +32,8 @@ function ImportPage() {
       fetchUser();
       fetchLatestImportJob();
     }
-  }, [token]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]); // fetchUser and fetchLatestImportJob are stable functions
 
   useEffect(() => {
     // Poll for import job status if one is running
@@ -43,7 +44,8 @@ function ImportPage() {
 
       return () => clearInterval(interval);
     }
-  }, [importJob]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [importJob]); // fetchImportJobStatus is a stable function
 
   const fetchUser = async () => {
     try {

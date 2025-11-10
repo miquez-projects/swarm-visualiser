@@ -3,7 +3,7 @@ const db = require('../db/connection');
 class Checkin {
   /**
    * Find check-ins with optional filters and pagination
-   * @param {Object} filters - { userId, startDate, endDate, category, country, city, search, limit, offset }
+   * @param {Object} filters - { userId, startDate, endDate, category, country, city, search, bounds, zoom, limit, offset }
    * @returns {Promise<{data: Array, total: number}>}
    */
   static async find(filters = {}) {
@@ -15,9 +15,18 @@ class Checkin {
       country,
       city,
       search,
-      limit = 1000,
+      bounds,  // NEW
+      zoom,    // NEW
+      limit,
       offset = 0
     } = filters;
+
+    // Smart limit: Use provided limit, or default based on whether filters are active
+    // When semantic filters are applied (country/city/category/search), users expect all results
+    // When just viewing map without filters, limit to 5000 for performance
+    const hasSemanticFilter = country || city || category || search;
+    const defaultLimit = hasSemanticFilter ? 50000 : 5000;
+    const effectiveLimit = limit || defaultLimit;
 
     const conditions = [];
     const params = [];
@@ -68,34 +77,95 @@ class Checkin {
       params.push(`%${search}%`);
     }
 
+    // Geographic bounds filtering (optional - for map viewport queries)
+    if (bounds) {
+      const [minLng, minLat, maxLng, maxLat] = bounds.split(',').map(Number);
+
+      // Validate bounds
+      if (isNaN(minLng) || isNaN(minLat) || isNaN(maxLng) || isNaN(maxLat)) {
+        throw new Error('Invalid bounds format. Expected: minLng,minLat,maxLng,maxLat');
+      }
+
+      // Validate coordinate ranges
+      if (minLat < -90 || maxLat > 90 || minLng < -180 || maxLng > 180) {
+        throw new Error('Invalid bounds range. Latitude must be -90 to 90, longitude must be -180 to 180');
+      }
+
+      // Validate min < max
+      if (minLat >= maxLat || minLng >= maxLng) {
+        throw new Error('Invalid bounds: min values must be less than max values');
+      }
+
+      conditions.push(`latitude BETWEEN $${paramIndex} AND $${paramIndex + 1}`);
+      conditions.push(`longitude BETWEEN $${paramIndex + 2} AND $${paramIndex + 3}`);
+      params.push(minLat, maxLat, minLng, maxLng);
+      paramIndex += 4;
+    }
+
     const whereClause = conditions.length > 0
       ? `WHERE ${conditions.join(' AND ')}`
       : '';
 
     // Get total count
+    // whereClause is safe - constructed from parameterized conditions only
     const countQuery = `SELECT COUNT(*) FROM checkins ${whereClause}`;
     const countResult = await db.query(countQuery, params);
     const total = parseInt(countResult.rows[0].count);
 
-    // Get paginated data
-    const dataParams = [...params, limit, offset];
-    const dataQuery = `
-      SELECT
+    // Determine query strategy based on zoom level
+    let dataQuery;
+
+    // Debug logging for sampling decision
+    console.log('[CHECKIN] Query params:', { zoom, country, city, category, search, bounds });
+    const shouldSample = zoom !== undefined && zoom < 7 && !country && !city && !category && !search;
+    console.log('[CHECKIN] Sampling decision:', shouldSample);
+
+    if (shouldSample) {
+      // Low zoom (0-6) without semantic filters: Use spatial sampling
+      // Returns one check-in per ~11km grid cell for geographic distribution
+      // whereClause is safe - constructed from parameterized conditions only
+      dataQuery = `
+        SELECT DISTINCT ON (
+          FLOOR(latitude * 10),
+          FLOOR(longitude * 10)
+        )
         id, venue_id, venue_name, venue_category,
         latitude, longitude, checkin_date,
         city, country
-      FROM checkins
-      ${whereClause}
-      ORDER BY checkin_date DESC
-      LIMIT $${paramIndex++} OFFSET $${paramIndex++}
-    `;
+        FROM checkins
+        ${whereClause}
+        ORDER BY
+          FLOOR(latitude * 10),
+          FLOOR(longitude * 10),
+          id DESC
+        LIMIT $${paramIndex}
+      `;
+      params.push(effectiveLimit);
+    } else {
+      // High zoom (7+) or filtered: Return all matching records
+      // whereClause is safe - constructed from parameterized conditions only
+      dataQuery = `
+        SELECT
+          id, venue_id, venue_name, venue_category,
+          latitude, longitude, checkin_date,
+          city, country
+        FROM checkins
+        ${whereClause}
+        ORDER BY checkin_date DESC
+        LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      `;
+      params.push(effectiveLimit, offset);
+      paramIndex += 2;
+    }
 
-    const dataResult = await db.query(dataQuery, dataParams);
+    const dataResult = await db.query(dataQuery, params);
+
+    console.log('[CHECKIN] Results:', { returned: dataResult.rows.length, total, sampled: shouldSample, limit: effectiveLimit });
 
     return {
       data: dataResult.rows,
       total,
-      limit,
+      limit: effectiveLimit,
       offset
     };
   }
@@ -166,6 +236,10 @@ class Checkin {
     // Total count
     const totalQuery = `SELECT COUNT(*) as total FROM checkins ${whereClause}`;
     const totalResult = await db.query(totalQuery, params);
+
+    // Total unique venues
+    const venuesQuery = `SELECT COUNT(DISTINCT venue_id) as total FROM checkins ${whereClause}`;
+    const venuesResult = await db.query(venuesQuery, params);
 
     // Date range
     const dateRangeQuery = `
@@ -285,6 +359,7 @@ class Checkin {
 
     return {
       total_checkins: parseInt(totalResult.rows[0].total),
+      total_venues: parseInt(venuesResult.rows[0].total),
       date_range: dateRangeResult.rows[0],
       top_countries: topCountriesResult.rows,
       top_categories: topCategoriesResult.rows,

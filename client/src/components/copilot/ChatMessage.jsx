@@ -1,9 +1,16 @@
-import React from 'react';
-import { Box, Typography, Paper, IconButton, Tooltip } from '@mui/material';
-import { ContentCopy } from '@mui/icons-material';
+import React, { useMemo } from 'react';
+import { Box, Typography, Paper, IconButton, Tooltip, Chip } from '@mui/material';
+import { ContentCopy, Room } from '@mui/icons-material';
+import { parseVenueMentions } from './venueParser';
+import PropTypes from 'prop-types';
 
-function ChatMessage({ role, content, timestamp }) {
+function ChatMessage({ role, content, timestamp, onVenueClick }) {
   const isUser = role === 'user';
+
+  const parsedContent = useMemo(
+    () => parseVenueMentions(content),
+    [content]
+  );
 
   const handleCopy = () => {
     navigator.clipboard.writeText(content);
@@ -31,9 +38,34 @@ function ChatMessage({ role, content, timestamp }) {
           }
         }}
       >
-        <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-          {content}
-        </Typography>
+        <Box sx={{ whiteSpace: 'pre-wrap' }}>
+          {parsedContent.map((part, i) =>
+            part.type === 'text' ? (
+              <span key={i}>{part.content}</span>
+            ) : (
+              <Chip
+                key={i}
+                icon={<Room fontSize="small" />}
+                label={part.venueName}
+                size="small"
+                clickable
+                onClick={() => onVenueClick?.(part)}
+                sx={{
+                  mx: 0.5,
+                  my: 0.25,
+                  cursor: 'pointer',
+                  bgcolor: 'primary.light',
+                  color: 'primary.contrastText',
+                  '&:hover': {
+                    bgcolor: 'primary.main',
+                    transform: 'scale(1.05)'
+                  },
+                  transition: 'all 0.2s ease'
+                }}
+              />
+            )
+          )}
+        </Box>
 
         {timestamp && (
           <Typography
@@ -72,5 +104,12 @@ function ChatMessage({ role, content, timestamp }) {
     </Box>
   );
 }
+
+ChatMessage.propTypes = {
+  role: PropTypes.string.isRequired,
+  content: PropTypes.string.isRequired,
+  timestamp: PropTypes.string,
+  onVenueClick: PropTypes.func
+};
 
 export default ChatMessage;

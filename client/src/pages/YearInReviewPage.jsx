@@ -48,7 +48,8 @@ function YearInReviewPage({ darkMode, onToggleDarkMode }) {
     if (selectedYear) {
       loadYearSummary(selectedYear);
     }
-  }, [selectedYear]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedYear]); // loadYearSummary is a stable function
 
   const loadYears = async () => {
     try {

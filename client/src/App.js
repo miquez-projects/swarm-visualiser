@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -13,6 +13,7 @@ function App() {
   const [authToken, setAuthToken] = useState(
     localStorage.getItem('authToken') || null
   );
+  const mapRef = useRef(null);
 
   // Listen for token changes
   useEffect(() => {
@@ -26,17 +27,28 @@ function App() {
     setDarkMode(!darkMode);
   };
 
+  const handleVenueClickFromChat = (venue) => {
+    // Pan and zoom map to venue
+    if (mapRef.current) {
+      mapRef.current.easeTo({
+        center: [venue.longitude, venue.latitude],
+        zoom: 15,
+        duration: 1000
+      });
+    }
+  };
+
   return (
     <BrowserRouter>
       <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
         <CssBaseline />
         <Routes>
-          <Route path="/" element={<HomePage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} />} />
+          <Route path="/" element={<HomePage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} mapRef={mapRef} />} />
           <Route path="/import" element={<ImportPage />} />
           <Route path="/year-in-review" element={<YearInReviewPage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} />} />
         </Routes>
         {/* AI Copilot - show only if authenticated */}
-        {authToken && <CopilotChat token={authToken} />}
+        {authToken && <CopilotChat token={authToken} onVenueClick={handleVenueClickFromChat} />}
       </ThemeProvider>
     </BrowserRouter>
   );
