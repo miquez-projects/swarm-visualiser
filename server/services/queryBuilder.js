@@ -31,7 +31,8 @@ class QueryBuilder {
     if (queryType === 'checkins') {
       // Apply limit for individual records to manage context
       const originalLimit = params.limit;
-      params.limit = params.limit ? Math.min(params.limit, 500) : 500;
+      const systemLimit = 500;
+      params.limit = params.limit ? Math.min(params.limit, systemLimit) : systemLimit;
       responseLimit = params.limit;
 
       query = this.buildCheckinsQuery(params, userId);
@@ -43,13 +44,17 @@ class QueryBuilder {
 
       const result = await db.query(query.sql, query.values);
 
+      // Only mark as limited if SYSTEM imposed the cap, not if user explicitly requested a small limit
+      // System limit applies when: user requested no limit, or requested > systemLimit, AND total > systemLimit
+      const systemLimitApplied = (!originalLimit || originalLimit > systemLimit) && totalCount > systemLimit;
+
       return {
         data: result.rows,
         metadata: {
           returned: result.rows.length,
           total: totalCount,
-          limited: totalCount > result.rows.length,
-          message: totalCount > result.rows.length
+          limited: systemLimitApplied,
+          message: systemLimitApplied
             ? `Showing ${result.rows.length} of ${totalCount} results. Results are limited to save context.`
             : null
         }
