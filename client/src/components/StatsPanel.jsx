@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -7,9 +7,7 @@ import {
   Alert,
   Divider,
   IconButton,
-  Tooltip,
-  ToggleButton,
-  ToggleButtonGroup
+  Tooltip
 } from '@mui/material';
 import { CompareArrows } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -28,9 +26,6 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { getStats, compareTimePeriods } from '../services/api';
-
-// Color palette for charts
-const COLORS = ['#1976d2', '#dc004e', '#f57c00', '#388e3c', '#7b1fa2', '#0288d1'];
 
 function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMode = false, onComparisonModeChange, token }) {
   const [stats, setStats] = useState(null);
@@ -238,7 +233,6 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
   };
 
   const chartHeight = isExpanded ? 400 : 250;
-  const pieChartHeight = isExpanded ? 500 : 300;
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>

@@ -5,7 +5,7 @@ import MapView from '../components/MapView';
 import FilterPanel from '../components/FilterPanel';
 import StatsPanel from '../components/StatsPanel';
 import { getCheckins } from '../services/api';
-import { Box, Typography, Snackbar, Alert } from '@mui/material';
+import { Box, Snackbar, Alert } from '@mui/material';
 
 function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
   const [searchParams] = useSearchParams();
@@ -95,12 +95,13 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
 
   useEffect(() => {
     // Store token in localStorage if it's in URL
-    if (searchParams.get('token')) {
-      localStorage.setItem('authToken', searchParams.get('token'));
+    const urlToken = searchParams.get('token');
+    if (urlToken) {
+      localStorage.setItem('authToken', urlToken);
     }
 
     loadCheckins();
-  }, [token, loadCheckins]);
+  }, [searchParams, loadCheckins]);
 
   const handleFilterChange = useCallback(async (newFilters) => {
     setFilters(newFilters);
@@ -153,7 +154,8 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
     } finally {
       setLoading(false);
     }
-  }, [token, calculateBounds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, calculateBounds]); // mapRef is stable (ref), no need to include
 
   // Handle viewport changes (pan/zoom)
   const handleViewportChange = useCallback((viewState) => {
@@ -170,7 +172,8 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
       maxLng: bounds.getEast(),
       maxLat: bounds.getNorth()
     });
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mapRef is stable (ref), no need to include
 
   // Viewport-based loading when user pans/zooms
   useEffect(() => {
