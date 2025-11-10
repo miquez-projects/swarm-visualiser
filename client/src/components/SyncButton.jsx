@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button, CircularProgress, Snackbar, Alert } from '@mui/material';
 import { Sync } from '@mui/icons-material';
 import { startSync, getSyncStatus, getLatestImport } from '../services/api';
@@ -13,6 +13,7 @@ function SyncButton({ token, onSyncComplete }) {
   });
   const [toast, setToast] = useState({ open: false, message: '', severity: 'info' });
   const [completionShown, setCompletionShown] = useState(false);
+  const completionTimeoutRef = useRef(null);
 
   const showToast = useCallback((severity, message) => {
     setToast({ open: true, message, severity });
@@ -86,7 +87,7 @@ function SyncButton({ token, onSyncComplete }) {
           }
 
           // Reset to idle after 2 seconds
-          setTimeout(() => {
+          completionTimeoutRef.current = setTimeout(() => {
             setCompletionShown(false);
             setJobId(null);
           }, 2000);
@@ -107,7 +108,12 @@ function SyncButton({ token, onSyncComplete }) {
       }
     }, 3000);
 
-    return () => clearInterval(pollInterval);
+    return () => {
+      clearInterval(pollInterval);
+      if (completionTimeoutRef.current) {
+        clearTimeout(completionTimeoutRef.current);
+      }
+    };
   }, [syncing, jobId, token, onSyncComplete, showToast]);
 
   // Check for existing sync on mount
