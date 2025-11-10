@@ -7,7 +7,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Chip,
   Typography,
   Divider,
   CircularProgress,
@@ -320,15 +319,11 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
             onChange={handleCategoryChange}
             onClose={() => setCategorySearchTerm('')}
             filterOptions={(options) => options}
-            renderTags={(value) => (
-              <Typography variant="body2" sx={{ ml: 1 }}>
-                {value.length > 0 ? `${value.length} selected` : ''}
-              </Typography>
-            )}
+            renderTags={() => null}
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Select Categories"
+                label={filters.categories.length > 0 ? `${filters.categories.length} selected` : "Select Categories"}
                 size="small"
                 placeholder={filters.categories.length === 0 ? "Search and select..." : ""}
               />
