@@ -86,7 +86,7 @@ class GeminiSessionManager {
 
   /**
    * Format conversation history for Gemini API
-   * Preserves thought signatures from assistant messages to maintain context
+   * Preserves complete content structure including thought signatures
    */
   formatHistory(conversationHistory) {
     if (!conversationHistory || conversationHistory.length === 0) {
@@ -109,35 +109,38 @@ class GeminiSessionManager {
           console.warn(`Skipping invalid message at index ${index}: invalid role`);
           return false;
         }
-        if (typeof msg.content !== 'string') {
-          console.warn(`Skipping invalid message at index ${index}: content not a string`);
-          return false;
-        }
-        if (msg.content.trim().length === 0) {
-          console.warn(`Skipping empty message at index ${index}`);
-          return false;
-        }
-        if (!['user', 'assistant'].includes(msg.role)) {
+        if (!['user', 'assistant', 'model'].includes(msg.role)) {
           console.warn(`Skipping invalid message at index ${index}: invalid role value`);
           return false;
         }
         return true;
       })
       .map((msg) => {
-        const formattedMsg = {
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content }]
-        };
-
-        // Preserve thought signatures for assistant messages
-        // These help Gemini maintain context across multi-turn conversations with function calling
-        if (msg.role === 'assistant' && msg.thoughtSignatures && Array.isArray(msg.thoughtSignatures)) {
-          // Append thought signatures to the parts array
-          formattedMsg.parts.push(...msg.thoughtSignatures);
+        // For assistant messages with complete content, use it directly
+        if ((msg.role === 'assistant' || msg.role === 'model') && msg.content) {
+          // msg.content is the complete candidates[0].content from Gemini
+          // It already has the correct structure with parts and thought signatures
+          return {
+            role: 'model',
+            parts: msg.content.parts || []
+          };
         }
 
-        return formattedMsg;
-      });
+        // For user messages or assistant messages without complete content
+        const messageText = typeof msg.content === 'string' ? msg.content :
+                           (msg.text || '');
+
+        if (!messageText || messageText.trim().length === 0) {
+          console.warn(`Skipping empty message content`);
+          return null;
+        }
+
+        return {
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: messageText }]
+        };
+      })
+      .filter(msg => msg !== null);
   }
 
   /**
