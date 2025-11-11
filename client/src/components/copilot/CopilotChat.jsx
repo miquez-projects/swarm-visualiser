@@ -64,30 +64,35 @@ function CopilotChat({ token, onVenueClick }) {
 
   const handleSendMessage = async (message) => {
     setError(null);
-
-    // Add user message
-    const userMessage = {
-      role: 'user',
-      content: message,
-      timestamp: new Date().toISOString()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
     try {
       // Send to API
       const response = await sendCopilotMessage(message, messages, token);
 
-      // Add AI response with complete content for history preservation
-      const aiMessage = {
-        role: 'assistant',
-        content: response.content, // Complete Gemini content object with all parts
-        text: response.response,    // Text for display
-        timestamp: new Date().toISOString()
-      };
+      // Backend returns all conversation turns from this request
+      // This includes: user message, function calls with thought signatures, and final response
+      if (response.messages && Array.isArray(response.messages)) {
+        // Append all new turns to conversation history
+        setMessages(prev => [...prev, ...response.messages]);
+      } else {
+        // Fallback for old format (backwards compatibility)
+        // Add user message first
+        const userMessage = {
+          role: 'user',
+          content: message,
+          timestamp: new Date().toISOString()
+        };
 
-      setMessages(prev => [...prev, aiMessage]);
+        const aiMessage = {
+          role: 'assistant',
+          content: response.content,
+          text: response.response,
+          timestamp: new Date().toISOString()
+        };
+
+        setMessages(prev => [...prev, userMessage, aiMessage]);
+      }
     } catch (err) {
       console.error('Failed to send message:', err);
       setError('Unable to reach AI service. Please try again.');

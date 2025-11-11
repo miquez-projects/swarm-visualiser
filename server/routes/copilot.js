@@ -147,15 +147,50 @@ router.post(
       const responseText = result.response.text();
       console.log('Final AI response:', responseText);
 
-      // Get complete response content (includes thought signatures automatically)
-      const completeContent = result.response.candidates[0].content;
-      console.log('Complete content parts:', completeContent.parts.length);
-      console.log('Complete content parts detail:', JSON.stringify(completeContent.parts, null, 2));
+      // Get complete conversation history from chat session
+      // This includes ALL turns: user message, function calls with thought signatures,
+      // function responses, and final text response
+      const history = await chat.getHistory();
+      console.log('Complete history length:', history.length);
+      console.log('History detail:', JSON.stringify(history, null, 2));
 
-      // Return response with complete content for history preservation
+      // Extract only the NEW turns from this request
+      // (everything after the conversation history we passed in when creating the session)
+      const historyLength = conversationHistory.length;
+      const newTurns = history.slice(historyLength);
+      console.log('New turns from this request:', newTurns.length);
+
+      // Convert new turns to our message format
+      const newMessages = newTurns.map(turn => {
+        const timestamp = new Date().toISOString();
+
+        if (turn.role === 'user') {
+          // User message - extract text from parts
+          const text = turn.parts.map(p => p.text || '').join('');
+          return {
+            role: 'user',
+            content: text,
+            timestamp
+          };
+        } else {
+          // Model message - preserve complete parts structure
+          // Extract text for display (skip function calls and function responses)
+          const textParts = turn.parts.filter(p => p.text);
+          const text = textParts.map(p => p.text).join('');
+
+          return {
+            role: 'assistant',
+            content: turn,  // Complete Gemini turn with all parts
+            text: text || '[Function call]',  // Text for display
+            timestamp
+          };
+        }
+      });
+
+      // Return response with complete new message history
       res.json({
         response: responseText,
-        content: completeContent
+        messages: newMessages  // Array of messages in our format, including thought signatures
       });
 
     } catch (error) {
