@@ -152,7 +152,7 @@ router.post(
           const parts = candidates[0].content.parts || [];
 
           // Extract all non-text parts (thought signatures)
-          const signatures = parts.filter(part => !part.text && part.thought !== undefined);
+          const signatures = parts.filter(part => !part.text && part.thoughtSignature !== undefined);
 
           if (signatures.length > 0) {
             thoughtSignatures = signatures;
