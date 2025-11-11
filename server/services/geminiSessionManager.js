@@ -57,7 +57,7 @@ class GeminiSessionManager {
     // Reuse if session exists and is recent
     if (existing && Date.now() - existing.lastActivity < SESSION_TIMEOUT_MS) {
       existing.lastActivity = Date.now();
-      return existing.chat;
+      return existing;
     }
 
     // Check if we need to evict a session before creating a new one
@@ -72,12 +72,15 @@ class GeminiSessionManager {
         history: this.formatHistory(conversationHistory)
       });
 
-      activeSessions.set(userId, {
+      const session = {
         chat,
+        historyPosition: 0,  // Track where we are in the Gemini history
         lastActivity: Date.now()
-      });
+      };
 
-      return chat;
+      activeSessions.set(userId, session);
+
+      return session;
     } catch (error) {
       console.error('Failed to create Gemini chat session:', error);
       throw new Error(`Failed to create chat session: ${error.message}`);

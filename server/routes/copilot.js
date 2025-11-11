@@ -28,7 +28,8 @@ router.post(
 
     try {
       // Get or create chat session
-      const chat = sessionManager.getOrCreateSession(userId, conversationHistory);
+      const session = sessionManager.getOrCreateSession(userId, conversationHistory);
+      const chat = session.chat;
 
       // Send user message
       let result = await chat.sendMessage(message);
@@ -155,10 +156,13 @@ router.post(
       console.log('History detail:', JSON.stringify(history, null, 2));
 
       // Extract only the NEW turns from this request
-      // (everything after the conversation history we passed in when creating the session)
-      const historyLength = conversationHistory.length;
-      const newTurns = history.slice(historyLength);
+      // Use the tracked history position from the session, not the frontend's filtered count
+      const newTurns = history.slice(session.historyPosition);
       console.log('New turns from this request:', newTurns.length);
+      console.log('Previous history position:', session.historyPosition);
+
+      // Update session's history position for next request
+      session.historyPosition = history.length;
 
       // Convert new turns to our message format
       const newMessages = newTurns.map(turn => {
