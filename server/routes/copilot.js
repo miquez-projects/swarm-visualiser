@@ -143,41 +143,19 @@ router.post(
         }
       }
 
-      // Extract thought signatures from response (for multi-turn context)
-      // Thought signatures help Gemini maintain context across turns with function calling
-      let thoughtSignatures = null;
-      try {
-        const candidates = result.response.candidates;
-        if (candidates && candidates.length > 0 && candidates[0].content) {
-          const parts = candidates[0].content.parts || [];
-
-          // Extract all non-text parts (thought signatures)
-          const signatures = parts.filter(part => !part.text && part.thoughtSignature !== undefined);
-
-          if (signatures.length > 0) {
-            thoughtSignatures = signatures;
-            console.log('Extracted thought signatures:', JSON.stringify(thoughtSignatures, null, 2));
-          }
-        }
-      } catch (signatureError) {
-        console.warn('Failed to extract thought signatures:', signatureError.message);
-        // Continue without signatures - not critical
-      }
-
-      // Get response text once (text() can only be called once)
+      // Get response text for display
       const responseText = result.response.text();
       console.log('Final AI response:', responseText);
 
-      // Return final response with thought signatures if present
-      const response = {
-        response: responseText
-      };
+      // Get complete response content (includes thought signatures automatically)
+      const completeContent = result.response.candidates[0].content;
+      console.log('Complete content parts:', completeContent.parts.length);
 
-      if (thoughtSignatures) {
-        response.thoughtSignatures = thoughtSignatures;
-      }
-
-      res.json(response);
+      // Return response with complete content for history preservation
+      res.json({
+        response: responseText,
+        content: completeContent
+      });
 
     } catch (error) {
       console.error('Copilot error:', error);
