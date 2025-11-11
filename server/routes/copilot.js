@@ -150,6 +150,7 @@ router.post(
       // Get complete response content (includes thought signatures automatically)
       const completeContent = result.response.candidates[0].content;
       console.log('Complete content parts:', completeContent.parts.length);
+      console.log('Complete content parts detail:', JSON.stringify(completeContent.parts, null, 2));
 
       // Return response with complete content for history preservation
       res.json({
