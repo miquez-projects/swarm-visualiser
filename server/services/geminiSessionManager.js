@@ -86,6 +86,7 @@ class GeminiSessionManager {
 
   /**
    * Format conversation history for Gemini API
+   * Preserves thought signatures from assistant messages to maintain context
    */
   formatHistory(conversationHistory) {
     if (!conversationHistory || conversationHistory.length === 0) {
@@ -122,10 +123,21 @@ class GeminiSessionManager {
         }
         return true;
       })
-      .map((msg) => ({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }]
-      }));
+      .map((msg) => {
+        const formattedMsg = {
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        };
+
+        // Preserve thought signatures for assistant messages
+        // These help Gemini maintain context across multi-turn conversations with function calling
+        if (msg.role === 'assistant' && msg.thoughtSignatures && Array.isArray(msg.thoughtSignatures)) {
+          // Append thought signatures to the parts array
+          formattedMsg.parts.push(...msg.thoughtSignatures);
+        }
+
+        return formattedMsg;
+      });
   }
 
   /**

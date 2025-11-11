@@ -79,11 +79,12 @@ function CopilotChat({ token, onVenueClick }) {
       // Send to API
       const response = await sendCopilotMessage(message, messages, token);
 
-      // Add AI response
+      // Add AI response with thought signatures if present
       const aiMessage = {
         role: 'assistant',
         content: response.response,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        ...(response.thoughtSignatures && { thoughtSignatures: response.thoughtSignatures })
       };
 
       setMessages(prev => [...prev, aiMessage]);
