@@ -79,12 +79,12 @@ function CopilotChat({ token, onVenueClick }) {
       // Send to API
       const response = await sendCopilotMessage(message, messages, token);
 
-      // Add AI response with thought signatures if present
+      // Add AI response with complete content for history preservation
       const aiMessage = {
         role: 'assistant',
-        content: response.response,
-        timestamp: new Date().toISOString(),
-        ...(response.thoughtSignatures && { thoughtSignatures: response.thoughtSignatures })
+        content: response.content, // Complete Gemini content object with all parts
+        text: response.response,    // Text for display
+        timestamp: new Date().toISOString()
       };
 
       setMessages(prev => [...prev, aiMessage]);
@@ -190,7 +190,7 @@ function CopilotChat({ token, onVenueClick }) {
               <ChatMessage
                 key={index}
                 role={msg.role}
-                content={msg.content}
+                content={msg.text || msg.content} // Use text for display, fallback to content
                 timestamp={msg.timestamp}
                 onVenueClick={handleVenueClick}
               />
