@@ -9,7 +9,10 @@
     "dev:server": "cd server && npm run dev",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "build:client": "cd client && npm run build",
-    "test": "cd server && npm test"
+    "test": "cd server && npm test",
+    "logs:start": "./scripts/start-log-stream.sh",
+    "logs:stop": "./scripts/stop-log-stream.sh",
+    "logs:view": "tail -f logs/render-stream.log"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

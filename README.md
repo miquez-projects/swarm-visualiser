@@ -53,9 +53,14 @@ cp server/.env.example server/.env
 # Run database migrations
 npm run db:migrate
 
+# Start Render log streaming (recommended for development)
+npm run logs:start
+
 # Start development servers
 npm run dev
 ```
+
+**📝 For Claude Code**: See [CLAUDE.md](CLAUDE.md) for development workflow and important notes.
 
 ### Database Migrations
 

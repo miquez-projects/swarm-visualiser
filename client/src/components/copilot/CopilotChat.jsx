@@ -64,6 +64,14 @@ function CopilotChat({ token, onVenueClick }) {
 
   const handleSendMessage = async (message) => {
     setError(null);
+
+    // Add user message immediately
+    const userMessage = {
+      role: 'user',
+      content: message,
+      timestamp: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
     try {
@@ -73,17 +81,24 @@ function CopilotChat({ token, onVenueClick }) {
       // Backend returns all conversation turns from this request
       // This includes: user message, function calls with thought signatures, and final response
       if (response.messages && Array.isArray(response.messages)) {
-        // Append all new turns to conversation history
-        setMessages(prev => [...prev, ...response.messages]);
+        // Filter out the user message (already added) and function-only messages
+        // Only show messages with actual text content to the user
+        const displayMessages = response.messages.filter(msg => {
+          // Skip user messages (we already added it)
+          if (msg.role === 'user') return false;
+
+          // For assistant messages, only show if there's text content
+          if (msg.role === 'assistant' || msg.role === 'model') {
+            return msg.text && msg.text.trim() && msg.text !== '[Function call]';
+          }
+
+          return true;
+        });
+
+        // Append filtered messages to conversation history
+        setMessages(prev => [...prev, ...displayMessages]);
       } else {
         // Fallback for old format (backwards compatibility)
-        // Add user message first
-        const userMessage = {
-          role: 'user',
-          content: message,
-          timestamp: new Date().toISOString()
-        };
-
         const aiMessage = {
           role: 'assistant',
           content: response.content,
@@ -91,11 +106,17 @@ function CopilotChat({ token, onVenueClick }) {
           timestamp: new Date().toISOString()
         };
 
-        setMessages(prev => [...prev, userMessage, aiMessage]);
+        setMessages(prev => [...prev, aiMessage]);
       }
     } catch (err) {
       console.error('Failed to send message:', err);
-      setError('Unable to reach AI service. Please try again.');
+      // Check for specific error messages
+      const errorMessage = err.response?.data?.error || err.message || '';
+      if (errorMessage.includes('overloaded') || errorMessage.includes('503')) {
+        setError('AI service is currently overloaded. Please try again in a moment.');
+      } else {
+        setError('Unable to reach AI service. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -103,8 +124,12 @@ function CopilotChat({ token, onVenueClick }) {
 
   const handleClear = () => {
     if (window.confirm('Clear all chat history?')) {
+      // Clear state first
       setMessages([]);
+      // Clear localStorage
       clearMessages();
+      // Force a re-render by clearing error state too
+      setError(null);
     }
   };
 
