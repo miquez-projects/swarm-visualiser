@@ -117,12 +117,15 @@ class GeminiSessionManager {
       })
       .map((msg) => {
         // For assistant messages with complete content, use it directly
-        if ((msg.role === 'assistant' || msg.role === 'model') && msg.content) {
+        if ((msg.role === 'assistant' || msg.role === 'model') &&
+            msg.content &&
+            typeof msg.content === 'object' &&
+            msg.content.parts) {
           // msg.content is the complete candidates[0].content from Gemini
           // It already has the correct structure with parts and thought signatures
           return {
             role: 'model',
-            parts: msg.content.parts || []
+            parts: msg.content.parts
           };
         }
 
