@@ -62,35 +62,48 @@ class StravaSyncService {
 
       console.log(`[STRAVA SYNC] Fetched ${allActivities.length} activities from API`);
 
-      // Fetch detailed activity data for tracklog
-      const detailedActivities = [];
-      for (let i = 0; i < allActivities.length; i++) {
-        const summary = allActivities[i];
+      // Fetch detailed data for each activity (to get full polyline)
+      console.log(`[STRAVA SYNC] Fetching detailed data for ${allActivities.length} activities...`);
+      const batchSize = 10; // Process 10 at a time to respect rate limits
 
-        try {
-          // Fetch detailed activity (includes full polyline)
-          const detailed = await stravaOAuth.makeAuthenticatedRequest(
-            encryptedTokens,
-            `/activities/${summary.id}`
-          );
+      for (let i = 0; i < allActivities.length; i += batchSize) {
+        const batch = allActivities.slice(i, i + batchSize);
 
-          detailedActivities.push(detailed);
+        // Fetch batch concurrently
+        const detailedResults = await Promise.allSettled(
+          batch.map(summary =>
+            stravaOAuth.makeAuthenticatedRequest(
+              encryptedTokens,
+              `/activities/${summary.id}`,
+              {}
+            )
+          )
+        );
 
-          if (onProgress && (i + 1) % 10 === 0) {
-            await onProgress({
-              fetched: allActivities.length,
-              detailed: detailedActivities.length
-            });
+        // Process results
+        detailedResults.forEach((result, batchIndex) => {
+          const activityIndex = i + batchIndex;
+          if (result.status === 'fulfilled') {
+            allActivities[activityIndex] = result.value;
+          } else {
+            console.log(`[STRAVA SYNC] Failed to fetch details for activity ${batch[batchIndex].id}, using summary data`);
+            // Keep summary data if detail fetch fails
           }
-        } catch (error) {
-          console.error(`[STRAVA SYNC] Failed to fetch details for activity ${summary.id}:`, error.message);
-          // Fall back to summary data if detail fetch fails
-          detailedActivities.push(summary);
+        });
+
+        // Progress reporting every batch
+        if (onProgress && (i + batchSize) % 100 === 0) {
+          await onProgress({ detailed: i + batchSize, fetched: allActivities.length });
         }
       }
 
+      // Final progress
+      if (onProgress) {
+        await onProgress({ detailed: allActivities.length, fetched: allActivities.length });
+      }
+
       // Transform and bulk insert
-      const activitiesToInsert = detailedActivities.map(activity =>
+      const activitiesToInsert = allActivities.map(activity =>
         this.transformActivity(activity, userId)
       );
 
