@@ -11,7 +11,9 @@ import {
   IconButton,
   Snackbar,
   Card,
-  CardContent
+  CardContent,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import { ContentCopy, CheckCircle, FitnessCenter } from '@mui/icons-material';
 import Layout from '../components/Layout';
@@ -24,8 +26,15 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
   );
   const [copied, setCopied] = useState(false);
   const [userData, setUserData] = useState(null);
-  const [garminConnected, setGarminConnected] = useState(false);
+  const [garminStatus, setGarminStatus] = useState({
+    connected: false,
+    connectedAt: null,
+    lastSyncAt: null,
+    syncActivities: true
+  });
   const [garminConnecting, setGarminConnecting] = useState(false);
+  const [syncingGarmin, setSyncingGarmin] = useState(false);
+  const [updatingGarmin, setUpdatingGarmin] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -44,21 +53,42 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
     }
   }, [token]);
 
+  // Fetch Garmin status
+  const fetchGarminStatus = useCallback(async () => {
+    if (token) {
+      try {
+        const response = await fetch(`${API_URL}/api/garmin/status`, {
+          headers: {
+            'x-auth-token': token
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setGarminStatus(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch Garmin status:', error);
+      }
+    }
+  }, [token, API_URL]);
+
   useEffect(() => {
     fetchUserData();
-  }, [fetchUserData]);
+    fetchGarminStatus();
+  }, [fetchUserData, fetchGarminStatus]);
 
   // Check for OAuth callback success
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('garmin') === 'connected') {
-      setGarminConnected(true);
+      fetchGarminStatus();
       setSuccess('Garmin connected successfully!');
 
       // Clean URL
       window.history.replaceState({}, '', '/data-sources');
     }
-  }, []);
+  }, [fetchGarminStatus]);
 
   const handleSyncComplete = () => {
     // Refetch user data to update lastSyncAt
@@ -96,6 +126,69 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
     }
   };
 
+  const handleGarminToggleActivities = async (event) => {
+    const newValue = event.target.checked;
+    setUpdatingGarmin(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/garmin/settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ syncActivities: newValue })
+      });
+
+      if (response.ok) {
+        setGarminStatus(prev => ({ ...prev, syncActivities: newValue }));
+        setSuccess(
+          newValue
+            ? 'Garmin activity sync enabled'
+            : 'Garmin activity sync disabled (daily metrics only)'
+        );
+      } else {
+        setError('Failed to update Garmin settings');
+      }
+    } catch (error) {
+      console.error('Garmin settings error:', error);
+      setError('Failed to update Garmin settings');
+    } finally {
+      setUpdatingGarmin(false);
+    }
+  };
+
+  const handleGarminSync = async () => {
+    setSyncingGarmin(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/garmin/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ syncType: 'incremental' })
+      });
+
+      if (response.ok) {
+        setSuccess('Garmin sync started');
+        // Refresh status after a short delay
+        setTimeout(() => {
+          fetchGarminStatus();
+          fetchUserData();
+        }, 2000);
+      } else {
+        setError('Failed to start Garmin sync');
+      }
+    } catch (error) {
+      console.error('Garmin sync error:', error);
+      setError('Failed to start Garmin sync');
+    } finally {
+      setSyncingGarmin(false);
+    }
+  };
+
   const handleGarminDisconnect = async () => {
     if (!window.confirm('Disconnect Garmin?')) return;
 
@@ -108,7 +201,12 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
       });
 
       if (response.ok) {
-        setGarminConnected(false);
+        setGarminStatus({
+          connected: false,
+          connectedAt: null,
+          lastSyncAt: null,
+          syncActivities: true
+        });
         setSuccess('Garmin disconnected successfully');
       } else {
         setError('Failed to disconnect Garmin');
@@ -117,6 +215,17 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
       console.error('Garmin disconnect error:', error);
       setError('Failed to disconnect Garmin');
     }
+  };
+
+  // Helper function to format dates
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString();
+  };
+
+  const formatLastSync = (dateString) => {
+    if (!dateString) return 'Never';
+    return new Date(dateString).toLocaleString();
   };
 
   return (
@@ -190,7 +299,7 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
               <Typography variant="h6">Garmin</Typography>
             </Box>
 
-            {!garminConnected ? (
+            {!garminStatus.connected ? (
               <>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   Connect your Garmin account to sync activities, steps, heart rate, and sleep data.
@@ -205,16 +314,42 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
               </>
             ) : (
               <>
-                <Typography color="success.main" sx={{ mb: 2 }}>
-                  ✓ Connected
+                <Typography variant="body2" mb={1}>
+                  Connected at: {formatDate(garminStatus.connectedAt)}
                 </Typography>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  onClick={handleGarminDisconnect}
-                >
-                  Disconnect
-                </Button>
+                <Typography variant="body2" mb={2}>
+                  Last synced: {formatLastSync(garminStatus.lastSyncAt)}
+                </Typography>
+
+                {/* Activity sync toggle */}
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={garminStatus.syncActivities}
+                      onChange={handleGarminToggleActivities}
+                      disabled={updatingGarmin}
+                    />
+                  }
+                  label="Sync activities (disable if using Strava)"
+                  sx={{ mb: 2 }}
+                />
+
+                <Box display="flex" gap={1}>
+                  <Button
+                    variant="outlined"
+                    onClick={handleGarminSync}
+                    disabled={syncingGarmin}
+                  >
+                    {syncingGarmin ? 'Syncing...' : 'Sync Now'}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={handleGarminDisconnect}
+                  >
+                    Disconnect
+                  </Button>
+                </Box>
               </>
             )}
           </CardContent>
