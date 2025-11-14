@@ -37,6 +37,8 @@ app.use('/api/filters', require('./routes/filters'));
 app.use('/api/year-in-review', require('./routes/yearInReview'));
 app.use('/api/copilot', require('./routes/copilot'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/sync', require('./routes/sync'));
+app.use('/api/venues', require('./routes/venues'));
 
 // 404 handler
 app.use((req, res) => {
@@ -92,6 +94,9 @@ async function start() {
   }
 }
 
-start();
+// Only start server if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+  start();
+}
 
 module.exports = app;

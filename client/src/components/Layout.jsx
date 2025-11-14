@@ -18,10 +18,11 @@ import {
   CalendarToday,
   Map
 } from '@mui/icons-material';
+import ContextMenu from './ContextMenu';
 
 const DRAWER_WIDTH = 320;
 
-function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions, sidebarExpanded = false }) {
+function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions, sidebarExpanded = false, token, lastSyncAt, onSyncComplete }) {
   const muiTheme = useMuiTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -73,6 +74,13 @@ function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions, 
           </Button>
 
           {headerActions}
+          {token && (
+            <ContextMenu
+              token={token}
+              lastSyncAt={lastSyncAt}
+              onSyncComplete={onSyncComplete}
+            />
+          )}
           <IconButton color="inherit" onClick={onToggleDarkMode}>
             {darkMode ? <Brightness7 /> : <Brightness4 />}
           </IconButton>

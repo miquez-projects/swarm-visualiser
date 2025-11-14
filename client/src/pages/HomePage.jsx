@@ -4,8 +4,7 @@ import Layout from '../components/Layout';
 import MapView from '../components/MapView';
 import FilterPanel from '../components/FilterPanel';
 import StatsPanel from '../components/StatsPanel';
-import SyncButton from '../components/SyncButton';
-import { getCheckins } from '../services/api';
+import { getCheckins, validateToken } from '../services/api';
 import { Box, Snackbar, Alert } from '@mui/material';
 
 function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
@@ -19,6 +18,7 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
   const [comparisonMode, setComparisonMode] = useState(false);
   const [error, setError] = useState(null);
   const [statsRefreshTrigger, setStatsRefreshTrigger] = useState(0);
+  const [userData, setUserData] = useState(null);
 
   // Viewport tracking state
   const [currentBounds, setCurrentBounds] = useState(null);
@@ -95,6 +95,18 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
     }
   }, [filters, token]);
 
+  // Fetch user data to get lastSyncAt
+  const fetchUserData = useCallback(async () => {
+    if (token) {
+      try {
+        const data = await validateToken(token);
+        setUserData(data);
+      } catch (error) {
+        console.error('Failed to fetch user data:', error);
+      }
+    }
+  }, [token]);
+
   useEffect(() => {
     // Store token in localStorage if it's in URL
     const urlToken = searchParams.get('token');
@@ -103,7 +115,15 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
     }
 
     loadCheckins();
-  }, [searchParams, loadCheckins]);
+    fetchUserData();
+  }, [searchParams, loadCheckins, fetchUserData]);
+
+  const handleSyncComplete = () => {
+    // Refetch user data to update lastSyncAt
+    fetchUserData();
+    loadCheckins();
+    setStatsRefreshTrigger(prev => prev + 1);
+  };
 
   const handleFilterChange = useCallback(async (newFilters) => {
     setFilters(newFilters);
@@ -230,23 +250,15 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
     </Box>
   );
 
-  const headerActions = token ? (
-    <SyncButton
-      token={token}
-      onSyncComplete={() => {
-        loadCheckins();
-        setStatsRefreshTrigger(prev => prev + 1);
-      }}
-    />
-  ) : null;
-
   return (
     <Layout
       darkMode={darkMode}
       onToggleDarkMode={onToggleDarkMode}
       sidebar={sidebar}
       sidebarExpanded={sidebarExpanded}
-      headerActions={headerActions}
+      token={token}
+      lastSyncAt={userData?.lastSyncAt}
+      onSyncComplete={handleSyncComplete}
     >
       <MapView
         checkins={checkins}
@@ -254,6 +266,7 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
         viewportLoading={viewportLoading}
         mapRef={mapRef}
         onViewportChange={handleViewportChange}
+        token={token}
       />
 
       {error && (

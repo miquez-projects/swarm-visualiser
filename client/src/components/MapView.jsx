@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Map, Source, Layer, Popup } from 'react-map-gl/mapbox';
-import { Box, Typography, Chip, CircularProgress, Modal, IconButton, Link } from '@mui/material';
+import { Box, Typography, Chip, CircularProgress, Modal, IconButton, Link, Tabs, Tab } from '@mui/material';
 import { Room, Close, CalendarMonth } from '@mui/icons-material';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import VenuePhotosGallery from './VenuePhotosGallery';
 
 const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -20,9 +21,10 @@ const CATEGORY_COLORS = {
   'Unknown': '#95a5a6'
 };
 
-function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange }) {
+function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange, token }) {
   const [selectedVenue, setSelectedVenue] = useState(null);
   const [showCheckinGrid, setShowCheckinGrid] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
   const [viewState, setViewState] = useState({
     longitude: 0,
     latitude: 20,
@@ -460,7 +462,33 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange 
                 {selectedVenue.checkins.length} check-ins
               </Typography>
 
-              <CheckinContributionGrid checkins={selectedVenue.checkins} />
+              <Tabs
+                value={activeTab}
+                onChange={(e, newValue) => setActiveTab(newValue)}
+                sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
+              >
+                <Tab label="Check-ins" />
+                <Tab label="Photos" />
+              </Tabs>
+
+              {activeTab === 0 && (
+                <CheckinContributionGrid checkins={selectedVenue.checkins} />
+              )}
+
+              {activeTab === 1 && token && selectedVenue.venue_id && (
+                <VenuePhotosGallery
+                  venueId={selectedVenue.venue_id}
+                  token={token}
+                />
+              )}
+
+              {activeTab === 1 && !token && (
+                <Box sx={{ p: 3, textAlign: 'center' }}>
+                  <Typography color="text.secondary">
+                    Authentication required to view photos
+                  </Typography>
+                </Box>
+              )}
             </>
           )}
         </Box>
@@ -485,7 +513,8 @@ MapView.propTypes = {
   mapRef: PropTypes.shape({
     current: PropTypes.any
   }).isRequired,
-  onViewportChange: PropTypes.func
+  onViewportChange: PropTypes.func,
+  token: PropTypes.string
 };
 
 // GitHub-style contribution grid component - showing weeks instead of days

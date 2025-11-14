@@ -33,5 +33,9 @@ logs/
 *.db
 *.sqlite
 
+# Test coverage
+coverage/
+*/coverage/
+
 # Git worktrees
 .worktrees/

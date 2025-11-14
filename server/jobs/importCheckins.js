@@ -1,6 +1,8 @@
 const User = require('../models/user');
 const ImportJob = require('../models/importJob');
 const Checkin = require('../models/checkin');
+const CheckinPhoto = require('../models/checkinPhoto');
+const db = require('../db/connection');
 const { decrypt } = require('../services/encryption');
 const { fetchCheckins, transformCheckin } = require('../services/foursquare');
 
@@ -68,12 +70,19 @@ async function importCheckinsHandler(job) {
     // Insert check-ins in batches
     const BATCH_SIZE = 1000;
     let imported = 0;
+    let photosImported = 0;
 
     for (let i = 0; i < checkins.length; i += BATCH_SIZE) {
       const batch = checkins.slice(i, i + BATCH_SIZE);
 
       try {
-        await Checkin.bulkInsert(batch);
+        // Separate checkins from photos
+        const checkinsToInsert = batch.map(c => {
+          const { photos, ...checkinData } = c;
+          return checkinData;
+        });
+
+        await Checkin.bulkInsert(checkinsToInsert);
         imported += batch.length;
 
         console.log(`Imported batch: ${imported}/${checkins.length}`);
@@ -89,7 +98,26 @@ async function importCheckinsHandler(job) {
 
         for (const checkin of batch) {
           try {
-            await Checkin.insert(checkin);
+            const { photos, ...checkinData } = checkin;
+            const insertedCheckin = await Checkin.insert(checkinData);
+
+            // Insert photos for this check-in if any
+            if (photos && photos.length > 0 && insertedCheckin) {
+              const photoRecords = photos.map(photo => ({
+                checkin_id: insertedCheckin.id,
+                photo_url: photo.url,
+                width: photo.width,
+                height: photo.height
+              }));
+
+              try {
+                const photoCount = await CheckinPhoto.bulkInsert(photoRecords);
+                photosImported += photoCount;
+              } catch (photoErr) {
+                console.log(`Failed to insert photos for check-in ${insertedCheckin.id}: ${photoErr.message}`);
+              }
+            }
+
             imported++;
           } catch (err) {
             // Skip duplicates or other errors
@@ -102,6 +130,43 @@ async function importCheckinsHandler(job) {
         });
       }
     }
+
+    console.log(`Import completed: ${imported} check-ins, ${photosImported} photos`);
+
+    // Now insert photos for successfully imported check-ins
+    // We need to fetch the inserted check-in IDs
+    // This is a second pass to handle bulk inserts
+    console.log('Inserting photos for bulk-inserted check-ins...');
+
+    for (const checkin of checkins) {
+      if (!checkin.photos || checkin.photos.length === 0) continue;
+
+      try {
+        // Find the check-in by venue_id and date to get the database ID
+        const result = await db.query(
+          'SELECT id FROM checkins WHERE user_id = $1 AND venue_id = $2 AND checkin_date = $3 LIMIT 1',
+          [userId, checkin.venue_id, checkin.checkin_date]
+        );
+
+        if (result.rows.length > 0) {
+          const checkinId = result.rows[0].id;
+          const photoRecords = checkin.photos.map(photo => ({
+            checkin_id: checkinId,
+            photo_url: photo.url,
+            width: photo.width,
+            height: photo.height
+          }));
+
+          const photoCount = await CheckinPhoto.bulkInsert(photoRecords);
+          photosImported += photoCount;
+        }
+      } catch (err) {
+        // Skip errors
+        console.log(`Failed to insert photos for venue ${checkin.venue_id}: ${err.message}`);
+      }
+    }
+
+    console.log(`Total photos imported: ${photosImported}`);
 
     console.log(`Import job ${jobId} completed: ${imported} check-ins imported`);
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import {
@@ -22,7 +22,7 @@ import {
   Event,
   EmojiEvents
 } from '@mui/icons-material';
-import { getAvailableYears, getYearInReview } from '../services/api';
+import { getAvailableYears, getYearInReview, validateToken } from '../services/api';
 
 function YearInReviewPage({ darkMode, onToggleDarkMode }) {
   const [searchParams] = useSearchParams();
@@ -33,6 +33,19 @@ function YearInReviewPage({ darkMode, onToggleDarkMode }) {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [userData, setUserData] = useState(null);
+
+  // Fetch user data to get lastSyncAt
+  const fetchUserData = useCallback(async () => {
+    if (token) {
+      try {
+        const data = await validateToken(token);
+        setUserData(data);
+      } catch (error) {
+        console.error('Failed to fetch user data:', error);
+      }
+    }
+  }, [token]);
 
   useEffect(() => {
     // Store token in localStorage if it's in URL
@@ -41,8 +54,18 @@ function YearInReviewPage({ darkMode, onToggleDarkMode }) {
     }
 
     loadYears();
+    fetchUserData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  const handleSyncComplete = () => {
+    // Refetch user data to update lastSyncAt
+    fetchUserData();
+    loadYears();
+    if (selectedYear) {
+      loadYearSummary(selectedYear);
+    }
+  };
 
   useEffect(() => {
     if (selectedYear) {
@@ -127,7 +150,13 @@ function YearInReviewPage({ darkMode, onToggleDarkMode }) {
 
   if (loading && !summary) {
     return (
-      <Layout darkMode={darkMode} onToggleDarkMode={onToggleDarkMode}>
+      <Layout
+        darkMode={darkMode}
+        onToggleDarkMode={onToggleDarkMode}
+        token={token}
+        lastSyncAt={userData?.lastSyncAt}
+        onSyncComplete={handleSyncComplete}
+      >
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
           <CircularProgress />
         </Box>
@@ -137,7 +166,13 @@ function YearInReviewPage({ darkMode, onToggleDarkMode }) {
 
   if (error) {
     return (
-      <Layout darkMode={darkMode} onToggleDarkMode={onToggleDarkMode}>
+      <Layout
+        darkMode={darkMode}
+        onToggleDarkMode={onToggleDarkMode}
+        token={token}
+        lastSyncAt={userData?.lastSyncAt}
+        onSyncComplete={handleSyncComplete}
+      >
         <Box sx={{ p: 3 }}>
           <Alert severity="error">{error}</Alert>
         </Box>
@@ -146,7 +181,13 @@ function YearInReviewPage({ darkMode, onToggleDarkMode }) {
   }
 
   return (
-    <Layout darkMode={darkMode} onToggleDarkMode={onToggleDarkMode}>
+    <Layout
+      darkMode={darkMode}
+      onToggleDarkMode={onToggleDarkMode}
+      token={token}
+      lastSyncAt={userData?.lastSyncAt}
+      onSyncComplete={handleSyncComplete}
+    >
       <Box
         sx={{
           height: '100%',

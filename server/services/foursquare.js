@@ -112,11 +112,23 @@ async function getUserProfile(accessToken) {
  * Transform Foursquare check-in to our database format
  * @param {Object} checkin - Foursquare check-in object
  * @param {number} userId - Our database user ID
- * @returns {Object} Check-in in our database format
+ * @returns {Object} Check-in in our database format with photos array
  */
 function transformCheckin(checkin, userId) {
   const venue = checkin.venue;
   const location = venue.location;
+
+  // Extract photos if available
+  const photos = [];
+  if (checkin.photos && checkin.photos.items && checkin.photos.items.length > 0) {
+    checkin.photos.items.forEach(photo => {
+      photos.push({
+        url: `${photo.prefix}original${photo.suffix}`,
+        width: photo.width || null,
+        height: photo.height || null
+      });
+    });
+  }
 
   return {
     user_id: userId,
@@ -127,7 +139,8 @@ function transformCheckin(checkin, userId) {
     longitude: location.lng,
     checkin_date: new Date(checkin.createdAt * 1000), // Convert Unix timestamp to Date
     city: location.city || null,
-    country: location.country || null
+    country: location.country || null,
+    photos: photos
   };
 }
 

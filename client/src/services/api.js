@@ -115,6 +115,19 @@ export const healthCheck = async () => {
 };
 
 /**
+ * Validate auth token
+ * @param {string} token - Auth token to validate
+ * @returns {Promise<Object>} User info if valid
+ * @throws {Error} If token is invalid
+ */
+export const validateToken = async (token) => {
+  const response = await api.get('/api/auth/me', {
+    params: { token }
+  });
+  return response.data;
+};
+
+/**
  * Send message to AI copilot
  * @param {string} message - User message
  * @param {Array} conversationHistory - Previous messages
@@ -167,6 +180,38 @@ export const getSyncStatus = async (jobId, token) => {
  */
 export const getLatestImport = async (token) => {
   const response = await api.get('/api/import/latest', {
+    params: { token }
+  });
+  return response.data;
+};
+
+/**
+ * Sync all data sources
+ * @param {string} token - Auth token
+ * @returns {Promise<Object>} Sync results
+ */
+export const syncAllData = async (token) => {
+  const response = await api.post('/api/sync/all', {}, {
+    headers: {
+      'x-auth-token': token
+    }
+  });
+
+  if (!response.data.success) {
+    throw new Error('Sync failed');
+  }
+
+  return response.data;
+};
+
+/**
+ * Get photos for a specific venue
+ * @param {string} venueId - Venue ID
+ * @param {string} token - Auth token
+ * @returns {Promise<Array>} Array of photo groups by date
+ */
+export const getVenuePhotos = async (venueId, token) => {
+  const response = await api.get(`/api/venues/${venueId}/photos`, {
     params: { token }
   });
   return response.data;
