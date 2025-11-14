@@ -434,27 +434,46 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
             bgcolor: 'background.paper',
             borderRadius: 2,
             boxShadow: 24,
-            p: 4,
             width: '95vw',
             maxWidth: 1400,
             height: '90vh',
-            overflow: 'auto',
-            position: 'relative'
+            overflow: 'hidden',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column'
           }}
         >
-          <IconButton
-            onClick={() => setShowCheckinGrid(false)}
+          {/* Sticky header with close button */}
+          <Box
             sx={{
-              position: 'absolute',
-              right: 8,
-              top: 8
+              position: 'sticky',
+              top: 0,
+              zIndex: 10,
+              bgcolor: 'background.paper',
+              borderBottom: 1,
+              borderColor: 'divider',
+              p: 2,
+              display: 'flex',
+              justifyContent: 'flex-end'
             }}
           >
-            <Close />
-          </IconButton>
+            <IconButton
+              onClick={() => setShowCheckinGrid(false)}
+              sx={{
+                bgcolor: 'background.paper',
+                boxShadow: 2,
+                '&:hover': {
+                  bgcolor: 'action.hover'
+                }
+              }}
+            >
+              <Close />
+            </IconButton>
+          </Box>
 
+          {/* Fixed content - venue name and tabs (doesn't scroll) */}
           {selectedVenue && (
-            <>
+            <Box sx={{ p: 4, pb: 0 }}>
               <Typography variant="h5" fontWeight="bold" gutterBottom>
                 {selectedVenue.venue_name}
               </Typography>
@@ -470,27 +489,34 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
                 <Tab label="Check-ins" />
                 <Tab label="Photos" />
               </Tabs>
-
-              {activeTab === 0 && (
-                <CheckinContributionGrid checkins={selectedVenue.checkins} />
-              )}
-
-              {activeTab === 1 && token && selectedVenue.venue_id && (
-                <VenuePhotosGallery
-                  venueId={selectedVenue.venue_id}
-                  token={token}
-                />
-              )}
-
-              {activeTab === 1 && !token && (
-                <Box sx={{ p: 3, textAlign: 'center' }}>
-                  <Typography color="text.secondary">
-                    Authentication required to view photos
-                  </Typography>
-                </Box>
-              )}
-            </>
+            </Box>
           )}
+
+          {/* Scrollable content - ONLY tab contents scroll */}
+          <Box sx={{ flex: 1, overflow: 'auto', px: 4, pb: 4 }}>
+            {selectedVenue && (
+              <>
+                {activeTab === 0 && (
+                  <CheckinContributionGrid checkins={selectedVenue.checkins} />
+                )}
+
+                {activeTab === 1 && token && selectedVenue.venue_id && (
+                  <VenuePhotosGallery
+                    venueId={selectedVenue.venue_id}
+                    token={token}
+                  />
+                )}
+
+                {activeTab === 1 && !token && (
+                  <Box sx={{ p: 3, textAlign: 'center' }}>
+                    <Typography color="text.secondary">
+                      Authentication required to view photos
+                    </Typography>
+                  </Box>
+                )}
+              </>
+            )}
+          </Box>
         </Box>
       </Modal>
     </Box>
