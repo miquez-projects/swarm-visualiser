@@ -82,10 +82,10 @@ async function importCheckinsHandler(job) {
           return checkinData;
         });
 
-        await Checkin.bulkInsert(checkinsToInsert);
-        imported += batch.length;
+        const insertedCount = await Checkin.bulkInsert(checkinsToInsert);
+        imported += insertedCount;
 
-        console.log(`Imported batch: ${imported}/${checkins.length}`);
+        console.log(`Imported batch: ${imported}/${checkins.length} (${insertedCount} inserted, ${batch.length - insertedCount} duplicates skipped)`);
 
         // Update progress
         await ImportJob.update(jobId, {
