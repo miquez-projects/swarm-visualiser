@@ -18,25 +18,17 @@ async function importGarminDataHandler(job) {
     // Mark job as started
     await ImportJob.markStarted(jobId);
 
-    // Get user with encrypted Garmin token
-    const user = await User.findById(userId);
-
-    if (!user) {
-      throw new Error(`User ${userId} not found`);
+    // Get encrypted OAuth tokens
+    const encryptedTokens = await User.getGarminTokens(userId);
+    if (!encryptedTokens) {
+      throw new Error('No Garmin OAuth tokens found');
     }
-
-    if (!user.garmin_session_token_encrypted) {
-      throw new Error('User has no Garmin session token');
-    }
-
-    // Decrypt session token
-    const sessionToken = user.garmin_session_token_encrypted;
 
     let result;
 
     if (syncType === 'full') {
       // Full historical sync (5 years)
-      result = await garminSync.fullHistoricalSync(sessionToken, userId, 5, async (progress) => {
+      result = await garminSync.fullHistoricalSync(encryptedTokens, userId, 5, async (progress) => {
         console.log(`Garmin import ${jobId}: Progress update`, progress);
         await ImportJob.update(jobId, {
           totalImported: progress.totalImported || progress.daysProcessed || 0,
@@ -45,10 +37,11 @@ async function importGarminDataHandler(job) {
       });
     } else {
       // Incremental sync
+      const user = await User.findById(userId);
       const lastSyncDate = user.last_garmin_sync_at;
       console.log(`[GARMIN JOB] User ${userId}: last_garmin_sync_at = ${lastSyncDate}`);
 
-      result = await garminSync.incrementalSync(sessionToken, userId, lastSyncDate, async (progress) => {
+      result = await garminSync.incrementalSync(encryptedTokens, userId, lastSyncDate, async (progress) => {
         console.log(`Garmin import ${jobId}: Progress update`, progress);
         await ImportJob.update(jobId, {
           totalImported: progress.totalImported || progress.daysProcessed || 0,
@@ -57,6 +50,7 @@ async function importGarminDataHandler(job) {
       });
     }
 
+    // Calculate total imported
     const totalImported = (result.activities?.imported || 0) + (result.dailyMetrics?.totalInserted || 0);
 
     console.log(`Garmin import job ${jobId} completed: ${totalImported} items imported`);
@@ -64,10 +58,15 @@ async function importGarminDataHandler(job) {
     // Mark job as completed
     await ImportJob.markCompleted(jobId);
 
-    // CRITICAL: Only update last_garmin_sync_at when items were actually imported
-    // This prevents the vicious cycle we had with Foursquare
+    // CRITICAL: Only update last_garmin_sync_at when items actually imported
+    // This prevents the vicious cycle where:
+    // - Empty sync updates timestamp
+    // - Next sync starts from updated timestamp
+    // - Misses data that was added between syncs
+    // - Data never gets imported
     if (totalImported > 0) {
       await User.updateLastGarminSync(userId);
+      console.log(`[GARMIN JOB] Imported ${totalImported} items, updated last_sync`);
     } else {
       console.log(`[GARMIN JOB] No items imported - NOT updating last_garmin_sync_at`);
     }
