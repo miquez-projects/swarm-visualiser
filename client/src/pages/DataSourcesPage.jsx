@@ -11,8 +11,7 @@ import {
   IconButton,
   Snackbar,
   Card,
-  CardContent,
-  TextField
+  CardContent
 } from '@mui/material';
 import { ContentCopy, CheckCircle, FitnessCenter } from '@mui/icons-material';
 import Layout from '../components/Layout';
@@ -26,9 +25,9 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
   const [copied, setCopied] = useState(false);
   const [userData, setUserData] = useState(null);
   const [garminConnected, setGarminConnected] = useState(false);
-  const [garminUsername, setGarminUsername] = useState('');
-  const [garminPassword, setGarminPassword] = useState('');
   const [garminConnecting, setGarminConnecting] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const tokenUrl = `${window.location.origin}/?token=${token}`;
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
@@ -49,6 +48,18 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
     fetchUserData();
   }, [fetchUserData]);
 
+  // Check for OAuth callback success
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('garmin') === 'connected') {
+      setGarminConnected(true);
+      setSuccess('Garmin connected successfully!');
+
+      // Clean URL
+      window.history.replaceState({}, '', '/data-sources');
+    }
+  }, []);
+
   const handleSyncComplete = () => {
     // Refetch user data to update lastSyncAt
     fetchUserData();
@@ -60,35 +71,26 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
   };
 
   const handleGarminConnect = async () => {
-    if (!garminUsername || !garminPassword) {
-      alert('Please enter Garmin username and password');
-      return;
-    }
-
     setGarminConnecting(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/garmin/connect?token=${token}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: garminUsername,
-          password: garminPassword
-        })
+      const response = await fetch(`${API_URL}/api/garmin/connect`, {
+        headers: {
+          'x-auth-token': token
+        }
       });
 
       const data = await response.json();
 
-      if (response.ok) {
-        setGarminConnected(true);
-        setGarminPassword(''); // Clear password
-        alert('Garmin connected successfully!');
+      if (data.authUrl) {
+        // Redirect to Garmin OAuth
+        window.location.href = data.authUrl;
       } else {
-        alert(`Failed to connect: ${data.message || data.error}`);
+        setError('Failed to initiate Garmin connection');
       }
-    } catch (error) {
-      console.error('Garmin connect error:', error);
-      alert('Failed to connect to Garmin');
+    } catch (err) {
+      console.error('Garmin connect error:', err);
+      setError('Failed to connect to Garmin');
     } finally {
       setGarminConnecting(false);
     }
@@ -98,18 +100,22 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
     if (!window.confirm('Disconnect Garmin?')) return;
 
     try {
-      const response = await fetch(`${API_URL}/api/garmin/disconnect?token=${token}`, {
-        method: 'DELETE'
+      const response = await fetch(`${API_URL}/api/garmin/disconnect`, {
+        method: 'DELETE',
+        headers: {
+          'x-auth-token': token
+        }
       });
 
       if (response.ok) {
         setGarminConnected(false);
-        setGarminUsername('');
-        alert('Garmin disconnected');
+        setSuccess('Garmin disconnected successfully');
+      } else {
+        setError('Failed to disconnect Garmin');
       }
     } catch (error) {
       console.error('Garmin disconnect error:', error);
-      alert('Failed to disconnect Garmin');
+      setError('Failed to disconnect Garmin');
     }
   };
 
@@ -187,28 +193,8 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
             {!garminConnected ? (
               <>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Sync activities, steps, heart rate, and sleep data from Garmin Connect
+                  Connect your Garmin account to sync activities, steps, heart rate, and sleep data.
                 </Typography>
-
-                <TextField
-                  fullWidth
-                  label="Garmin Username"
-                  value={garminUsername}
-                  onChange={(e) => setGarminUsername(e.target.value)}
-                  sx={{ mb: 2 }}
-                  size="small"
-                />
-
-                <TextField
-                  fullWidth
-                  type="password"
-                  label="Garmin Password"
-                  value={garminPassword}
-                  onChange={(e) => setGarminPassword(e.target.value)}
-                  sx={{ mb: 2 }}
-                  size="small"
-                />
-
                 <Button
                   variant="contained"
                   onClick={handleGarminConnect}
@@ -219,15 +205,13 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
               </>
             ) : (
               <>
-                <Typography variant="body2" color="success.main" sx={{ mb: 2 }}>
+                <Typography color="success.main" sx={{ mb: 2 }}>
                   ✓ Connected
                 </Typography>
-
                 <Button
                   variant="outlined"
                   color="error"
                   onClick={handleGarminDisconnect}
-                  size="small"
                 >
                   Disconnect
                 </Button>
@@ -241,6 +225,18 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
           autoHideDuration={2000}
           onClose={() => setCopied(false)}
           message="URL copied to clipboard!"
+        />
+        <Snackbar
+          open={!!error}
+          autoHideDuration={4000}
+          onClose={() => setError('')}
+          message={error}
+        />
+        <Snackbar
+          open={!!success}
+          autoHideDuration={4000}
+          onClose={() => setSuccess('')}
+          message={success}
         />
       </Box>
     </Layout>
