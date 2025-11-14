@@ -9,9 +9,12 @@ import {
   ListItem,
   ListItemText,
   IconButton,
-  Snackbar
+  Snackbar,
+  Card,
+  CardContent,
+  TextField
 } from '@mui/material';
-import { ContentCopy, CheckCircle } from '@mui/icons-material';
+import { ContentCopy, CheckCircle, FitnessCenter } from '@mui/icons-material';
 import Layout from '../components/Layout';
 import { validateToken } from '../services/api';
 
@@ -22,8 +25,13 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
   );
   const [copied, setCopied] = useState(false);
   const [userData, setUserData] = useState(null);
+  const [garminConnected, setGarminConnected] = useState(false);
+  const [garminUsername, setGarminUsername] = useState('');
+  const [garminPassword, setGarminPassword] = useState('');
+  const [garminConnecting, setGarminConnecting] = useState(false);
 
   const tokenUrl = `${window.location.origin}/?token=${token}`;
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
   // Fetch user data to get lastSyncAt
   const fetchUserData = useCallback(async () => {
@@ -49,6 +57,60 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
   const handleCopy = () => {
     navigator.clipboard.writeText(tokenUrl);
     setCopied(true);
+  };
+
+  const handleGarminConnect = async () => {
+    if (!garminUsername || !garminPassword) {
+      alert('Please enter Garmin username and password');
+      return;
+    }
+
+    setGarminConnecting(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/garmin/connect?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: garminUsername,
+          password: garminPassword
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setGarminConnected(true);
+        setGarminPassword(''); // Clear password
+        alert('Garmin connected successfully!');
+      } else {
+        alert(`Failed to connect: ${data.message || data.error}`);
+      }
+    } catch (error) {
+      console.error('Garmin connect error:', error);
+      alert('Failed to connect to Garmin');
+    } finally {
+      setGarminConnecting(false);
+    }
+  };
+
+  const handleGarminDisconnect = async () => {
+    if (!window.confirm('Disconnect Garmin?')) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/garmin/disconnect?token=${token}`, {
+        method: 'DELETE'
+      });
+
+      if (response.ok) {
+        setGarminConnected(false);
+        setGarminUsername('');
+        alert('Garmin disconnected');
+      }
+    } catch (error) {
+      console.error('Garmin disconnect error:', error);
+      alert('Failed to disconnect Garmin');
+    }
   };
 
   return (
@@ -111,17 +173,68 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
               />
               <CheckCircle color="success" />
             </ListItem>
-            <ListItem>
-              <ListItemText
-                primary="Garmin"
-                secondary="Not connected"
-              />
-              <Button variant="outlined" disabled>
-                Connect (Coming Soon)
-              </Button>
-            </ListItem>
           </List>
         </Paper>
+
+        {/* Garmin Integration */}
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <FitnessCenter sx={{ mr: 1, color: 'primary.main' }} />
+              <Typography variant="h6">Garmin</Typography>
+            </Box>
+
+            {!garminConnected ? (
+              <>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Sync activities, steps, heart rate, and sleep data from Garmin Connect
+                </Typography>
+
+                <TextField
+                  fullWidth
+                  label="Garmin Username"
+                  value={garminUsername}
+                  onChange={(e) => setGarminUsername(e.target.value)}
+                  sx={{ mb: 2 }}
+                  size="small"
+                />
+
+                <TextField
+                  fullWidth
+                  type="password"
+                  label="Garmin Password"
+                  value={garminPassword}
+                  onChange={(e) => setGarminPassword(e.target.value)}
+                  sx={{ mb: 2 }}
+                  size="small"
+                />
+
+                <Button
+                  variant="contained"
+                  onClick={handleGarminConnect}
+                  disabled={garminConnecting}
+                >
+                  {garminConnecting ? 'Connecting...' : 'Connect Garmin'}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Typography variant="body2" color="success.main" sx={{ mb: 2 }}>
+                  ✓ Connected
+                </Typography>
+
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={handleGarminDisconnect}
+                  size="small"
+                >
+                  Disconnect
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         <Snackbar
           open={copied}
