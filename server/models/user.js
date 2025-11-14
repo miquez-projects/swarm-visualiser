@@ -140,6 +140,41 @@ class User {
   }
 
   /**
+   * Update Garmin OAuth tokens
+   * @param {number} userId
+   * @param {string} encryptedTokens - Encrypted OAuth token bundle
+   */
+  static async updateGarminAuth(userId, encryptedTokens) {
+    const query = `
+      UPDATE users
+      SET garmin_oauth_tokens_encrypted = $1,
+          garmin_connected_at = NOW()
+      WHERE id = $2
+      RETURNING id, garmin_connected_at
+    `;
+
+    const result = await db.query(query, [encryptedTokens, userId]);
+    console.log(`[USER MODEL] Updated Garmin OAuth tokens for user ${userId}`);
+    return result.rows[0];
+  }
+
+  /**
+   * Get Garmin OAuth tokens
+   * @param {number} userId
+   * @returns {Promise<string|null>} Encrypted OAuth tokens
+   */
+  static async getGarminTokens(userId) {
+    const query = `
+      SELECT garmin_oauth_tokens_encrypted
+      FROM users
+      WHERE id = $1
+    `;
+
+    const result = await db.query(query, [userId]);
+    return result.rows[0]?.garmin_oauth_tokens_encrypted || null;
+  }
+
+  /**
    * Get all users (for admin purposes)
    * @returns {Promise<Array>}
    */
