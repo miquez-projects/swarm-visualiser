@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage';
 import ImportPage from './pages/ImportPage';
 import YearInReviewPage from './pages/YearInReviewPage';
 import DataSourcesPage from './pages/DataSourcesPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import SplashScreen from './components/SplashScreen';
 import CopilotChat from './components/copilot/CopilotChat';
 
@@ -60,6 +61,7 @@ function App() {
             <Route path="/import" element={<ImportPage />} />
             <Route path="/year-in-review" element={<YearInReviewPage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} />} />
             <Route path="/data-sources" element={<DataSourcesPage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} />} />
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
           </Routes>
           {/* AI Copilot - show only if authenticated */}
           {authToken && <CopilotChat token={authToken} onVenueClick={handleVenueClickFromChat} />}
