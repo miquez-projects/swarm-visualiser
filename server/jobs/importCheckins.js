@@ -38,6 +38,7 @@ async function importCheckinsHandler(job) {
     // Determine if this is incremental sync
     const afterTimestamp = user.last_sync_at ? new Date(user.last_sync_at) : null;
 
+    console.log(`[IMPORT] User ${userId}: last_sync_at = ${user.last_sync_at}, afterTimestamp = ${afterTimestamp}`);
     console.log(`Fetching check-ins for user ${userId}${afterTimestamp ? ` after ${afterTimestamp}` : ' (all time)'}`);
 
     // Fetch check-ins from Foursquare with progress callback
