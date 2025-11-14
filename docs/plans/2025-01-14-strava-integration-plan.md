@@ -432,9 +432,9 @@ Following the pattern from `garminOAuth.js` (commit 11f6440), implement:
 **Key Functions:**
 ```javascript
 class StravaOAuthService {
-  // OAuth2 PKCE flow
-  generateAuthorizationUrl(codeVerifier, redirectUri)
-  exchangeCodeForTokens(code, codeVerifier, redirectUri)
+  // OAuth2 standard flow (no PKCE)
+  getAuthorizationUrl(redirectUri, scope)
+  exchangeCodeForToken(code, redirectUri)
   refreshAccessToken(encryptedTokens)
 
   // Token management
@@ -450,7 +450,7 @@ class StravaOAuthService {
 ```
 
 **Implementation Notes:**
-1. Strava OAuth2 uses PKCE (similar to Garmin)
+1. Strava OAuth2 uses **standard OAuth2** (NOT PKCE - unlike Garmin, Strava does not support PKCE)
 2. Access tokens expire in 6 hours, refresh tokens do not expire
 3. Tokens must be refreshed proactively when expired
 4. Base URL: `https://www.strava.com/api/v3`
@@ -472,14 +472,14 @@ STRAVA_REDIRECT_URI=https://swarm-visualiser.vercel.app/data-sources
 ```javascript
 // OAuth initiation
 GET /api/strava/auth/start
-  - Generate PKCE code verifier & challenge
-  - Store code_verifier in session
+  - Generate authorization URL (no PKCE needed for Strava)
+  - Store user ID in session
   - Return authorization URL
 
 // OAuth callback
 POST /api/strava/auth/callback
-  - Receive { code, state }
-  - Retrieve code_verifier from session
+  - Receive { code, state, scope }
+  - Retrieve user ID from session
   - Exchange code for tokens
   - Store encrypted tokens in users table
   - Update strava_athlete_id, strava_connected_at
