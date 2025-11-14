@@ -1,63 +1,106 @@
 const express = require('express');
 const router = express.Router();
+const { authenticateToken } = require('../middleware/auth');
+const garminOAuth = require('../services/garminOAuth');
 const User = require('../models/user');
 const ImportJob = require('../models/importJob');
-const garminAuth = require('../services/garminAuth');
 const { getQueue } = require('../jobs/queue');
-const { authenticateToken } = require('../middleware/auth');
 
 /**
- * POST /api/garmin/connect
- * Connect Garmin account with username/password
+ * GET /api/garmin/connect
+ * Initiate Garmin OAuth2 PKCE flow
  */
-router.post('/connect', authenticateToken, async (req, res) => {
+router.get('/connect', authenticateToken, async (req, res) => {
   try {
-    const user = req.user;
+    const userId = req.user.id;
+    const callbackUrl = `${process.env.API_URL || 'http://localhost:3001'}/api/garmin/callback`;
 
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ error: 'Username and password required' });
+    // Generate PKCE parameters
+    const { codeVerifier, codeChallenge } = garminOAuth.generatePKCE();
+
+    // Store PKCE verifier and user ID in session for callback
+    req.session.garminCodeVerifier = codeVerifier;
+    req.session.garminUserId = userId;
+
+    // Generate authorization URL
+    const authUrl = garminOAuth.getAuthorizationUrl(callbackUrl, codeChallenge);
+
+    console.log(`[GARMIN ROUTE] Generated OAuth URL for user ${userId}`);
+
+    res.json({ authUrl });
+  } catch (error) {
+    console.error('[GARMIN ROUTE] Connect error:', error);
+    res.status(500).json({ error: 'Failed to initiate OAuth flow' });
+  }
+});
+
+/**
+ * GET /api/garmin/callback
+ * OAuth2 callback - exchange authorization code for tokens
+ */
+router.get('/callback', async (req, res) => {
+  const { code, state } = req.query;
+
+  if (!code) {
+    console.error('[GARMIN ROUTE] Callback missing authorization code');
+    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/data-sources?garmin=error&reason=missing_code`);
+  }
+
+  try {
+    // Retrieve PKCE verifier and user ID from session
+    const codeVerifier = req.session?.garminCodeVerifier;
+    const userId = req.session?.garminUserId;
+
+    if (!codeVerifier || !userId) {
+      console.error('[GARMIN ROUTE] Session expired or missing');
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/data-sources?garmin=error&reason=session_expired`);
     }
 
-    // Authenticate with Garmin
-    const { encrypted } = await garminAuth.authenticate(username, password);
+    const callbackUrl = `${process.env.API_URL || 'http://localhost:3001'}/api/garmin/callback`;
 
-    // Save encrypted session token
-    await User.update(user.id, {
-      garmin_session_token_encrypted: encrypted,
-      garmin_connected_at: new Date()
-    });
+    // Exchange authorization code for tokens
+    const { accessToken, refreshToken } = await garminOAuth.exchangeCodeForToken(
+      code,
+      codeVerifier,
+      callbackUrl
+    );
 
-    res.json({
-      success: true,
-      message: 'Garmin connected successfully'
-    });
+    // Encrypt and store tokens
+    const encryptedTokens = garminOAuth.encryptTokens(accessToken, refreshToken);
+    await User.updateGarminAuth(userId, encryptedTokens);
+
+    // Clear session data
+    delete req.session.garminCodeVerifier;
+    delete req.session.garminUserId;
+
+    console.log(`[GARMIN ROUTE] Successfully connected Garmin for user ${userId}`);
+
+    // Redirect to frontend with success
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/data-sources?garmin=connected`);
   } catch (error) {
-    console.error('Garmin connect error:', error);
-    res.status(500).json({
-      error: 'Failed to connect Garmin',
-      message: error.message
-    });
+    console.error('[GARMIN ROUTE] Callback error:', error);
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/data-sources?garmin=error&reason=token_exchange_failed`);
   }
 });
 
 /**
  * POST /api/garmin/sync
- * Start Garmin data sync (queues background job)
+ * Queue Garmin data sync job
  */
 router.post('/sync', authenticateToken, async (req, res) => {
   try {
-    const user = req.user;
+    const userId = req.user.id;
+    const { syncType = 'incremental' } = req.body;
 
-    if (!user.garmin_session_token_encrypted) {
+    // Verify user has Garmin tokens
+    const tokens = await User.getGarminTokens(userId);
+    if (!tokens) {
       return res.status(400).json({ error: 'Garmin not connected' });
     }
 
-    const { syncType = 'incremental' } = req.body;
-
     // Create import job
     const job = await ImportJob.create({
-      user_id: user.id,
+      user_id: userId,
       data_source: 'garmin',
       status: 'queued'
     });
@@ -66,23 +109,16 @@ router.post('/sync', authenticateToken, async (req, res) => {
     const boss = getQueue();
     await boss.send('import-garmin-data', {
       jobId: job.id,
-      userId: user.id,
+      userId,
       syncType
     });
 
-    console.log(`Queued Garmin sync job ${job.id} for user ${user.id} (${syncType})`);
+    console.log(`[GARMIN ROUTE] Queued sync job ${job.id} for user ${userId} (${syncType})`);
 
-    res.json({
-      success: true,
-      jobId: job.id,
-      message: 'Garmin sync queued. Check progress in import history.'
-    });
+    res.json({ jobId: job.id, status: 'queued' });
   } catch (error) {
-    console.error('Garmin sync error:', error);
-    res.status(500).json({
-      error: 'Failed to start Garmin sync',
-      message: error.message
-    });
+    console.error('[GARMIN ROUTE] Sync error:', error);
+    res.status(500).json({ error: 'Failed to queue sync' });
   }
 });
 
@@ -92,24 +128,17 @@ router.post('/sync', authenticateToken, async (req, res) => {
  */
 router.delete('/disconnect', authenticateToken, async (req, res) => {
   try {
-    const user = req.user;
+    const userId = req.user.id;
 
-    await User.update(user.id, {
-      garmin_session_token_encrypted: null,
-      garmin_connected_at: null,
-      last_garmin_sync_at: null
-    });
+    // Clear OAuth tokens
+    await User.updateGarminAuth(userId, null);
 
-    res.json({
-      success: true,
-      message: 'Garmin disconnected successfully'
-    });
+    console.log(`[GARMIN ROUTE] Disconnected Garmin for user ${userId}`);
+
+    res.json({ success: true });
   } catch (error) {
-    console.error('Garmin disconnect error:', error);
-    res.status(500).json({
-      error: 'Failed to disconnect Garmin',
-      message: error.message
-    });
+    console.error('[GARMIN ROUTE] Disconnect error:', error);
+    res.status(500).json({ error: 'Failed to disconnect' });
   }
 });
 

@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const session = require('express-session');
 const { initQueue, getQueue, stopQueue } = require('./jobs/queue');
 const importCheckinsHandler = require('./jobs/importCheckins');
 const importGarminDataHandler = require('./jobs/importGarminData');
@@ -11,6 +12,18 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Session middleware for OAuth flows (Garmin PKCE)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 3600000 // 1 hour
+  }
+}));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
