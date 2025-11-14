@@ -46,7 +46,9 @@ class ImportJob {
   /**
    * Create a new import job
    * @param {Object} jobData
-   * @param {number} jobData.userId
+   * @param {number} jobData.userId - User ID (camelCase)
+   * @param {number} jobData.user_id - User ID (snake_case, alternative)
+   * @param {string} jobData.data_source - Data source (e.g., 'foursquare', 'strava')
    * @param {number} jobData.totalExpected - Optional, can be set later
    * @returns {Promise<Object>}
    */
@@ -54,16 +56,18 @@ class ImportJob {
     const query = `
       INSERT INTO import_jobs (
         user_id,
+        data_source,
         status,
         total_expected
-      ) VALUES ($1, $2, $3)
+      ) VALUES ($1, $2, $3, $4)
       RETURNING *
     `;
 
     const values = [
-      jobData.userId,
+      jobData.user_id || jobData.userId,  // Support both naming conventions
+      jobData.data_source || null,
       jobData.status || 'pending',
-      jobData.totalExpected || null
+      jobData.total_expected || jobData.totalExpected || null
     ];
 
     const result = await db.query(query, values);

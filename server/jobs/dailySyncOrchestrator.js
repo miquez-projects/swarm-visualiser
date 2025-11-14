@@ -53,7 +53,8 @@ async function dailySyncOrchestrator(job) {
 
       // Create import job record
       const importJob = await ImportJob.create({
-        userId: user.id,
+        user_id: user.id,
+        data_source: 'foursquare',
         status: 'pending'
       });
 

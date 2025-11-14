@@ -150,7 +150,8 @@ router.post('/sync', authenticateToken, async (req, res) => {
 
     // Create import job
     const job = await ImportJob.create({
-      userId: userId,
+      user_id: userId,
+      data_source: 'strava',
       status: 'queued'
     });
 
@@ -194,6 +195,7 @@ router.get('/sync/status/:jobId', authenticateToken, async (req, res) => {
     res.json({
       jobId: job.id,
       status: job.status,
+      dataSource: job.data_source,
       totalImported: job.total_imported,
       totalExpected: job.total_expected,
       currentBatch: job.current_batch,

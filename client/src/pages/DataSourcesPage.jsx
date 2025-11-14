@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { ContentCopy, CheckCircle, FitnessCenter, DirectionsBike } from '@mui/icons-material';
 import Layout from '../components/Layout';
+import SyncProgressBar from '../components/SyncProgressBar';
 import { validateToken } from '../services/api';
 
 const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
@@ -41,6 +42,8 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
     lastSyncAt: null
   });
   const [syncingStrava, setSyncingStrava] = useState(false);
+  const [garminJobId, setGarminJobId] = useState(null);
+  const [stravaJobId, setStravaJobId] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -120,6 +123,11 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
 
         // Refresh status
         await fetchStravaStatus();
+
+        // Capture job ID for progress bar
+        if (result.jobId) {
+          setStravaJobId(result.jobId);
+        }
 
         setSuccess('Strava connected! Initial sync started.');
       } else {
@@ -238,12 +246,9 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        setGarminJobId(data.jobId);
         setSuccess('Garmin sync started');
-        // Refresh status after a short delay
-        setTimeout(() => {
-          fetchGarminStatus();
-          fetchUserData();
-        }, 2000);
       } else {
         setError('Failed to start Garmin sync');
       }
@@ -313,12 +318,9 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        setStravaJobId(data.jobId);
         setSuccess('Strava sync started');
-        // Refresh status after a short delay
-        setTimeout(() => {
-          fetchStravaStatus();
-          fetchUserData();
-        }, 2000);
       } else {
         setError('Failed to start Strava sync');
       }
@@ -478,7 +480,7 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
                   <Button
                     variant="outlined"
                     onClick={handleGarminSync}
-                    disabled={syncingGarmin}
+                    disabled={syncingGarmin || !!garminJobId}
                   >
                     {syncingGarmin ? 'Syncing...' : 'Sync Now'}
                   </Button>
@@ -490,6 +492,21 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
                     Disconnect
                   </Button>
                 </Box>
+
+                {garminJobId && (
+                  <Box sx={{ mt: 2 }}>
+                    <SyncProgressBar
+                      jobId={garminJobId}
+                      token={token}
+                      dataSource="garmin"
+                      onComplete={() => {
+                        setGarminJobId(null);
+                        fetchGarminStatus();
+                      }}
+                      onError={() => setGarminJobId(null)}
+                    />
+                  </Box>
+                )}
               </>
             )}
           </CardContent>
@@ -528,7 +545,7 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
                   <Button
                     variant="outlined"
                     onClick={handleStravaSync}
-                    disabled={syncingStrava}
+                    disabled={syncingStrava || !!stravaJobId}
                   >
                     {syncingStrava ? 'Syncing...' : 'Sync Now'}
                   </Button>
@@ -540,6 +557,21 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
                     Disconnect
                   </Button>
                 </Box>
+
+                {stravaJobId && (
+                  <Box sx={{ mt: 2 }}>
+                    <SyncProgressBar
+                      jobId={stravaJobId}
+                      token={token}
+                      dataSource="strava"
+                      onComplete={() => {
+                        setStravaJobId(null);
+                        fetchStravaStatus();
+                      }}
+                      onError={() => setStravaJobId(null)}
+                    />
+                  </Box>
+                )}
               </>
             )}
           </CardContent>

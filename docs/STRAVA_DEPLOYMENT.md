@@ -29,10 +29,11 @@ STRAVA_CLIENT_SECRET=<your_strava_client_secret>
 
 ### ✅ Step 1: Database Migrations (COMPLETED)
 
-All 3 migrations have been run on production:
+All 4 migrations have been run on production:
 - ✅ `009_add_strava_activities.sql` - Creates strava_activities table
 - ✅ `010_add_strava_activity_photos.sql` - Creates strava_activity_photos table
 - ✅ `011_add_strava_auth.sql` - Adds Strava OAuth columns to users table
+- ✅ `012_add_data_source_to_import_jobs.sql` - Adds data_source column to import_jobs table
 
 **Verification:**
 ```sql

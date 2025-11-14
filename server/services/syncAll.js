@@ -36,7 +36,8 @@ async function syncAllDataSources(userId) {
     } else {
       // Create a new import job
       const job = await ImportJob.create({
-        userId,
+        user_id: userId,
+        data_source: 'foursquare',
         status: 'pending'
       });
 

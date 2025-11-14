@@ -26,7 +26,8 @@ router.post('/start', authenticateToken, async (req, res) => {
 
     // Create a new import job
     const job = await ImportJob.create({
-      userId,
+      user_id: userId,
+      data_source: 'foursquare',
       status: 'pending'
     });
 
@@ -80,6 +81,7 @@ router.get('/status/:jobId', authenticateToken, async (req, res) => {
     res.json({
       id: job.id,
       status: job.status,
+      dataSource: job.data_source,
       totalExpected: job.total_expected,
       totalImported: job.total_imported,
       currentBatch: job.current_batch,
@@ -119,6 +121,7 @@ router.get('/latest', authenticateToken, async (req, res) => {
       job: {
         id: job.id,
         status: job.status,
+        dataSource: job.data_source,
         totalExpected: job.total_expected,
         totalImported: job.total_imported,
         currentBatch: job.current_batch,
