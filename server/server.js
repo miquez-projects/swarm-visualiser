@@ -5,6 +5,7 @@ const session = require('express-session');
 const { initQueue, getQueue, stopQueue } = require('./jobs/queue');
 const importCheckinsHandler = require('./jobs/importCheckins');
 const importGarminDataHandler = require('./jobs/importGarminData');
+const importStravaDataHandler = require('./jobs/importStravaData');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -54,6 +55,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/sync', require('./routes/sync'));
 app.use('/api/venues', require('./routes/venues'));
 app.use('/api/garmin', require('./routes/garmin'));
+app.use('/api/strava', require('./routes/strava'));
 
 // 404 handler
 app.use((req, res) => {
@@ -82,6 +84,10 @@ async function start() {
     // Register Garmin import job
     await queue.work('import-garmin-data', { teamSize: 2, teamConcurrency: 1 }, importGarminDataHandler);
     console.log('Registered job: import-garmin-data');
+
+    // Register Strava import job
+    await queue.work('import-strava-data', { teamSize: 2, teamConcurrency: 1 }, importStravaDataHandler);
+    console.log('Registered job: import-strava-data');
 
     console.log('Job queue initialized and workers registered');
 

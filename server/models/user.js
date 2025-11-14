@@ -218,18 +218,20 @@ class User {
    * Update Strava OAuth tokens
    * @param {number} userId
    * @param {string} encryptedTokens - Encrypted OAuth token bundle
+   * @param {string} athleteId - Strava athlete ID (optional)
    */
-  static async updateStravaAuth(userId, encryptedTokens) {
+  static async updateStravaAuth(userId, encryptedTokens, athleteId = null) {
     const query = `
       UPDATE users
       SET strava_oauth_tokens_encrypted = $1,
+          strava_athlete_id = $2,
           strava_connected_at = NOW()
-      WHERE id = $2
-      RETURNING id, strava_connected_at
+      WHERE id = $3
+      RETURNING id, strava_athlete_id, strava_connected_at
     `;
 
-    const result = await db.query(query, [encryptedTokens, userId]);
-    console.log(`[USER MODEL] Updated Strava OAuth tokens for user ${userId}`);
+    const result = await db.query(query, [encryptedTokens, athleteId, userId]);
+    console.log(`[USER MODEL] Updated Strava OAuth tokens for user ${userId}, athlete ID: ${athleteId}`);
     return result.rows[0];
   }
 
