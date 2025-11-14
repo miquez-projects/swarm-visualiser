@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { initQueue, getQueue, stopQueue } = require('./jobs/queue');
 const importCheckinsHandler = require('./jobs/importCheckins');
+const importGarminDataHandler = require('./jobs/importGarminData');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -63,6 +64,10 @@ async function start() {
 
     // Register job handlers
     await queue.work('import-checkins', importCheckinsHandler);
+
+    // Register Garmin import job
+    await queue.work('import-garmin-data', { teamSize: 2, teamConcurrency: 1 }, importGarminDataHandler);
+    console.log('Registered job: import-garmin-data');
 
     console.log('Job queue initialized and workers registered');
 
