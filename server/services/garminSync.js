@@ -1,4 +1,4 @@
-const garminAuth = require('./garminAuth');
+const garminOAuth = require('./garminOAuth');
 const GarminActivity = require('../models/garminActivity');
 const GarminDailySteps = require('../models/garminDailySteps');
 const GarminDailyHeartRate = require('../models/garminDailyHeartRate');
@@ -6,94 +6,82 @@ const GarminDailySleep = require('../models/garminDailySleep');
 
 class GarminSyncService {
   /**
-   * Sync activities from Garmin
-   * @param {GarminConnect} client - Authenticated Garmin client
-   * @param {number} userId - User ID
-   * @param {Date|null} afterDate - Only sync activities after this date (incremental sync)
-   * @param {function} onProgress - Progress callback
+   * Sync activities from Garmin Health API
+   * CRITICAL: Implements lessons learned from Foursquare sync
+   * - Only updates last_sync when items actually imported
+   * - Uses bulkInsert return value, not array length
+   * - 7-day lookback for incremental sync
    */
-  async syncActivities(client, userId, afterDate = null, onProgress = null) {
-    let start = 0;
-    const limit = 50; // Activities per page
-    let hasMore = true;
-    let totalImported = 0;
-    let totalFetched = 0;
-
+  async syncActivities(encryptedTokens, userId, afterDate = null, onProgress = null) {
     console.log(`[GARMIN SYNC] Starting activity sync for user ${userId}, afterDate: ${afterDate}`);
 
-    while (hasMore) {
-      try {
-        const activities = await client.getActivities(start, limit);
+    const startDate = afterDate || this.getDefaultStartDate();
+    const endDate = new Date();
 
-        if (activities.length === 0) {
-          console.log(`[GARMIN SYNC] No more activities to fetch`);
-          hasMore = false;
+    let allActivities = [];
+    let offset = 0;
+    const limit = 100;
+
+    try {
+      // Fetch activities in pages
+      while (true) {
+        const activities = await garminOAuth.makeAuthenticatedRequest(
+          encryptedTokens,
+          '/activities',
+          {
+            uploadStartTimeInSeconds: Math.floor(startDate.getTime() / 1000),
+            uploadEndTimeInSeconds: Math.floor(endDate.getTime() / 1000),
+            start: offset,
+            limit
+          }
+        );
+
+        if (!activities || activities.length === 0) {
           break;
         }
 
-        totalFetched += activities.length;
+        allActivities = allActivities.concat(activities);
+        offset += activities.length;
 
-        // Filter activities by date if afterDate provided
-        const activitiesToInsert = [];
-        for (const activity of activities) {
-          const activityDate = new Date(activity.startTimeGMT);
-
-          // If we've gone past the afterDate, stop fetching more
-          if (afterDate && activityDate < afterDate) {
-            console.log(`[GARMIN SYNC] Reached activities before ${afterDate}, stopping`);
-            hasMore = false;
-            break;
-          }
-
-          // Transform and queue for insertion
-          const activityData = this.transformActivity(activity, userId);
-          activitiesToInsert.push(activityData);
+        if (onProgress) {
+          await onProgress({ fetched: allActivities.length });
         }
 
-        // Insert activities in bulk
-        if (activitiesToInsert.length > 0) {
-          const insertedCount = await GarminActivity.bulkInsert(activitiesToInsert);
-          totalImported += insertedCount;
-
-          console.log(`[GARMIN SYNC] Batch: fetched ${activities.length}, inserted ${insertedCount}, total imported: ${totalImported}/${totalFetched}`);
-
-          // Report progress
-          if (onProgress) {
-            await onProgress({
-              totalFetched,
-              totalImported,
-              batch: Math.floor(start / limit) + 1
-            });
-          }
+        // Safety limit
+        if (offset >= 10000) {
+          console.log(`[GARMIN SYNC] Reached safety limit`);
+          break;
         }
 
-        start += activities.length;
-
-        // Safety limit to prevent infinite loops
-        if (start >= 10000) {
-          console.log(`[GARMIN SYNC] Reached safety limit of 10,000 activities`);
-          hasMore = false;
+        // No more results
+        if (activities.length < limit) {
+          break;
         }
-      } catch (error) {
-        console.error(`[GARMIN SYNC] Error fetching activities at offset ${start}:`, error.message);
-        throw error;
       }
+
+      // Transform and bulk insert
+      const activitiesToInsert = allActivities.map(activity =>
+        this.transformActivity(activity, userId)
+      );
+
+      // CRITICAL: Use bulkInsert return value, not array length
+      const insertedCount = activitiesToInsert.length > 0
+        ? await GarminActivity.bulkInsert(activitiesToInsert)
+        : 0;
+
+      console.log(`[GARMIN SYNC] Activity sync complete: ${insertedCount} imported, ${allActivities.length} fetched`);
+
+      return { imported: insertedCount, fetched: allActivities.length };
+    } catch (error) {
+      console.error(`[GARMIN SYNC] Activity sync error:`, error.message);
+      throw error;
     }
-
-    console.log(`[GARMIN SYNC] Activity sync complete: ${totalImported} imported, ${totalFetched} fetched`);
-
-    return { imported: totalImported, fetched: totalFetched };
   }
 
   /**
-   * Sync daily metrics (steps, heart rate, sleep) for a date range
-   * @param {GarminConnect} client - Authenticated Garmin client
-   * @param {number} userId - User ID
-   * @param {Date} startDate - Start date
-   * @param {Date} endDate - End date
-   * @param {function} onProgress - Progress callback
+   * Sync daily metrics (steps, heart rate, sleep)
    */
-  async syncDailyMetrics(client, userId, startDate, endDate, onProgress = null) {
+  async syncDailyMetrics(encryptedTokens, userId, startDate, endDate, onProgress = null) {
     console.log(`[GARMIN SYNC] Syncing daily metrics from ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
 
     const stepsArray = [];
@@ -108,105 +96,102 @@ class GarminSyncService {
       const dateStr = currentDate.toISOString().split('T')[0];
 
       try {
-        // Fetch steps
-        const stepsData = await client.getSteps(dateStr);
-        if (stepsData && stepsData.totalSteps) {
-          stepsArray.push({
-            user_id: userId,
-            date: dateStr,
-            step_count: stepsData.totalSteps
-          });
-        }
-      } catch (err) {
-        console.error(`[GARMIN SYNC] Failed to fetch steps for ${dateStr}:`, err.message);
-      }
+        // Fetch daily summaries
+        const summaries = await garminOAuth.makeAuthenticatedRequest(
+          encryptedTokens,
+          '/dailies',
+          {
+            uploadStartTimeInSeconds: Math.floor(currentDate.getTime() / 1000),
+            uploadEndTimeInSeconds: Math.floor(currentDate.getTime() / 1000) + 86400
+          }
+        );
 
-      try {
-        // Fetch heart rate
-        const hrData = await client.getHeartRate(dateStr);
-        if (hrData) {
-          hrArray.push({
-            user_id: userId,
-            date: dateStr,
-            min_heart_rate: hrData.minHeartRate,
-            max_heart_rate: hrData.maxHeartRate,
-            resting_heart_rate: hrData.restingHeartRate
-          });
-        }
-      } catch (err) {
-        console.error(`[GARMIN SYNC] Failed to fetch heart rate for ${dateStr}:`, err.message);
-      }
+        if (summaries && summaries.length > 0) {
+          const summary = summaries[0];
 
-      try {
-        // Fetch sleep
-        const sleepData = await client.getSleepData(dateStr);
-        if (sleepData && sleepData.dailySleepDTO) {
-          const sleep = sleepData.dailySleepDTO;
-          sleepArray.push({
-            user_id: userId,
-            date: dateStr,
-            sleep_duration_seconds: sleep.sleepTimeSeconds,
-            sleep_score: sleep.sleepScores?.overall?.value,
-            deep_sleep_seconds: sleep.deepSleepSeconds,
-            light_sleep_seconds: sleep.lightSleepSeconds,
-            rem_sleep_seconds: sleep.remSleepSeconds,
-            awake_seconds: sleep.awakeSleepSeconds
-          });
+          // Steps
+          if (summary.totalSteps) {
+            stepsArray.push({
+              user_id: userId,
+              date: dateStr,
+              step_count: summary.totalSteps
+            });
+          }
+
+          // Heart Rate
+          if (summary.minHeartRateInBeatsPerMinute) {
+            hrArray.push({
+              user_id: userId,
+              date: dateStr,
+              min_heart_rate: summary.minHeartRateInBeatsPerMinute,
+              max_heart_rate: summary.maxHeartRateInBeatsPerMinute,
+              resting_heart_rate: summary.restingHeartRateInBeatsPerMinute
+            });
+          }
+
+          // Sleep
+          if (summary.sleepTimeInSeconds) {
+            sleepArray.push({
+              user_id: userId,
+              date: dateStr,
+              sleep_duration_seconds: summary.sleepTimeInSeconds,
+              sleep_score: summary.sleepScores?.overall?.value,
+              deep_sleep_seconds: summary.deepSleepTimeInSeconds,
+              light_sleep_seconds: summary.lightSleepTimeInSeconds,
+              rem_sleep_seconds: summary.remSleepTimeInSeconds,
+              awake_seconds: summary.awakeSleepTimeInSeconds
+            });
+          }
         }
       } catch (err) {
-        console.error(`[GARMIN SYNC] Failed to fetch sleep for ${dateStr}:`, err.message);
+        console.error(`[GARMIN SYNC] Failed to fetch metrics for ${dateStr}:`, err.message);
       }
 
       daysProcessed++;
 
-      // Report progress every 7 days
       if (onProgress && daysProcessed % 7 === 0) {
-        await onProgress({
-          daysProcessed,
-          totalDays,
-          currentDate: dateStr
-        });
+        await onProgress({ daysProcessed, totalDays });
       }
 
-      // Move to next day
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
     // Bulk insert all metrics
+    // CRITICAL: Use bulkInsert return value
     let totalInserted = 0;
 
     if (stepsArray.length > 0) {
-      const stepsInserted = await GarminDailySteps.bulkUpsert(stepsArray);
-      totalInserted += stepsInserted;
-      console.log(`[GARMIN SYNC] Inserted ${stepsInserted} daily steps records`);
+      totalInserted += await GarminDailySteps.bulkUpsert(stepsArray);
     }
 
     if (hrArray.length > 0) {
-      const hrInserted = await GarminDailyHeartRate.bulkUpsert(hrArray);
-      totalInserted += hrInserted;
-      console.log(`[GARMIN SYNC] Inserted ${hrInserted} daily heart rate records`);
+      totalInserted += await GarminDailyHeartRate.bulkUpsert(hrArray);
     }
 
     if (sleepArray.length > 0) {
-      const sleepInserted = await GarminDailySleep.bulkUpsert(sleepArray);
-      totalInserted += sleepInserted;
-      console.log(`[GARMIN SYNC] Inserted ${sleepInserted} daily sleep records`);
+      totalInserted += await GarminDailySleep.bulkUpsert(sleepArray);
     }
+
+    console.log(`[GARMIN SYNC] Daily metrics complete: ${totalInserted} records inserted`);
 
     return { daysProcessed, totalInserted };
   }
 
   /**
-   * Transform Garmin activity to our database format
+   * Transform Garmin activity to database format
    */
   transformActivity(activity, userId) {
-    // Transform tracklog if exists
+    // Build tracklog if coordinates exist
     let tracklog = null;
-    if (activity.geo?.geoPoints && activity.geo.geoPoints.length > 0) {
-      const lineString = activity.geo.geoPoints
-        .map(p => `${p.lon} ${p.lat}`)
-        .join(',');
-      tracklog = `LINESTRING(${lineString})`;
+    if (activity.geoPolylineDTO && activity.geoPolylineDTO.polyline) {
+      // Decode polyline to coordinates
+      const coords = this.decodePolyline(activity.geoPolylineDTO.polyline);
+      if (coords.length > 0) {
+        const lineString = coords
+          .map(([lat, lon]) => `${lon} ${lat}`)
+          .join(',');
+        tracklog = `LINESTRING(${lineString})`;
+      }
     }
 
     return {
@@ -214,38 +199,62 @@ class GarminSyncService {
       garmin_activity_id: String(activity.activityId),
       activity_type: activity.activityType?.typeKey,
       activity_name: activity.activityName,
-      start_time: new Date(activity.startTimeGMT),
-      duration_seconds: activity.duration,
-      distance_meters: activity.distance,
-      calories: activity.calories,
-      avg_heart_rate: activity.averageHR,
-      max_heart_rate: activity.maxHR,
+      start_time: new Date(activity.startTimeInSeconds * 1000),
+      duration_seconds: activity.durationInSeconds,
+      distance_meters: activity.distanceInMeters,
+      calories: activity.activeKilocalories,
+      avg_heart_rate: activity.averageHeartRateInBeatsPerMinute,
+      max_heart_rate: activity.maxHeartRateInBeatsPerMinute,
       tracklog,
       garmin_url: `https://connect.garmin.com/modern/activity/${activity.activityId}`
     };
   }
 
   /**
-   * Full historical sync (for first-time setup)
-   * @param {string} encryptedToken - Encrypted Garmin session token
-   * @param {number} userId - User ID
-   * @param {number} yearsBack - How many years of history to sync
-   * @param {function} onProgress - Progress callback
+   * Decode Google polyline format
    */
-  async fullHistoricalSync(encryptedToken, userId, yearsBack = 5, onProgress = null) {
-    const client = await garminAuth.getClient(encryptedToken);
+  decodePolyline(encoded) {
+    const coords = [];
+    let index = 0;
+    let lat = 0;
+    let lng = 0;
 
+    while (index < encoded.length) {
+      let b, shift = 0, result = 0;
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+
+      coords.push([lat / 1e5, lng / 1e5]);
+    }
+
+    return coords;
+  }
+
+  /**
+   * Full historical sync
+   */
+  async fullHistoricalSync(encryptedTokens, userId, yearsBack = 5, onProgress = null) {
     const today = new Date();
     const startDate = new Date();
     startDate.setFullYear(today.getFullYear() - yearsBack);
 
-    console.log(`[GARMIN SYNC] Starting full historical sync (${yearsBack} years)`);
-
-    // Sync activities
-    const activityResult = await this.syncActivities(client, userId, startDate, onProgress);
-
-    // Sync daily metrics
-    const metricsResult = await this.syncDailyMetrics(client, userId, startDate, today, onProgress);
+    const activityResult = await this.syncActivities(encryptedTokens, userId, startDate, onProgress);
+    const metricsResult = await this.syncDailyMetrics(encryptedTokens, userId, startDate, today, onProgress);
 
     return {
       success: true,
@@ -255,32 +264,31 @@ class GarminSyncService {
   }
 
   /**
-   * Incremental sync (for subsequent syncs)
-   * Uses last_garmin_sync_at to determine where to start
-   * CRITICAL: Goes back 7 days to catch any missed data
+   * Incremental sync with 7-day lookback
+   * CRITICAL: Goes back 7 days to catch missed data
    */
-  async incrementalSync(encryptedToken, userId, lastSyncDate, onProgress = null) {
-    const client = await garminAuth.getClient(encryptedToken);
-
-    // Go back 7 days from last sync to catch any missed data
+  async incrementalSync(encryptedTokens, userId, lastSyncDate, onProgress = null) {
     const startDate = lastSyncDate ? new Date(lastSyncDate) : new Date();
-    startDate.setDate(startDate.getDate() - 7);
+    startDate.setDate(startDate.getDate() - 7); // CRITICAL: 7-day lookback
 
     const today = new Date();
 
-    console.log(`[GARMIN SYNC] Starting incremental sync from ${startDate.toISOString().split('T')[0]}`);
+    console.log(`[GARMIN SYNC] Incremental sync from ${startDate.toISOString().split('T')[0]}`);
 
-    // Sync activities
-    const activityResult = await this.syncActivities(client, userId, startDate, onProgress);
-
-    // Sync daily metrics for last 7 days
-    const metricsResult = await this.syncDailyMetrics(client, userId, startDate, today, onProgress);
+    const activityResult = await this.syncActivities(encryptedTokens, userId, startDate, onProgress);
+    const metricsResult = await this.syncDailyMetrics(encryptedTokens, userId, startDate, today, onProgress);
 
     return {
       success: true,
       activities: activityResult,
       dailyMetrics: metricsResult
     };
+  }
+
+  getDefaultStartDate() {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() - 5);
+    return date;
   }
 }
 
