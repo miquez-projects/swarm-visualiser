@@ -22,13 +22,14 @@ router.post('/all', async (req, res) => {
 
     const results = await syncAllDataSources(user.id);
 
-    // Update last sync timestamp
-    await User.updateLastSync(user.id);
+    // DO NOT update last sync timestamp here - it's updated by the background job
+    // when it actually completes successfully. Updating it here causes a race condition
+    // where last_sync_at is set before the job runs, creating a vicious cycle.
 
     res.json({
       success: true,
       results,
-      lastSyncAt: new Date().toISOString()
+      message: 'Sync jobs queued. Check progress in import history.'
     });
   } catch (error) {
     console.error('Sync all error:', error);

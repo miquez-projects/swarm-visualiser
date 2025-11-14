@@ -61,7 +61,8 @@ async function importCheckinsHandler(job) {
     if (foursquareCheckins.length === 0) {
       console.log(`No new check-ins to import for user ${userId}`);
       await ImportJob.markCompleted(jobId);
-      await User.updateLastSync(userId);
+      // DO NOT update last_sync_at when 0 items fetched - this creates a vicious cycle
+      // where we ask for "check-ins after now" which returns 0, then update to "now" again
       return;
     }
 
