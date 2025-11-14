@@ -38,10 +38,14 @@ async function fetchCheckins(accessToken, options = {}) {
         params.afterTimestamp = Math.floor(afterTimestamp.getTime() / 1000);
       }
 
+      console.log(`[FOURSQUARE] Request params:`, { offset, limit: BATCH_SIZE, afterTimestamp: params.afterTimestamp });
+
       const response = await axios.get(`${FOURSQUARE_API_BASE}/users/self/checkins`, {
         params,
         timeout: 30000 // 30 second timeout
       });
+
+      console.log(`[FOURSQUARE] Response: count=${response.data.response.checkins.count}, items=${response.data.response.checkins.items.length}`);
 
       const data = response.data.response;
       const checkins = data.checkins.items;
