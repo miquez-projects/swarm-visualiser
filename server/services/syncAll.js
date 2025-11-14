@@ -4,8 +4,7 @@ const { getQueue } = require('../jobs/queue');
 
 /**
  * Sync all data sources for a user
- * Currently syncs Foursquare check-ins
- * Will be expanded to include Garmin in Part 4
+ * Currently syncs Foursquare check-ins and Garmin activities
  *
  * @param {number} userId - User ID
  * @returns {Promise<Object>} Sync results for each data source
@@ -19,7 +18,7 @@ async function syncAllDataSources(userId) {
 
   const results = {
     foursquare: null,
-    garmin: null // Will be implemented in Part 4
+    garmin: null
   };
 
   // Sync Foursquare
@@ -61,11 +60,30 @@ async function syncAllDataSources(userId) {
     };
   }
 
-  // TODO: Sync Garmin (Part 4)
-  results.garmin = {
-    status: 'not_implemented',
-    message: 'Garmin sync will be implemented in Part 4'
-  };
+  // Sync Garmin if connected
+  if (user.garmin_session_token_encrypted) {
+    try {
+      const garminJob = await ImportJob.create({
+        user_id: userId,
+        data_source: 'garmin',
+        status: 'queued'
+      });
+
+      const boss = getQueue();
+      await boss.send('import-garmin-data', {
+        jobId: garminJob.id,
+        userId,
+        syncType: 'incremental'
+      });
+
+      results.garmin = { jobId: garminJob.id, status: 'queued' };
+    } catch (error) {
+      console.error('Failed to queue Garmin sync:', error);
+      results.garmin = { error: error.message };
+    }
+  } else {
+    results.garmin = { skipped: 'Not connected' };
+  }
 
   return results;
 }
