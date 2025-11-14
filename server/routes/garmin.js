@@ -123,6 +123,58 @@ router.post('/sync', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /api/garmin/status
+ * Get Garmin connection status
+ */
+router.get('/status', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+
+    if (!user.garmin_oauth_tokens_encrypted) {
+      return res.json({ connected: false });
+    }
+
+    res.json({
+      connected: true,
+      connectedAt: user.garmin_connected_at,
+      lastSyncAt: user.last_garmin_sync_at,
+      syncActivities: user.garmin_sync_activities !== false // Include toggle state
+    });
+  } catch (error) {
+    console.error('[GARMIN ROUTE] Status error:', error);
+    res.status(500).json({ error: 'Failed to get status' });
+  }
+});
+
+/**
+ * POST /api/garmin/settings
+ * Update Garmin sync settings
+ */
+router.post('/settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { syncActivities } = req.body;
+
+    if (typeof syncActivities !== 'boolean') {
+      return res.status(400).json({ error: 'syncActivities must be a boolean' });
+    }
+
+    await User.updateGarminSyncSettings(userId, { syncActivities });
+
+    console.log(`[GARMIN ROUTE] Updated settings for user ${userId}: syncActivities=${syncActivities}`);
+
+    res.json({
+      success: true,
+      syncActivities
+    });
+  } catch (error) {
+    console.error('[GARMIN ROUTE] Settings error:', error);
+    res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
+/**
  * DELETE /api/garmin/disconnect
  * Disconnect Garmin account
  */

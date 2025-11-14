@@ -175,6 +175,30 @@ class User {
   }
 
   /**
+   * Update Garmin sync settings
+   * @param {number} userId
+   * @param {Object} settings
+   * @param {boolean} settings.syncActivities
+   */
+  static async updateGarminSyncSettings(userId, { syncActivities }) {
+    const query = `
+      UPDATE users
+      SET garmin_sync_activities = $1
+      WHERE id = $2
+      RETURNING id, garmin_sync_activities
+    `;
+
+    const result = await db.query(query, [syncActivities, userId]);
+
+    if (result.rows.length === 0) {
+      throw new Error('User not found');
+    }
+
+    console.log(`[USER MODEL] Updated Garmin sync settings for user ${userId}: syncActivities=${syncActivities}`);
+    return result.rows[0];
+  }
+
+  /**
    * Get all users (for admin purposes)
    * @returns {Promise<Array>}
    */

@@ -253,7 +253,19 @@ class GarminSyncService {
     const startDate = new Date();
     startDate.setFullYear(today.getFullYear() - yearsBack);
 
-    const activityResult = await this.syncActivities(encryptedTokens, userId, startDate, onProgress);
+    // Check if user wants activity sync
+    const User = require('../models/user');
+    const user = await User.findById(userId);
+    const syncActivities = user.garmin_sync_activities !== false; // Default to true
+
+    let activityResult = { imported: 0, fetched: 0 };
+
+    if (syncActivities) {
+      activityResult = await this.syncActivities(encryptedTokens, userId, startDate, onProgress);
+    } else {
+      console.log(`[GARMIN SYNC] Skipping activities for user ${userId} (garmin_sync_activities=false)`);
+    }
+
     const metricsResult = await this.syncDailyMetrics(encryptedTokens, userId, startDate, today, onProgress);
 
     return {
@@ -275,7 +287,19 @@ class GarminSyncService {
 
     console.log(`[GARMIN SYNC] Incremental sync from ${startDate.toISOString().split('T')[0]}`);
 
-    const activityResult = await this.syncActivities(encryptedTokens, userId, startDate, onProgress);
+    // Check if user wants activity sync
+    const User = require('../models/user');
+    const user = await User.findById(userId);
+    const syncActivities = user.garmin_sync_activities !== false; // Default to true
+
+    let activityResult = { imported: 0, fetched: 0 };
+
+    if (syncActivities) {
+      activityResult = await this.syncActivities(encryptedTokens, userId, startDate, onProgress);
+    } else {
+      console.log(`[GARMIN SYNC] Skipping activities for user ${userId} (garmin_sync_activities=false)`);
+    }
+
     const metricsResult = await this.syncDailyMetrics(encryptedTokens, userId, startDate, today, onProgress);
 
     return {
