@@ -1,6 +1,5 @@
 const User = require('../models/user');
 const ImportJob = require('../models/importJob');
-const { decrypt } = require('../services/encryption');
 const garminSync = require('../services/garminSync');
 
 /**
