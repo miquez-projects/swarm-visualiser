@@ -199,6 +199,57 @@ class User {
   }
 
   /**
+   * Update user's last Strava sync timestamp
+   * CRITICAL: Only call this when items are actually imported
+   */
+  static async updateLastStravaSync(userId) {
+    const query = `
+      UPDATE users
+      SET last_strava_sync_at = NOW()
+      WHERE id = $1
+      RETURNING last_strava_sync_at
+    `;
+    const result = await db.query(query, [userId]);
+    console.log(`[USER MODEL] Updated last_strava_sync_at for user ${userId} to ${result.rows[0]?.last_strava_sync_at}`);
+    return result.rows[0];
+  }
+
+  /**
+   * Update Strava OAuth tokens
+   * @param {number} userId
+   * @param {string} encryptedTokens - Encrypted OAuth token bundle
+   */
+  static async updateStravaAuth(userId, encryptedTokens) {
+    const query = `
+      UPDATE users
+      SET strava_oauth_tokens_encrypted = $1,
+          strava_connected_at = NOW()
+      WHERE id = $2
+      RETURNING id, strava_connected_at
+    `;
+
+    const result = await db.query(query, [encryptedTokens, userId]);
+    console.log(`[USER MODEL] Updated Strava OAuth tokens for user ${userId}`);
+    return result.rows[0];
+  }
+
+  /**
+   * Get Strava OAuth tokens
+   * @param {number} userId
+   * @returns {Promise<string|null>} Encrypted OAuth tokens
+   */
+  static async getStravaTokens(userId) {
+    const query = `
+      SELECT strava_oauth_tokens_encrypted
+      FROM users
+      WHERE id = $1
+    `;
+
+    const result = await db.query(query, [userId]);
+    return result.rows[0]?.strava_oauth_tokens_encrypted || null;
+  }
+
+  /**
    * Get all users (for admin purposes)
    * @returns {Promise<Array>}
    */
