@@ -124,6 +124,22 @@ class User {
   }
 
   /**
+   * Update user's last Garmin sync timestamp
+   * CRITICAL: Only call this when items are actually imported
+   */
+  static async updateLastGarminSync(userId) {
+    const query = `
+      UPDATE users
+      SET last_garmin_sync_at = NOW()
+      WHERE id = $1
+      RETURNING last_garmin_sync_at
+    `;
+    const result = await db.query(query, [userId]);
+    console.log(`[USER MODEL] Updated last_garmin_sync_at for user ${userId} to ${result.rows[0]?.last_garmin_sync_at}`);
+    return result.rows[0];
+  }
+
+  /**
    * Get all users (for admin purposes)
    * @returns {Promise<Array>}
    */
