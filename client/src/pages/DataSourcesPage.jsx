@@ -15,7 +15,7 @@ import {
   FormControlLabel,
   Switch
 } from '@mui/material';
-import { ContentCopy, CheckCircle, FitnessCenter } from '@mui/icons-material';
+import { ContentCopy, CheckCircle, FitnessCenter, DirectionsBike } from '@mui/icons-material';
 import Layout from '../components/Layout';
 import { validateToken } from '../services/api';
 
@@ -35,6 +35,12 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
   const [garminConnecting, setGarminConnecting] = useState(false);
   const [syncingGarmin, setSyncingGarmin] = useState(false);
   const [updatingGarmin, setUpdatingGarmin] = useState(false);
+  const [stravaStatus, setStravaStatus] = useState({
+    connected: false,
+    athleteId: null,
+    lastSyncAt: null
+  });
+  const [syncingStrava, setSyncingStrava] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -73,22 +79,82 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
     }
   }, [token, API_URL]);
 
+  // Fetch Strava status
+  const fetchStravaStatus = useCallback(async () => {
+    if (token) {
+      try {
+        const response = await fetch(`${API_URL}/api/strava/status`, {
+          headers: {
+            'x-auth-token': token
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setStravaStatus(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch Strava status:', error);
+      }
+    }
+  }, [token, API_URL]);
+
+  // Handle Strava OAuth callback
+  const handleStravaCallback = useCallback(async (code, state) => {
+    try {
+      // Exchange code for tokens
+      const response = await fetch(`${API_URL}/api/strava/auth/callback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify({ code, state })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Clear URL params
+        window.history.replaceState({}, '', '/data-sources');
+
+        // Refresh status
+        await fetchStravaStatus();
+
+        setSuccess('Strava connected! Initial sync started.');
+      } else {
+        setError(result.message || 'Failed to connect Strava');
+      }
+    } catch (error) {
+      console.error('Strava callback error:', error);
+      setError('Failed to complete Strava connection');
+    }
+  }, [API_URL, token, fetchStravaStatus]);
+
   useEffect(() => {
     fetchUserData();
     fetchGarminStatus();
-  }, [fetchUserData, fetchGarminStatus]);
+    fetchStravaStatus();
+  }, [fetchUserData, fetchGarminStatus, fetchStravaStatus]);
 
   // Check for OAuth callback success
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+
+    // Handle Garmin callback
     if (params.get('garmin') === 'connected') {
       fetchGarminStatus();
       setSuccess('Garmin connected successfully!');
-
-      // Clean URL
       window.history.replaceState({}, '', '/data-sources');
     }
-  }, [fetchGarminStatus]);
+
+    // Handle Strava callback
+    const code = params.get('code');
+    const state = params.get('state');
+    if (code && state && state.startsWith('strava_')) {
+      handleStravaCallback(code, state);
+    }
+  }, [fetchGarminStatus, handleStravaCallback]);
 
   const handleSyncComplete = () => {
     // Refetch user data to update lastSyncAt
@@ -214,6 +280,80 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
     } catch (error) {
       console.error('Garmin disconnect error:', error);
       setError('Failed to disconnect Garmin');
+    }
+  };
+
+  // Strava handlers
+  const handleStravaConnect = async () => {
+    try {
+      // Call /api/strava/auth/start to get authorization URL
+      const response = await fetch(`${API_URL}/api/strava/auth/start`, {
+        headers: { 'x-auth-token': token }
+      });
+      const { authorizationUrl } = await response.json();
+
+      // Redirect to Strava OAuth page
+      window.location.href = authorizationUrl;
+    } catch (error) {
+      console.error('Strava connect error:', error);
+      setError('Failed to initiate Strava connection');
+    }
+  };
+
+  const handleStravaSync = async () => {
+    setSyncingStrava(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/strava/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        }
+      });
+
+      if (response.ok) {
+        setSuccess('Strava sync started');
+        // Refresh status after a short delay
+        setTimeout(() => {
+          fetchStravaStatus();
+          fetchUserData();
+        }, 2000);
+      } else {
+        setError('Failed to start Strava sync');
+      }
+    } catch (error) {
+      console.error('Strava sync error:', error);
+      setError('Failed to start Strava sync');
+    } finally {
+      setSyncingStrava(false);
+    }
+  };
+
+  const handleStravaDisconnect = async () => {
+    if (!window.confirm('Disconnect Strava?')) return;
+
+    try {
+      const response = await fetch(`${API_URL}/api/strava/disconnect`, {
+        method: 'DELETE',
+        headers: {
+          'x-auth-token': token
+        }
+      });
+
+      if (response.ok) {
+        setStravaStatus({
+          connected: false,
+          athleteId: null,
+          lastSyncAt: null
+        });
+        setSuccess('Strava disconnected successfully');
+      } else {
+        setError('Failed to disconnect Strava');
+      }
+    } catch (error) {
+      console.error('Strava disconnect error:', error);
+      setError('Failed to disconnect Strava');
     }
   };
 
@@ -346,6 +486,56 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
                     variant="outlined"
                     color="error"
                     onClick={handleGarminDisconnect}
+                  >
+                    Disconnect
+                  </Button>
+                </Box>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Strava Integration */}
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <DirectionsBike sx={{ mr: 1, color: '#FC4C02' }} />
+              <Typography variant="h6">Strava</Typography>
+            </Box>
+
+            {!stravaStatus.connected ? (
+              <>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Import your runs, rides, and other activities with GPS tracklogs
+                </Typography>
+                <Button
+                  variant="contained"
+                  onClick={handleStravaConnect}
+                  sx={{ bgcolor: '#FC4C02', '&:hover': { bgcolor: '#E34402' } }}
+                >
+                  Connect Strava
+                </Button>
+              </>
+            ) : (
+              <>
+                <Typography variant="body2" mb={1}>
+                  Athlete ID: {stravaStatus.athleteId}
+                </Typography>
+                <Typography variant="body2" mb={2}>
+                  Last synced: {formatLastSync(stravaStatus.lastSyncAt)}
+                </Typography>
+                <Box display="flex" gap={1}>
+                  <Button
+                    variant="outlined"
+                    onClick={handleStravaSync}
+                    disabled={syncingStrava}
+                  >
+                    {syncingStrava ? 'Syncing...' : 'Sync Now'}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={handleStravaDisconnect}
                   >
                     Disconnect
                   </Button>
