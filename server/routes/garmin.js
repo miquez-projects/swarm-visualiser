@@ -4,22 +4,15 @@ const User = require('../models/user');
 const ImportJob = require('../models/importJob');
 const garminAuth = require('../services/garminAuth');
 const { getQueue } = require('../jobs/queue');
+const { authenticateToken } = require('../middleware/auth');
 
 /**
  * POST /api/garmin/connect
  * Connect Garmin account with username/password
  */
-router.post('/connect', async (req, res) => {
+router.post('/connect', authenticateToken, async (req, res) => {
   try {
-    const token = req.query.token || req.headers['x-auth-token'];
-    if (!token) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const user = await User.findBySecretToken(token);
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
+    const user = req.user;
 
     const { username, password } = req.body;
     if (!username || !password) {
@@ -52,17 +45,9 @@ router.post('/connect', async (req, res) => {
  * POST /api/garmin/sync
  * Start Garmin data sync (queues background job)
  */
-router.post('/sync', async (req, res) => {
+router.post('/sync', authenticateToken, async (req, res) => {
   try {
-    const token = req.query.token || req.headers['x-auth-token'];
-    if (!token) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const user = await User.findBySecretToken(token);
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
+    const user = req.user;
 
     if (!user.garmin_session_token_encrypted) {
       return res.status(400).json({ error: 'Garmin not connected' });
@@ -105,17 +90,9 @@ router.post('/sync', async (req, res) => {
  * DELETE /api/garmin/disconnect
  * Disconnect Garmin account
  */
-router.delete('/disconnect', async (req, res) => {
+router.delete('/disconnect', authenticateToken, async (req, res) => {
   try {
-    const token = req.query.token || req.headers['x-auth-token'];
-    if (!token) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const user = await User.findBySecretToken(token);
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid token' });
-    }
+    const user = req.user;
 
     await User.update(user.id, {
       garmin_session_token_encrypted: null,
