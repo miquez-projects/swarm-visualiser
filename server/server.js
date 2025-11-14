@@ -40,6 +40,7 @@ app.use('/api/copilot', require('./routes/copilot'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/sync', require('./routes/sync'));
 app.use('/api/venues', require('./routes/venues'));
+app.use('/api/garmin', require('./routes/garmin'));
 
 // 404 handler
 app.use((req, res) => {
