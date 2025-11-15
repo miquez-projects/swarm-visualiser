@@ -56,6 +56,7 @@ app.use('/api/sync', require('./routes/sync'));
 app.use('/api/venues', require('./routes/venues'));
 app.use('/api/garmin', require('./routes/garmin'));
 app.use('/api/strava', require('./routes/strava'));
+app.use('/api/day-in-life', require('./routes/dayInLife'));
 
 // 404 handler
 app.use((req, res) => {
