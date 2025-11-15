@@ -16,13 +16,22 @@ class StaticMapGenerator {
     // Group overlapping markers (same location within ~10 meters)
     const markerGroups = this.groupNearbyCheckins(checkins);
 
-    // Add markers - use range labels for grouped checkins
+    // Add markers - use larger pins for grouped checkins
     const markers = markerGroups
       .map(group => {
-        const label = group.indices.length === 1
-          ? `${group.indices[0] + 1}`
-          : `${group.indices[0] + 1}-${group.indices[group.indices.length - 1] + 1}`;
-        return `pin-s-${label}+ff6b35(${group.longitude},${group.latitude})`;
+        const firstNum = group.indices[0] + 1;
+        const lastNum = group.indices[group.indices.length - 1] + 1;
+
+        if (group.indices.length === 1) {
+          // Single checkin - small pin
+          return `pin-s-${firstNum}+ff6b35(${group.longitude},${group.latitude})`;
+        } else if (group.indices.length === 2) {
+          // Two checkins - medium pin with first number
+          return `pin-m-${firstNum}+ff6b35(${group.longitude},${group.latitude})`;
+        } else {
+          // Three or more checkins - large pin with first number
+          return `pin-l-${firstNum}+ff6b35(${group.longitude},${group.latitude})`;
+        }
       })
       .join(',');
 
