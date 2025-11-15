@@ -306,4 +306,52 @@ describe('Weather Service', () => {
       expect(axios.get).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('conditionToIcon', () => {
+    test('should return correct icon for clear weather', () => {
+      const icon = weatherService.conditionToIcon('Clear sky');
+      expect(icon).toBe('☀️');
+    });
+
+    test('should return correct icon for rainy weather', () => {
+      const icon = weatherService.conditionToIcon('Light rain');
+      expect(icon).toBe('🌧');
+    });
+
+    test('should return default icon for unknown condition', () => {
+      const icon = weatherService.conditionToIcon('Unknown');
+      expect(icon).toBe('🌤');
+    });
+
+    test('should handle partly cloudy conditions', () => {
+      const icon = weatherService.conditionToIcon('Partly cloudy');
+      expect(icon).toBe('🌤');
+    });
+
+    test('should handle cloudy conditions', () => {
+      const icon = weatherService.conditionToIcon('Overcast');
+      expect(icon).toBe('☁️');
+    });
+
+    test('should handle drizzle as rainy', () => {
+      const icon = weatherService.conditionToIcon('Drizzle: Light intensity');
+      expect(icon).toBe('🌧');
+    });
+
+    test('should handle snowy conditions', () => {
+      const icon = weatherService.conditionToIcon('Snow fall: Slight intensity');
+      expect(icon).toBe('🌨');
+    });
+
+    test('should handle thunderstorm conditions', () => {
+      const icon = weatherService.conditionToIcon('Thunderstorm');
+      expect(icon).toBe('⛈');
+    });
+
+    test('should be case-insensitive', () => {
+      expect(weatherService.conditionToIcon('CLEAR SKY')).toBe('☀️');
+      expect(weatherService.conditionToIcon('rain')).toBe('🌧');
+      expect(weatherService.conditionToIcon('SNOW')).toBe('🌨');
+    });
+  });
 });

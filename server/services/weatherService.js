@@ -225,6 +225,32 @@ async function getWeatherForDateRange(latitude, longitude, startDate, endDate) {
 }
 
 /**
+ * Converts weather condition description to emoji icon
+ * @param {string} condition - Weather condition description
+ * @returns {string} Emoji icon representing the weather condition
+ */
+function conditionToIcon(condition) {
+  const icons = {
+    'Clear sky': '☀️',
+    'Partly cloudy': '🌤',
+    'Cloudy': '☁️',
+    'Rainy': '🌧',
+    'Snowy': '🌨',
+    'Thunderstorm': '⛈'
+  };
+
+  // Map our condition descriptions to icons
+  const lowerCondition = condition.toLowerCase();
+  if (lowerCondition.includes('clear')) return icons['Clear sky'];
+  if (lowerCondition.includes('partly')) return icons['Partly cloudy'];
+  if (lowerCondition.includes('cloud') || lowerCondition.includes('overcast')) return icons['Cloudy'];
+  if (lowerCondition.includes('rain') || lowerCondition.includes('drizzle')) return icons['Rainy'];
+  if (lowerCondition.includes('snow')) return icons['Snowy'];
+  if (lowerCondition.includes('thunder')) return icons['Thunderstorm'];
+  return '🌤'; // Default
+}
+
+/**
  * Clears the weather cache
  */
 function clearCache() {
@@ -234,5 +260,6 @@ function clearCache() {
 module.exports = {
   getHistoricalWeather,
   getWeatherForDateRange,
-  clearCache
+  clearCache,
+  conditionToIcon
 };
