@@ -1,10 +1,31 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const { authenticateToken } = require('../middleware/auth');
 const garminOAuth = require('../services/garminOAuth');
 const User = require('../models/user');
 const ImportJob = require('../models/importJob');
 const { getQueue } = require('../jobs/queue');
+const garminJsonParser = require('../services/garminJsonParser');
+const GarminDailySteps = require('../models/garminDailySteps');
+const GarminDailyHeartRate = require('../models/garminDailyHeartRate');
+const GarminDailySleep = require('../models/garminDailySleep');
+
+// Configure multer for file uploads (store in memory)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB per file
+    files: 50 // Max 50 files per upload
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/json' || file.originalname.endsWith('.json')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JSON files are allowed'));
+    }
+  }
+});
 
 /**
  * GET /api/garmin/connect
@@ -191,6 +212,89 @@ router.delete('/disconnect', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('[GARMIN ROUTE] Disconnect error:', error);
     res.status(500).json({ error: 'Failed to disconnect' });
+  }
+});
+
+/**
+ * POST /api/garmin/upload
+ * Upload Garmin data dump JSON files
+ * Accepts UDS files and sleep data files
+ */
+router.post('/upload', authenticateToken, upload.array('files', 50), async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const files = req.files;
+
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
+    }
+
+    console.log(`[GARMIN ROUTE] Processing ${files.length} files for user ${userId}`);
+
+    const results = {
+      totalFiles: files.length,
+      processed: 0,
+      stepsRecords: 0,
+      heartRateRecords: 0,
+      sleepRecords: 0,
+      errors: []
+    };
+
+    // Process each file
+    for (const file of files) {
+      try {
+        const content = file.buffer.toString('utf-8');
+        const filename = file.originalname;
+
+        console.log(`[GARMIN ROUTE] Processing file: ${filename}`);
+
+        // Determine file type and parse accordingly
+        if (filename.includes('sleepData')) {
+          // Parse sleep data file
+          const sleepData = await garminJsonParser.parseSleepFile(content);
+
+          // Insert sleep records
+          for (const record of sleepData) {
+            await GarminDailySleep.upsert(userId, record);
+            results.sleepRecords++;
+          }
+        } else if (filename.startsWith('UDSFile')) {
+          // Parse UDS file (contains steps and heart rate)
+          const udsData = await garminJsonParser.parseUDSFile(content);
+
+          // Insert steps records
+          for (const record of udsData.steps) {
+            await GarminDailySteps.upsert(userId, record);
+            results.stepsRecords++;
+          }
+
+          // Insert heart rate records
+          for (const record of udsData.heartRate) {
+            await GarminDailyHeartRate.upsert(userId, record);
+            results.heartRateRecords++;
+          }
+        } else {
+          console.log(`[GARMIN ROUTE] Skipping unknown file type: ${filename}`);
+          results.errors.push(`Skipped unknown file type: ${filename}`);
+          continue;
+        }
+
+        results.processed++;
+      } catch (fileError) {
+        console.error(`[GARMIN ROUTE] Error processing file ${file.originalname}:`, fileError);
+        results.errors.push(`${file.originalname}: ${fileError.message}`);
+      }
+    }
+
+    console.log(`[GARMIN ROUTE] Upload complete for user ${userId}:`, results);
+
+    res.json({
+      success: true,
+      ...results
+    });
+  } catch (error) {
+    console.error('[GARMIN ROUTE] Upload error:', error);
+    res.status(500).json({ error: 'Failed to process uploads' });
   }
 });
 
