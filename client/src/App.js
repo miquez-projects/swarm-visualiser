@@ -61,6 +61,7 @@ function App() {
             <Route path="/" element={<HomePage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} mapRef={mapRef} />} />
             <Route path="/import" element={<ImportPage />} />
             <Route path="/year-in-review" element={<YearInReviewPage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} />} />
+            <Route path="/day-in-life/:date" element={<DayInLifePage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} />} />
             <Route path="/day-in-life" element={<DayInLifePage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} />} />
             <Route path="/data-sources" element={<DataSourcesPage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} />} />
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
