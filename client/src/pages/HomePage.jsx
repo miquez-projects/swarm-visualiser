@@ -24,6 +24,7 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
   const [currentBounds, setCurrentBounds] = useState(null);
   const [currentZoom, setCurrentZoom] = useState(1.5);
   const [lastLoadedBounds, setLastLoadedBounds] = useState(null);
+  const [lastLoadedZoom, setLastLoadedZoom] = useState(null);
   const [viewportLoading, setViewportLoading] = useState(false);
   const localMapRef = useRef(null);
   const mapRef = externalMapRef || localMapRef;
@@ -209,7 +210,7 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
 
   // Viewport-based loading when user pans/zooms
   useEffect(() => {
-    console.log('[VIEWPORT] Effect triggered. Zoom:', currentZoom, 'Bounds:', currentBounds, 'Loading:', loading);
+    console.log('[VIEWPORT] Effect triggered. Zoom:', currentZoom, 'Last loaded zoom:', lastLoadedZoom, 'Bounds:', currentBounds, 'Loading:', loading);
 
     // Skip if no movement, at world view, or currently loading
     if (!currentBounds) {
@@ -225,9 +226,28 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
       return;
     }
 
-    // Skip if new bounds fully contained within last loaded bounds
-    if (lastLoadedBounds && boundsContained(currentBounds, lastLoadedBounds)) {
-      console.log('[VIEWPORT] Skipping: Bounds contained within last loaded bounds');
+    // Check if we've crossed the sampling threshold (zoom 7)
+    // If we loaded at low zoom (sampled data) and now at high zoom (full data), need to reload
+    const crossedSamplingThreshold = lastLoadedZoom !== null &&
+                                     lastLoadedZoom < 7 &&
+                                     currentZoom >= 7;
+
+    // Check if we've zoomed in significantly (3+ levels)
+    // This means we need more detailed data even if bounds are contained
+    const significantZoomIncrease = lastLoadedZoom !== null &&
+                                     currentZoom >= lastLoadedZoom + 3;
+
+    if (crossedSamplingThreshold) {
+      console.log('[VIEWPORT] Crossed sampling threshold - will reload full data');
+    }
+
+    if (significantZoomIncrease) {
+      console.log('[VIEWPORT] Significant zoom increase detected (', lastLoadedZoom, '->', currentZoom, ') - will reload');
+    }
+
+    // Skip if new bounds fully contained within last loaded bounds AND we haven't crossed sampling threshold AND no significant zoom change
+    if (lastLoadedBounds && boundsContained(currentBounds, lastLoadedBounds) && !crossedSamplingThreshold && !significantZoomIncrease) {
+      console.log('[VIEWPORT] Skipping: Bounds contained within last loaded bounds and same sampling mode');
       return;
     }
 
@@ -249,14 +269,15 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
         });
 
         setLastLoadedBounds(bufferedBounds);
-        console.log('[VIEWPORT] Load complete');
+        setLastLoadedZoom(currentZoom);
+        console.log('[VIEWPORT] Load complete. Saved zoom:', currentZoom);
       } finally {
         setViewportLoading(false);
       }
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [currentBounds, currentZoom, loading, lastLoadedBounds, boundsContained, addBuffer, loadCheckins]);
+  }, [currentBounds, currentZoom, loading, lastLoadedBounds, lastLoadedZoom, boundsContained, addBuffer, loadCheckins]);
 
   const sidebar = (
     <Box sx={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
