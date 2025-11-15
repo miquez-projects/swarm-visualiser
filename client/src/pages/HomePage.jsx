@@ -78,7 +78,17 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
         params.token = token;
       }
 
+      console.log('[LOAD] Fetching checkins with params:', params);
+
       const response = await getCheckins(params);
+
+      console.log('[LOAD] Received response:', {
+        count: response.data?.length,
+        total: response.total,
+        limit: response.limit,
+        offset: response.offset
+      });
+
       setCheckins(response.data);
     } catch (err) {
       console.error('Error loading check-ins:', err);
@@ -199,13 +209,29 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
 
   // Viewport-based loading when user pans/zooms
   useEffect(() => {
+    console.log('[VIEWPORT] Effect triggered. Zoom:', currentZoom, 'Bounds:', currentBounds, 'Loading:', loading);
+
     // Skip if no movement, at world view, or currently loading
-    if (!currentBounds || currentZoom < 3 || loading) return;
+    if (!currentBounds) {
+      console.log('[VIEWPORT] Skipping: No bounds yet');
+      return;
+    }
+    if (currentZoom < 3) {
+      console.log('[VIEWPORT] Skipping: Zoom level too low (<3). Current:', currentZoom);
+      return;
+    }
+    if (loading) {
+      console.log('[VIEWPORT] Skipping: Already loading');
+      return;
+    }
 
     // Skip if new bounds fully contained within last loaded bounds
     if (lastLoadedBounds && boundsContained(currentBounds, lastLoadedBounds)) {
+      console.log('[VIEWPORT] Skipping: Bounds contained within last loaded bounds');
       return;
     }
+
+    console.log('[VIEWPORT] Will load in 500ms. Zoom:', currentZoom);
 
     // Debounce: Only load after user stops moving for 500ms
     const timer = setTimeout(async () => {
@@ -215,12 +241,15 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
         const bufferPercent = currentZoom >= 7 ? 0.2 : 0.5;
         const bufferedBounds = addBuffer(currentBounds, bufferPercent);
 
+        console.log('[VIEWPORT] Loading checkins with bounds:', bufferedBounds, 'zoom:', Math.floor(currentZoom));
+
         await loadCheckins({
           bounds: `${bufferedBounds.minLng},${bufferedBounds.minLat},${bufferedBounds.maxLng},${bufferedBounds.maxLat}`,
           zoom: Math.floor(currentZoom)
         });
 
         setLastLoadedBounds(bufferedBounds);
+        console.log('[VIEWPORT] Load complete');
       } finally {
         setViewportLoading(false);
       }

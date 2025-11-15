@@ -128,7 +128,7 @@ function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions, 
         )}
 
         {/* Main Content */}
-        <Box sx={{ flexGrow: 1, overflow: 'hidden', display: sidebarExpanded && !isMobile ? 'none' : 'block' }}>
+        <Box sx={{ flexGrow: 1, overflowY: 'auto', display: sidebarExpanded && !isMobile ? 'none' : 'block' }}>
           {children}
         </Box>
       </Box>

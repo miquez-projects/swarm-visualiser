@@ -353,7 +353,7 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
       lastSyncAt={userData?.lastSyncAt}
       onSyncComplete={handleSyncComplete}
     >
-      <Box sx={{ p: 4, maxWidth: 800, mx: 'auto' }}>
+      <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, maxWidth: 800, mx: 'auto', minHeight: '100%' }}>
         <Typography variant="h4" gutterBottom>
           Data Sources
         </Typography>
