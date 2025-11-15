@@ -57,12 +57,15 @@ function SyncProgressBar({ jobId, token, dataSource = 'data', onComplete, onErro
 
         // Handle failure
         if (status.status === 'failed') {
+          console.log('[SyncProgressBar] Detected failed status:', status);
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
             pollIntervalRef.current = null;
           }
           const errorMsg = status.errorMessage || 'Unknown error';
+          console.log('[SyncProgressBar] Setting error:', errorMsg);
           setError(errorMsg);
+          console.log('[SyncProgressBar] Calling onError callback');
           if (onError) {
             onError(errorMsg);
           }
@@ -139,6 +142,7 @@ function SyncProgressBar({ jobId, token, dataSource = 'data', onComplete, onErro
 
   // Show error/warning alert if failed
   if (error || progress.status === 'failed') {
+    console.log('[SyncProgressBar] Rendering error alert. error:', error, 'progress:', progress);
     const imported = progress.totalImported || 0;
     const severity = getFailedSeverity();
 
@@ -154,6 +158,8 @@ function SyncProgressBar({ jobId, token, dataSource = 'data', onComplete, onErro
         message += `: ${error}`;
       }
     }
+
+    console.log('[SyncProgressBar] Error message:', message, 'severity:', severity);
 
     return (
       <Box sx={{ width: '100%', mt: 2 }}>
