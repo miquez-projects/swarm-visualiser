@@ -42,27 +42,29 @@ const CheckinEventTile = ({ event, onPhotoClick, authToken }) => {
         <Typography variant="subtitle2" gutterBottom>
           Timeline:
         </Typography>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'stretch' }}>
           {event.checkins.map((checkin, idx) => (
-            <Box key={idx} sx={{ flex: 1, textAlign: 'center' }}>
+            <Box key={idx} sx={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column' }}>
               <Typography variant="caption" display="block">
                 {new Date(checkin.checkin_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </Typography>
               <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'primary.main', mx: 'auto', my: 1 }} />
-              <Typography variant="caption" display="block">
+              <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
                 {checkin.venue_name}
               </Typography>
-              {checkin.photos && checkin.photos.length > 0 && (
-                <Box
-                  onClick={() => onPhotoClick(checkin.photos)}
-                  sx={{ cursor: 'pointer', mt: 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}
-                >
-                  <Photo fontSize="small" />
-                  <Typography variant="caption">
-                    {checkin.photos.length} {checkin.photos.length === 1 ? 'photo' : 'photos'}
-                  </Typography>
-                </Box>
-              )}
+              <Box sx={{ minHeight: 24, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {checkin.photos && checkin.photos.length > 0 && (
+                  <Box
+                    onClick={() => onPhotoClick(checkin.photos)}
+                    sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}
+                  >
+                    <Photo fontSize="small" />
+                    <Typography variant="caption">
+                      {checkin.photos.length} {checkin.photos.length === 1 ? 'photo' : 'photos'}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
             </Box>
           ))}
         </Box>

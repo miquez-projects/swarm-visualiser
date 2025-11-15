@@ -13,15 +13,74 @@ class StaticMapGenerator {
     const coords = checkins.map(c => [c.longitude, c.latitude]);
     const encodedPath = this.createCurvedPath(coords);
 
-    // Add markers for each checkin
-    const markers = checkins
-      .map((c, i) => `pin-s-${i + 1}+ff6b35(${c.longitude},${c.latitude})`)
+    // Group overlapping markers (same location within ~10 meters)
+    const markerGroups = this.groupNearbyCheckins(checkins);
+
+    // Add markers - use range labels for grouped checkins
+    const markers = markerGroups
+      .map(group => {
+        const label = group.indices.length === 1
+          ? `${group.indices[0] + 1}`
+          : `${group.indices[0] + 1}-${group.indices[group.indices.length - 1] + 1}`;
+        return `pin-s-${label}+ff6b35(${group.longitude},${group.latitude})`;
+      })
       .join(',');
 
     // Auto-fit bounds
     const path = `path-2+ff6b35-0.5(${encodedPath})`;
 
     return `${this.baseUrl}/${path},${markers}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
+  }
+
+  groupNearbyCheckins(checkins, thresholdMeters = 10) {
+    const groups = [];
+    const used = new Set();
+
+    for (let i = 0; i < checkins.length; i++) {
+      if (used.has(i)) continue;
+
+      const group = {
+        longitude: checkins[i].longitude,
+        latitude: checkins[i].latitude,
+        indices: [i]
+      };
+
+      // Find all nearby checkins
+      for (let j = i + 1; j < checkins.length; j++) {
+        if (used.has(j)) continue;
+
+        const distance = this.calculateDistance(
+          checkins[i].latitude, checkins[i].longitude,
+          checkins[j].latitude, checkins[j].longitude
+        );
+
+        if (distance <= thresholdMeters) {
+          group.indices.push(j);
+          used.add(j);
+        }
+      }
+
+      groups.push(group);
+      used.add(i);
+    }
+
+    return groups;
+  }
+
+  calculateDistance(lat1, lon1, lat2, lon2) {
+    // Haversine formula to calculate distance in meters
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
   }
 
   generateActivityMapUrl(tracklogOrPolyline, width = 600, height = 400) {
