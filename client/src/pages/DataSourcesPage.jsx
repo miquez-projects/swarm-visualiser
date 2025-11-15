@@ -15,7 +15,7 @@ import {
   FormControlLabel,
   Switch
 } from '@mui/material';
-import { ContentCopy, CheckCircle, FitnessCenter, DirectionsBike } from '@mui/icons-material';
+import { ContentCopy, CheckCircle, FitnessCenter, DirectionsBike, CloudUpload } from '@mui/icons-material';
 import Layout from '../components/Layout';
 import SyncProgressBar from '../components/SyncProgressBar';
 import { validateToken } from '../services/api';
@@ -46,6 +46,8 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
   const [stravaJobId, setStravaJobId] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [uploadingGarmin, setUploadingGarmin] = useState(false);
+  const [uploadResults, setUploadResults] = useState(null);
 
   const tokenUrl = `${window.location.origin}/?token=${token}`;
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
@@ -334,6 +336,49 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
     }
   };
 
+  // Garmin file upload handler
+  const handleGarminFileUpload = async (event) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingGarmin(true);
+    setUploadResults(null);
+    setError('');
+
+    try {
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
+
+      const response = await fetch(`${API_URL}/api/garmin/upload`, {
+        method: 'POST',
+        headers: {
+          'x-auth-token': token
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setUploadResults(data);
+        setSuccess(`Successfully uploaded ${data.processed} files with ${data.stepsRecords} steps, ${data.heartRateRecords} heart rate, and ${data.sleepRecords} sleep records`);
+        // Refresh Garmin status to update last sync time
+        fetchGarminStatus();
+      } else {
+        setError(data.error || 'Failed to upload files');
+      }
+    } catch (error) {
+      console.error('Garmin upload error:', error);
+      setError('Failed to upload Garmin files');
+    } finally {
+      setUploadingGarmin(false);
+      // Reset file input
+      event.target.value = '';
+    }
+  };
+
   // Helper function to format dates
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -483,6 +528,72 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
                   </Box>
                 )}
               </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Garmin Data Upload */}
+        <Card sx={{ mt: 3 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <CloudUpload sx={{ mr: 1, color: 'primary.main' }} />
+              <Typography variant="h6">Upload Garmin Data Dump</Typography>
+            </Box>
+
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Upload JSON files from your Garmin data export (UDSFile_*.json and *_sleepData.json files)
+            </Typography>
+
+            <input
+              accept=".json,application/json"
+              style={{ display: 'none' }}
+              id="garmin-file-upload"
+              multiple
+              type="file"
+              onChange={handleGarminFileUpload}
+              disabled={uploadingGarmin}
+            />
+            <label htmlFor="garmin-file-upload">
+              <Button
+                variant="contained"
+                component="span"
+                startIcon={<CloudUpload />}
+                disabled={uploadingGarmin}
+              >
+                {uploadingGarmin ? 'Uploading...' : 'Select Files'}
+              </Button>
+            </label>
+
+            {uploadResults && (
+              <Box sx={{ mt: 2, p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
+                <Typography variant="body2" color="success.contrastText">
+                  Upload Complete!
+                </Typography>
+                <Typography variant="caption" display="block" color="success.contrastText">
+                  Files processed: {uploadResults.processed} / {uploadResults.totalFiles}
+                </Typography>
+                <Typography variant="caption" display="block" color="success.contrastText">
+                  Steps records: {uploadResults.stepsRecords}
+                </Typography>
+                <Typography variant="caption" display="block" color="success.contrastText">
+                  Heart rate records: {uploadResults.heartRateRecords}
+                </Typography>
+                <Typography variant="caption" display="block" color="success.contrastText">
+                  Sleep records: {uploadResults.sleepRecords}
+                </Typography>
+                {uploadResults.errors && uploadResults.errors.length > 0 && (
+                  <Box sx={{ mt: 1 }}>
+                    <Typography variant="caption" display="block" color="warning.main">
+                      Warnings:
+                    </Typography>
+                    {uploadResults.errors.map((err, idx) => (
+                      <Typography key={idx} variant="caption" display="block" color="warning.main">
+                        - {err}
+                      </Typography>
+                    ))}
+                  </Box>
+                )}
+              </Box>
             )}
           </CardContent>
         </Card>
