@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS daily_weather (
   UNIQUE(date, country, region)
 );
 
-CREATE INDEX idx_daily_weather_date_country ON daily_weather(date, country, region);
+CREATE INDEX IF NOT EXISTS idx_daily_weather_date_country ON daily_weather(date, country, region);
 
 -- Create schema_migrations table if it doesn't exist
 CREATE TABLE IF NOT EXISTS schema_migrations (
