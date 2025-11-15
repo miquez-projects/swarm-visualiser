@@ -112,7 +112,11 @@ function SyncProgressBar({ jobId, token, dataSource = 'data', onComplete, onErro
   // Render progress text
   const getProgressText = () => {
     if (progress.status === 'completed') {
-      return `${displayName} sync complete! (${progress.totalImported} items)`;
+      const count = progress.totalImported || 0;
+      if (count === 0) {
+        return `${displayName} sync complete - no new activities to import`;
+      }
+      return `${displayName} sync complete! ${count} ${count === 1 ? 'activity' : 'activities'} imported`;
     }
 
     if (progress.status === 'failed') {
@@ -126,12 +130,40 @@ function SyncProgressBar({ jobId, token, dataSource = 'data', onComplete, onErro
     return `Syncing ${displayName}... ${progress.totalImported} items`;
   };
 
-  // Show error alert if failed
-  if (error) {
+  // Determine alert severity for failed status
+  const getFailedSeverity = () => {
+    const imported = progress.totalImported || 0;
+    // If we imported some activities before failing, show warning instead of error
+    return imported > 0 ? 'warning' : 'error';
+  };
+
+  // Show error/warning alert if failed
+  if (error || progress.status === 'failed') {
+    const imported = progress.totalImported || 0;
+    const severity = getFailedSeverity();
+
+    let message = '';
+    if (imported > 0) {
+      message = `${displayName} sync incomplete: ${imported} ${imported === 1 ? 'activity' : 'activities'} imported before error`;
+      if (error) {
+        message += ` - ${error}`;
+      }
+    } else {
+      message = `${displayName} sync failed`;
+      if (error) {
+        message += `: ${error}`;
+      }
+    }
+
     return (
       <Box sx={{ width: '100%', mt: 2 }}>
-        <Alert severity="error">
-          {displayName} sync failed: {error}
+        <Alert severity={severity}>
+          {message}
+          {imported > 0 && (
+            <Box sx={{ mt: 1, fontSize: '0.875rem' }}>
+              Your imported activities are saved. You can try syncing again later to get the rest.
+            </Box>
+          )}
         </Alert>
       </Box>
     );
@@ -139,9 +171,12 @@ function SyncProgressBar({ jobId, token, dataSource = 'data', onComplete, onErro
 
   // Show success alert if completed
   if (progress.status === 'completed') {
+    const imported = progress.totalImported || 0;
+    const severity = imported === 0 ? 'info' : 'success';
+
     return (
       <Box sx={{ width: '100%', mt: 2 }}>
-        <Alert severity="success">
+        <Alert severity={severity}>
           {getProgressText()}
         </Alert>
       </Box>
