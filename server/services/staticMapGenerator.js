@@ -9,15 +9,25 @@ class StaticMapGenerator {
   generateCheckinMapUrl(checkins, width = 600, height = 400) {
     if (checkins.length === 0) return null;
 
+    // Filter out checkins with invalid coordinates
+    const validCheckins = checkins.filter(c =>
+      c.longitude != null &&
+      c.latitude != null &&
+      !isNaN(c.longitude) &&
+      !isNaN(c.latitude)
+    );
+
+    if (validCheckins.length === 0) return null;
+
     // Create curved path through checkins
-    const coords = checkins.map(c => [c.longitude, c.latitude]);
+    const coords = validCheckins.map(c => [c.longitude, c.latitude]);
     const encodedPath = this.createCurvedPath(coords);
 
     // Calculate dynamic threshold based on map bounds
-    const threshold = this.calculateDynamicThreshold(checkins);
+    const threshold = this.calculateDynamicThreshold(validCheckins);
 
     // Group overlapping markers
-    const markerGroups = this.groupNearbyCheckins(checkins, threshold);
+    const markerGroups = this.groupNearbyCheckins(validCheckins, threshold);
 
     // Add markers - use larger pins for grouped checkins
     const markers = markerGroups
@@ -141,17 +151,7 @@ class StaticMapGenerator {
   createCurvedPath(coords) {
     // Simple curve: encode coordinates with polyline
     // For production: implement bezier curves or use actual routing
-    // Filter out any invalid coordinates
-    const validCoords = coords.filter(c =>
-      c &&
-      c.length === 2 &&
-      typeof c[0] === 'number' &&
-      typeof c[1] === 'number' &&
-      !isNaN(c[0]) &&
-      !isNaN(c[1])
-    );
-
-    const latLngs = validCoords.map(c => [c[1], c[0]]); // Convert to lat,lng
+    const latLngs = coords.map(c => [c[1], c[0]]); // Convert to lat,lng
     return polyline.encode(latLngs);
   }
 
