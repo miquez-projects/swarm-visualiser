@@ -159,7 +159,13 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
             <input
               ref={dateInputRef}
               type="date"
-              style={{ display: 'none' }}
+              style={{
+                position: 'absolute',
+                opacity: 0,
+                pointerEvents: 'none',
+                width: 0,
+                height: 0
+              }}
               value={date || ''}
               onChange={handleDateChange}
             />
