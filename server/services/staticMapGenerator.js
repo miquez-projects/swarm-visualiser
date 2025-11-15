@@ -141,7 +141,15 @@ class StaticMapGenerator {
   createCurvedPath(coords) {
     // Simple curve: encode coordinates with polyline
     // For production: implement bezier curves or use actual routing
-    const latLngs = coords.map(c => [c[1], c[0]]); // Convert to lat,lng
+
+    // Deduplicate consecutive identical coordinates to avoid ?? in polyline
+    const uniqueCoords = coords.filter((coord, index) => {
+      if (index === 0) return true;
+      const prev = coords[index - 1];
+      return coord[0] !== prev[0] || coord[1] !== prev[1];
+    });
+
+    const latLngs = uniqueCoords.map(c => [c[1], c[0]]); // Convert to lat,lng
     return polyline.encode(latLngs);
   }
 
