@@ -20,6 +20,7 @@ function SyncProgressBar({ jobId, token, dataSource = 'data', onComplete, onErro
   });
   const [error, setError] = useState(null);
   const pollIntervalRef = useRef(null);
+  const errorAlertRef = useRef(null);
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -29,6 +30,13 @@ function SyncProgressBar({ jobId, token, dataSource = 'data', onComplete, onErro
       }
     };
   }, []);
+
+  // Scroll to error alert when error appears
+  useEffect(() => {
+    if ((error || progress.status === 'failed') && errorAlertRef.current) {
+      errorAlertRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [error, progress.status]);
 
   // Poll for status updates
   useEffect(() => {
@@ -162,7 +170,7 @@ function SyncProgressBar({ jobId, token, dataSource = 'data', onComplete, onErro
     console.log('[SyncProgressBar] Error message:', message, 'severity:', severity);
 
     return (
-      <Box sx={{ width: '100%', mt: 2 }}>
+      <Box ref={errorAlertRef} sx={{ width: '100%', mt: 2 }}>
         <Alert severity={severity}>
           {message}
           {imported > 0 && (
