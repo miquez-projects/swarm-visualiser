@@ -17,12 +17,12 @@ router.get('/auth/start', authenticateToken, async (req, res) => {
     const callbackUrl = `${process.env.API_URL || 'http://localhost:3001'}/api/strava/auth/callback`;
 
     // Generate authorization URL (no PKCE for Strava)
-    // Store user ID in session for callback
-    req.session.stravaUserId = userId;
+    // Use state parameter to pass user ID (more reliable than sessions)
+    const state = `user_${userId}`;
 
     const authUrl = stravaOAuth.getAuthorizationUrl(
       callbackUrl,
-      '', // No state parameter needed
+      state,
       'read,activity:read_all'
     );
 
@@ -49,12 +49,17 @@ router.get('/auth/callback', async (req, res) => {
   }
 
   try {
-    // Get user ID from session (stored during auth/start)
-    const userId = req.session?.stravaUserId;
+    // Extract user ID from state parameter (format: "user_123")
+    if (!state || !state.startsWith('user_')) {
+      console.error('[STRAVA ROUTE] Invalid or missing state parameter');
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/data-sources?error=invalid_state`);
+    }
 
-    if (!userId) {
-      console.error('[STRAVA ROUTE] No user ID in session');
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/data-sources?error=session_expired`);
+    const userId = parseInt(state.replace('user_', ''), 10);
+
+    if (!userId || isNaN(userId)) {
+      console.error('[STRAVA ROUTE] Invalid user ID in state');
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/data-sources?error=invalid_state`);
     }
 
     const callbackUrl = `${process.env.API_URL || 'http://localhost:3001'}/api/strava/auth/callback`;
@@ -85,9 +90,6 @@ router.get('/auth/callback', async (req, res) => {
 
     console.log(`[STRAVA ROUTE] Successfully connected Strava for user ${userId}, athlete ID: ${athleteId}`);
     console.log(`[STRAVA ROUTE] Queued initial import job ${job.id} for user ${userId}`);
-
-    // Clean up session
-    delete req.session.stravaUserId;
 
     // Redirect back to frontend with success
     res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/data-sources?strava=connected`);
