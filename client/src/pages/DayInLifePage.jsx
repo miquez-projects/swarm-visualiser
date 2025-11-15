@@ -138,9 +138,6 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
         <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
           {/* Header */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
-            <IconButton onClick={handlePrevDay}>
-              <ChevronLeft />
-            </IconButton>
             <Typography variant="h4">
               {currentDate.toLocaleDateString('en-US', {
                 weekday: 'long',
@@ -150,6 +147,9 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
               })}
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <IconButton onClick={handlePrevDay}>
+                <ChevronLeft />
+              </IconButton>
               <DatePicker
                 value={currentDate}
                 onChange={(newDate) => {
@@ -160,11 +160,7 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
                 }}
                 slotProps={{
                   textField: {
-                    sx: {
-                      width: 0,
-                      '& .MuiOutlinedInput-notchedOutline': { border: 0 },
-                      '& .MuiInputBase-input': { display: 'none' }
-                    }
+                    size: 'small'
                   }
                 }}
               />
