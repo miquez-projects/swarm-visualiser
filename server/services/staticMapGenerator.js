@@ -141,7 +141,17 @@ class StaticMapGenerator {
   createCurvedPath(coords) {
     // Simple curve: encode coordinates with polyline
     // For production: implement bezier curves or use actual routing
-    const latLngs = coords.map(c => [c[1], c[0]]); // Convert to lat,lng
+    // Filter out any invalid coordinates
+    const validCoords = coords.filter(c =>
+      c &&
+      c.length === 2 &&
+      typeof c[0] === 'number' &&
+      typeof c[1] === 'number' &&
+      !isNaN(c[0]) &&
+      !isNaN(c[1])
+    );
+
+    const latLngs = validCoords.map(c => [c[1], c[0]]); // Convert to lat,lng
     return polyline.encode(latLngs);
   }
 
