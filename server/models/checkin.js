@@ -23,9 +23,11 @@ class Checkin {
 
     // Smart limit: Use provided limit, or default based on whether filters are active
     // When semantic filters are applied (country/city/category/search), users expect all results
+    // When bounds filter is applied (zoomed-in map), users expect all venues in viewport
     // When just viewing map without filters, limit to 5000 for performance
     const hasSemanticFilter = country || city || category || search;
-    const defaultLimit = hasSemanticFilter ? 50000 : 5000;
+    const hasBoundsFilter = bounds && bounds.length > 0;
+    const defaultLimit = (hasSemanticFilter || hasBoundsFilter) ? 50000 : 5000;
     const effectiveLimit = limit || defaultLimit;
 
     const conditions = [];
