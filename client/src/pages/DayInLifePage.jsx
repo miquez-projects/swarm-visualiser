@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -9,6 +9,9 @@ import {
   TextField
 } from '@mui/material';
 import { ChevronLeft, ChevronRight, CalendarToday } from '@mui/icons-material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import Layout from '../components/Layout';
 import PropertyTile from '../components/dayinlife/PropertyTile';
 import CheckinEventTile from '../components/dayinlife/CheckinEventTile';
@@ -20,7 +23,6 @@ import 'yet-another-react-lightbox/styles.css';
 const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
   const { date } = useParams();
   const navigate = useNavigate();
-  const dateInputRef = useRef(null);
   const [token] = useState(localStorage.getItem('authToken'));
   const [dayData, setDayData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -85,12 +87,6 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
     setLightboxOpen(true);
   };
 
-  const handleDateChange = (event) => {
-    const newDate = event.target.value;
-    if (newDate) {
-      navigate(`/day-in-life/${newDate}`);
-    }
-  };
 
   const formatSleepDuration = (seconds) => {
     if (!seconds) return 'No data';
@@ -137,43 +133,45 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
   }
 
   return (
-    <Layout darkMode={darkMode} onToggleDarkMode={onToggleDarkMode} token={token}>
-      <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
-          <IconButton onClick={handlePrevDay}>
-            <ChevronLeft />
-          </IconButton>
-          <Typography variant="h4">
-            {currentDate.toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}
-          </Typography>
-          <Box>
-            <IconButton onClick={() => dateInputRef.current?.click()}>
-              <CalendarToday />
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <Layout darkMode={darkMode} onToggleDarkMode={onToggleDarkMode} token={token}>
+        <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
+          {/* Header */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
+            <IconButton onClick={handlePrevDay}>
+              <ChevronLeft />
             </IconButton>
-            <input
-              ref={dateInputRef}
-              type="date"
-              style={{
-                position: 'absolute',
-                opacity: 0,
-                pointerEvents: 'none',
-                width: 0,
-                height: 0
-              }}
-              value={date || ''}
-              onChange={handleDateChange}
-            />
-            <IconButton onClick={handleNextDay}>
-              <ChevronRight />
-            </IconButton>
+            <Typography variant="h4">
+              {currentDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <DatePicker
+                value={currentDate}
+                onChange={(newDate) => {
+                  if (newDate) {
+                    const dateStr = newDate.toISOString().split('T')[0];
+                    navigate(`/day-in-life/${dateStr}`);
+                  }
+                }}
+                slotProps={{
+                  textField: {
+                    sx: { display: 'none' }
+                  },
+                  openPickerButton: {
+                    sx: { p: 1 }
+                  }
+                }}
+              />
+              <IconButton onClick={handleNextDay}>
+                <ChevronRight />
+              </IconButton>
+            </Box>
           </Box>
-        </Box>
 
         {/* Properties */}
         <Grid container spacing={2} sx={{ mb: 4 }}>
@@ -285,6 +283,7 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
         />
       </Box>
     </Layout>
+  </LocalizationProvider>
   );
 };
 
