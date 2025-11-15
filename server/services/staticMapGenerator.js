@@ -41,7 +41,7 @@ class StaticMapGenerator {
     return `${this.baseUrl}/${path},${markers}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
   }
 
-  groupNearbyCheckins(checkins, thresholdMeters = 10) {
+  groupNearbyCheckins(checkins, thresholdMeters = 50) {
     const groups = [];
     const used = new Set();
 
