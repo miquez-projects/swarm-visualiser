@@ -1,14 +1,17 @@
+const db = require('../db/connection');
+const weatherService = require('./weatherService');
+const staticMapGenerator = require('./staticMapGenerator');
+const DailyWeather = require('../models/dailyWeather');
 const Checkin = require('../models/checkin');
 const StravaActivity = require('../models/stravaActivity');
 const GarminActivity = require('../models/garminActivity');
 const GarminDailySteps = require('../models/garminDailySteps');
 const GarminDailyHeartRate = require('../models/garminDailyHeartRate');
 const GarminDailySleep = require('../models/garminDailySleep');
-const weatherService = require('./weatherService');
 
 /**
  * Day in Life Service
- * Aggregates all data sources for a specific date and user into a timeline
+ * Aggregates all data sources for a specific date and user into a timeline with event grouping
  */
 
 /**
@@ -33,51 +36,14 @@ function getDateTimestamps(date) {
 }
 
 /**
- * Transforms check-ins into timeline items
- * @param {Array} checkins - Array of check-in objects
- * @returns {Array} Timeline items
+ * Find the most common value in an array
+ * @param {Array} arr - Array of values
+ * @returns {*} Most common value
  */
-function transformCheckins(checkins) {
-  return checkins.map(checkin => ({
-    type: 'checkin',
-    time: checkin.checkin_date,
-    data: checkin
-  }));
-}
-
-/**
- * Transforms Strava activities into timeline items
- * @param {Array} activities - Array of Strava activity objects
- * @returns {Array} Timeline items
- */
-function transformStravaActivities(activities) {
-  return activities.map(activity => ({
-    type: 'strava_activity',
-    time: activity.start_time,
-    data: activity
-  }));
-}
-
-/**
- * Transforms Garmin activities into timeline items
- * @param {Array} activities - Array of Garmin activity objects
- * @returns {Array} Timeline items
- */
-function transformGarminActivities(activities) {
-  return activities.map(activity => ({
-    type: 'garmin_activity',
-    time: activity.start_time,
-    data: activity
-  }));
-}
-
-/**
- * Sorts timeline items by time (ascending)
- * @param {Array} timeline - Array of timeline items
- * @returns {Array} Sorted timeline
- */
-function sortTimeline(timeline) {
-  return timeline.sort((a, b) => new Date(a.time) - new Date(b.time));
+function mostCommon(arr) {
+  return arr.sort((a, b) =>
+    arr.filter(v => v === a).length - arr.filter(v => v === b).length
+  ).pop();
 }
 
 /**
@@ -150,25 +116,50 @@ async function getDayInLife(userId, date, latitude = null, longitude = null) {
     const sleepData = dailySleep.status === 'fulfilled' ? dailySleep.value : [];
     const weatherData = weather.status === 'fulfilled' ? weather.value : null;
 
-    // Build timeline by combining all time-based events
+    // Combine activities from both sources
+    const allActivities = [...stravaData, ...garminData];
+
+    // Get weather with caching
+    const weatherResult = await getWeather(userId, date, checkins);
+
+    // Calculate properties
+    const properties = {
+      weather: weatherResult,
+      sleep: sleepData[0] ? {
+        duration: sleepData[0].sleep_duration_seconds,
+        score: sleepData[0].sleep_score
+      } : null,
+      steps: stepsData[0] ? {
+        count: stepsData[0].step_count
+      } : null,
+      checkins: { count: checkins.length },
+      activities: { count: allActivities.length },
+      heartRate: heartRateData[0] ? {
+        min: heartRateData[0].min_heart_rate,
+        max: heartRateData[0].max_heart_rate
+      } : null,
+      calories: {
+        total: allActivities.reduce((sum, a) => sum + (a.calories || 0), 0)
+      }
+    };
+
+    // Generate events with grouping
+    const events = await generateEvents(checkins, allActivities);
+
+    // Build timeline by combining all time-based events (legacy format for compatibility)
     const timeline = [
-      ...transformCheckins(checkins),
-      ...transformStravaActivities(stravaData),
-      ...transformGarminActivities(garminData)
-    ];
+      ...checkins.map(c => ({ type: 'checkin', time: c.checkin_date, data: c })),
+      ...stravaData.map(a => ({ type: 'strava_activity', time: a.start_time, data: a })),
+      ...garminData.map(a => ({ type: 'garmin_activity', time: a.start_time, data: a }))
+    ].sort((a, b) => new Date(a.time) - new Date(b.time));
 
-    // Sort timeline by time
-    const sortedTimeline = sortTimeline(timeline);
-
-    // Transform daily metrics to match frontend expectations
+    // Transform daily metrics to match frontend expectations (legacy)
     const transformedMetrics = {};
 
-    // Steps: extract step_count from steps object
     if (stepsData[0] && stepsData[0].step_count !== null && stepsData[0].step_count !== undefined) {
       transformedMetrics.steps = stepsData[0].step_count;
     }
 
-    // Avg Heart Rate: calculate from min/max/resting
     if (heartRateData[0]) {
       const hr = heartRateData[0];
       const validValues = [];
@@ -181,20 +172,20 @@ async function getDayInLife(userId, date, latitude = null, longitude = null) {
       }
     }
 
-    // Sleep Hours: convert sleep_duration_seconds to hours
     if (sleepData[0] && sleepData[0].sleep_duration_seconds !== null && sleepData[0].sleep_duration_seconds !== undefined) {
       transformedMetrics.sleepHours = sleepData[0].sleep_duration_seconds / 3600;
     }
 
-    // Activities: count timeline items with type 'strava_activity' or 'garmin_activity'
-    transformedMetrics.activities = sortedTimeline.filter(
-      item => item.type === 'strava_activity' || item.type === 'garmin_activity'
-    ).length;
+    transformedMetrics.activities = allActivities.length;
 
-    // Return aggregated data
+    // Return both formats
     return {
       date,
-      timeline: sortedTimeline,
+      // New format
+      properties,
+      events,
+      // Legacy format
+      timeline,
       dailyMetrics: transformedMetrics,
       weather: weatherData
     };
@@ -203,6 +194,177 @@ async function getDayInLife(userId, date, latitude = null, longitude = null) {
   }
 }
 
+/**
+ * Gets weather with database caching
+ * @param {string} userId - User ID
+ * @param {string} date - Date string (YYYY-MM-DD)
+ * @param {Array} checkins - Array of check-ins for the day
+ * @returns {Promise<Object|null>} Weather data
+ */
+async function getWeather(userId, date, checkins) {
+  if (checkins.length === 0) return null;
+
+  // Use most common country
+  const countries = checkins.map(c => c.country).filter(Boolean);
+  if (countries.length === 0) return null;
+
+  const primaryCountry = mostCommon(countries);
+
+  // Check cache
+  const cached = await DailyWeather.findByDateAndLocation(date, primaryCountry);
+
+  if (cached) {
+    return {
+      temp: cached.temp_celsius,
+      condition: cached.condition,
+      icon: cached.weather_icon,
+      country: cached.country
+    };
+  }
+
+  // Fetch from API using first checkin's coordinates
+  const firstCheckin = checkins[0];
+  const weatherData = await weatherService.getHistoricalWeather(
+    firstCheckin.latitude,
+    firstCheckin.longitude,
+    date
+  );
+
+  if (!weatherData) return null;
+
+  // Cache it
+  const avgTemp = (weatherData.temperature_max + weatherData.temperature_min) / 2;
+  await DailyWeather.upsert({
+    date,
+    country: primaryCountry,
+    region: null,
+    temp_celsius: Math.round(avgTemp),
+    condition: weatherData.weather_description,
+    weather_icon: weatherService.conditionToIcon(weatherData.weather_description)
+  });
+
+  return {
+    temp: Math.round(avgTemp),
+    condition: weatherData.weather_description,
+    icon: weatherService.conditionToIcon(weatherData.weather_description),
+    country: primaryCountry
+  };
+}
+
+/**
+ * Generates events with smart grouping
+ * CRITICAL: Only check-ins are grouped. Each activity is displayed individually.
+ * @param {Array} checkins - Array of check-in objects
+ * @param {Array} activities - Array of activity objects (Strava and Garmin combined)
+ * @returns {Promise<Array>} Array of event objects
+ */
+async function generateEvents(checkins, activities) {
+  // Combine and sort by time
+  const allEvents = [
+    ...checkins.map(c => ({ type: 'checkin', time: new Date(c.checkin_date), data: c })),
+    ...activities.map(a => {
+      // Determine source: Strava activities have strava_activity_id, Garmin activities have garmin_activity_id
+      const source = a.strava_activity_id ? 'strava' : 'garmin';
+      return {
+        type: 'activity',
+        time: new Date(a.start_time),
+        data: a,
+        source
+      };
+    })
+  ].sort((a, b) => a.time - b.time);
+
+  // Group contiguous checkins (activities interrupt grouping)
+  const events = [];
+  let currentCheckinGroup = [];
+
+  for (const event of allEvents) {
+    if (event.type === 'checkin') {
+      currentCheckinGroup.push(event.data);
+    } else {
+      // Activity interrupts checkins
+      if (currentCheckinGroup.length > 0) {
+        events.push(await createCheckinEvent(currentCheckinGroup));
+        currentCheckinGroup = [];
+      }
+      events.push(await createActivityEvent(event.data, event.source));
+    }
+  }
+
+  // Add remaining checkins
+  if (currentCheckinGroup.length > 0) {
+    events.push(await createCheckinEvent(currentCheckinGroup));
+  }
+
+  return events;
+}
+
+/**
+ * Creates a check-in event with photos and static map
+ * @param {Array} checkins - Array of check-in objects
+ * @returns {Promise<Object>} Check-in event object
+ */
+async function createCheckinEvent(checkins) {
+  // Get photos for these checkins
+  const checkinIds = checkins.map(c => c.id);
+  const photosQuery = `
+    SELECT checkin_id, photo_url, photo_url_cached
+    FROM checkin_photos
+    WHERE checkin_id = ANY($1)
+  `;
+  const photosResult = await db.query(photosQuery, [checkinIds]);
+  const photosByCheckin = photosResult.rows.reduce((acc, p) => {
+    if (!acc[p.checkin_id]) acc[p.checkin_id] = [];
+    acc[p.checkin_id].push(p);
+    return acc;
+  }, {});
+
+  return {
+    type: 'checkin_group',
+    startTime: checkins[0].checkin_date,
+    checkins: checkins.map(c => ({
+      ...c,
+      photos: photosByCheckin[c.id] || []
+    })),
+    staticMapUrl: staticMapGenerator.generateCheckinMapUrl(checkins)
+  };
+}
+
+/**
+ * Creates an activity event with static map
+ * @param {Object} activity - Activity object (Strava or Garmin)
+ * @param {string} source - 'strava' or 'garmin'
+ * @returns {Promise<Object>} Activity event object
+ */
+async function createActivityEvent(activity, source) {
+  // Determine if activity is mapped (has GPS track data)
+  // Both Strava and Garmin use 'tracklog' field (WKT LINESTRING format)
+  const trackData = activity.tracklog;
+  const isMapped = !!trackData;
+
+  return {
+    type: isMapped ? `${source}_activity_mapped` : `${source}_activity_unmapped`,
+    startTime: activity.start_time,
+    activity: {
+      id: activity.id,
+      type: activity.activity_type,
+      name: activity.activity_name,
+      duration: activity.duration_seconds,
+      distance: activity.distance_meters,
+      calories: activity.calories,
+      url: source === 'strava'
+        ? (activity.strava_activity_id ? `https://www.strava.com/activities/${activity.strava_activity_id}` : null)
+        : activity.garmin_url
+    },
+    staticMapUrl: isMapped
+      ? staticMapGenerator.generateActivityMapUrl(trackData)
+      : null
+  };
+}
+
 module.exports = {
-  getDayInLife
+  getDayInLife,
+  generateEvents,
+  createCheckinEvent,
+  createActivityEvent
 };

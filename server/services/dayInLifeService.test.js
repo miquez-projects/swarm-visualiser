@@ -169,7 +169,7 @@ describe('dayInLifeService', () => {
       );
 
       // Verify result structure
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         date: '2024-01-15',
         timeline: expect.any(Array),
         dailyMetrics: {
@@ -178,7 +178,13 @@ describe('dayInLifeService', () => {
           sleepHours: 8,
           activities: 2
         },
-        weather: mockWeather
+        weather: mockWeather,
+        // New format
+        properties: expect.objectContaining({
+          activities: { count: 2 },
+          checkins: { count: 2 }
+        }),
+        events: expect.any(Array)
       });
 
       // Verify timeline is sorted by time
@@ -285,6 +291,173 @@ describe('dayInLifeService', () => {
     it('should validate date format', async () => {
       await expect(dayInLifeService.getDayInLife(userId, 'invalid-date')).rejects.toThrow('Invalid date format');
       await expect(dayInLifeService.getDayInLife(userId, '2024/01/15')).rejects.toThrow('Invalid date format');
+    });
+  });
+
+  describe('generateEvents', () => {
+    it('should group contiguous check-ins without activity interruption', async () => {
+      const mockCheckins = [
+        { id: 1, checkin_date: '2024-01-15T09:00:00Z', venue_name: 'Coffee', latitude: 40.7128, longitude: -74.0060 },
+        { id: 2, checkin_date: '2024-01-15T12:00:00Z', venue_name: 'Lunch', latitude: 40.7138, longitude: -74.0070 },
+        { id: 3, checkin_date: '2024-01-15T14:00:00Z', venue_name: 'Museum', latitude: 40.7148, longitude: -74.0080 }
+      ];
+      const mockActivities = [];
+
+      const events = await dayInLifeService.generateEvents(mockCheckins, mockActivities);
+
+      expect(events).toHaveLength(1);
+      expect(events[0].type).toBe('checkin_group');
+      expect(events[0].checkins).toHaveLength(3);
+    });
+
+    it('should split check-in groups when Garmin activity interrupts', async () => {
+      const mockCheckins = [
+        { id: 1, checkin_date: '2024-01-15T09:00:00Z', venue_name: 'Coffee', latitude: 40.7128, longitude: -74.0060 },
+        { id: 2, checkin_date: '2024-01-15T14:00:00Z', venue_name: 'Museum', latitude: 40.7148, longitude: -74.0080 }
+      ];
+      const mockActivities = [
+        { id: 1, start_time: '2024-01-15T10:00:00Z', activity_type: 'running', tracklog: null, garmin_activity_id: '123' }
+      ];
+
+      const events = await dayInLifeService.generateEvents(mockCheckins, mockActivities);
+
+      expect(events).toHaveLength(3); // checkin, activity, checkin
+      expect(events[0].type).toBe('checkin_group');
+      expect(events[1].type).toContain('activity');
+      expect(events[2].type).toBe('checkin_group');
+    });
+
+    it('should split check-in groups when Strava activity interrupts', async () => {
+      const mockCheckins = [
+        { id: 1, checkin_date: '2024-01-15T09:00:00Z', venue_name: 'Coffee', latitude: 40.7128, longitude: -74.0060 },
+        { id: 2, checkin_date: '2024-01-15T14:00:00Z', venue_name: 'Museum', latitude: 40.7148, longitude: -74.0080 }
+      ];
+      const mockActivities = [
+        { id: 1, start_time: '2024-01-15T10:00:00Z', activity_type: 'Run', tracklog: null, strava_activity_id: 456 }
+      ];
+
+      const events = await dayInLifeService.generateEvents(mockCheckins, mockActivities);
+
+      expect(events).toHaveLength(3); // checkin, activity, checkin
+      expect(events[0].type).toBe('checkin_group');
+      expect(events[1].type).toContain('activity');
+      expect(events[2].type).toBe('checkin_group');
+    });
+
+    it('should order events chronologically', async () => {
+      const mockCheckins = [
+        { id: 2, checkin_date: '2024-01-15T14:00:00Z', venue_name: 'Museum', latitude: 40.7148, longitude: -74.0080 },
+        { id: 1, checkin_date: '2024-01-15T09:00:00Z', venue_name: 'Coffee', latitude: 40.7128, longitude: -74.0060 }
+      ];
+      const mockActivities = [
+        { id: 1, start_time: '2024-01-15T10:00:00Z', activity_type: 'running', tracklog: null, garmin_activity_id: '123' }
+      ];
+
+      const events = await dayInLifeService.generateEvents(mockCheckins, mockActivities);
+
+      expect(new Date(events[0].startTime).getTime()).toBeLessThan(new Date(events[1].startTime).getTime());
+      expect(new Date(events[1].startTime).getTime()).toBeLessThan(new Date(events[2].startTime).getTime());
+    });
+
+    it('should handle both Strava and Garmin activities together', async () => {
+      const mockCheckins = [
+        { id: 1, checkin_date: '2024-01-15T09:00:00Z', venue_name: 'Coffee', latitude: 40.7128, longitude: -74.0060 }
+      ];
+      const mockActivities = [
+        { id: 1, start_time: '2024-01-15T10:00:00Z', activity_type: 'running', tracklog: 'LINESTRING(-74.0060 40.7128, -74.0070 40.7138)', garmin_activity_id: '123' },
+        { id: 2, start_time: '2024-01-15T15:00:00Z', activity_type: 'Ride', tracklog: 'LINESTRING(-74.0080 40.7148, -74.0090 40.7158)', strava_activity_id: 456 }
+      ];
+
+      const events = await dayInLifeService.generateEvents(mockCheckins, mockActivities);
+
+      expect(events).toHaveLength(3); // checkin, garmin activity, strava activity
+      expect(events[1].type).toBe('garmin_activity_mapped');
+      expect(events[2].type).toBe('strava_activity_mapped');
+    });
+
+    it('should distinguish between mapped and unmapped Garmin activities', async () => {
+      const mockActivities = [
+        { id: 1, start_time: '2024-01-15T10:00:00Z', activity_type: 'running', tracklog: 'LINESTRING(-74.0060 40.7128, -74.0070 40.7138)', garmin_activity_id: '123' },
+        { id: 2, start_time: '2024-01-15T15:00:00Z', activity_type: 'yoga', tracklog: null, garmin_activity_id: '456' }
+      ];
+
+      const events = await dayInLifeService.generateEvents([], mockActivities);
+
+      expect(events).toHaveLength(2);
+      expect(events[0].type).toBe('garmin_activity_mapped');
+      expect(events[1].type).toBe('garmin_activity_unmapped');
+    });
+
+    it('should distinguish between mapped and unmapped Strava activities', async () => {
+      const mockActivities = [
+        { id: 1, start_time: '2024-01-15T10:00:00Z', activity_type: 'Run', tracklog: 'LINESTRING(-74.0060 40.7128, -74.0070 40.7138)', strava_activity_id: 123 },
+        { id: 2, start_time: '2024-01-15T15:00:00Z', activity_type: 'Yoga', tracklog: null, strava_activity_id: 456 }
+      ];
+
+      const events = await dayInLifeService.generateEvents([], mockActivities);
+
+      expect(events).toHaveLength(2);
+      expect(events[0].type).toBe('strava_activity_mapped');
+      expect(events[1].type).toBe('strava_activity_unmapped');
+    });
+
+    it('should include photos in check-in events', async () => {
+      const mockCheckins = [
+        { id: 1, checkin_date: '2024-01-15T09:00:00Z', venue_name: 'Coffee', latitude: 40.7128, longitude: -74.0060 }
+      ];
+
+      // Mock db.query for photos
+      const db = require('../db/connection');
+      db.query = jest.fn().mockResolvedValue({
+        rows: [
+          { checkin_id: 1, photo_url: 'https://example.com/photo1.jpg', photo_url_cached: 'https://cached.com/photo1.jpg' }
+        ]
+      });
+
+      const events = await dayInLifeService.generateEvents(mockCheckins, []);
+
+      expect(events).toHaveLength(1);
+      expect(events[0].checkins[0].photos).toHaveLength(1);
+      expect(events[0].checkins[0].photos[0].photo_url).toBe('https://example.com/photo1.jpg');
+    });
+
+    it('should generate static map URLs for check-in groups', async () => {
+      const mockCheckins = [
+        { id: 1, checkin_date: '2024-01-15T09:00:00Z', venue_name: 'Coffee', latitude: 40.7128, longitude: -74.0060 },
+        { id: 2, checkin_date: '2024-01-15T12:00:00Z', venue_name: 'Lunch', latitude: 40.7138, longitude: -74.0070 }
+      ];
+
+      // Mock db.query for photos
+      const db = require('../db/connection');
+      db.query = jest.fn().mockResolvedValue({ rows: [] });
+
+      const events = await dayInLifeService.generateEvents(mockCheckins, []);
+
+      expect(events).toHaveLength(1);
+      expect(events[0].staticMapUrl).toBeDefined();
+    });
+
+    it('should generate static map URLs for mapped activities', async () => {
+      const mockActivities = [
+        { id: 1, start_time: '2024-01-15T10:00:00Z', activity_type: 'running', tracklog: 'LINESTRING(-74.0060 40.7128, -74.0070 40.7138)', garmin_activity_id: '123' }
+      ];
+
+      const events = await dayInLifeService.generateEvents([], mockActivities);
+
+      expect(events).toHaveLength(1);
+      expect(events[0].staticMapUrl).toBeDefined();
+      expect(events[0].staticMapUrl).not.toBeNull();
+    });
+
+    it('should not generate static map URLs for unmapped activities', async () => {
+      const mockActivities = [
+        { id: 1, start_time: '2024-01-15T10:00:00Z', activity_type: 'yoga', tracklog: null, garmin_activity_id: '123' }
+      ];
+
+      const events = await dayInLifeService.generateEvents([], mockActivities);
+
+      expect(events).toHaveLength(1);
+      expect(events[0].staticMapUrl).toBeNull();
     });
   });
 });
