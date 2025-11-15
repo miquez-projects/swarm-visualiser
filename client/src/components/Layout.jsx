@@ -35,7 +35,7 @@ function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions, 
   };
 
   const isYearInReview = location.pathname === '/year-in-review';
-  const isDayInLife = location.pathname === '/day-in-life';
+  const isDayInLife = location.pathname.startsWith('/day-in-life');
   const isHome = location.pathname === '/';
 
   return (
