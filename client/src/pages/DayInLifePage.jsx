@@ -136,7 +136,7 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
   }
 
   return (
-    <Layout darkMode={darkMode} onToggleDarkMode={onToggleDarkMode}>
+    <Layout darkMode={darkMode} onToggleDarkMode={onToggleDarkMode} token={token}>
       <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
