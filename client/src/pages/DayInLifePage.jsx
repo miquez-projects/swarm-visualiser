@@ -22,6 +22,7 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
   const [token] = useState(localStorage.getItem('authToken'));
   const [dayData, setDayData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxPhotos, setLightboxPhotos] = useState([]);
 
@@ -39,6 +40,7 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
 
   const loadDayData = async (dateStr) => {
     setLoading(true);
+    setError(null);
     try {
       const params = {};
       if (token) {
@@ -48,6 +50,13 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
       setDayData(data);
     } catch (error) {
       console.error('Failed to load day data:', error);
+      if (error.response?.status === 401) {
+        setError('Please log in to view your day in life data.');
+      } else if (error.response?.status === 400) {
+        setError('Invalid date format.');
+      } else {
+        setError('Failed to load data. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -82,6 +91,23 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
       <Layout darkMode={darkMode} onToggleDarkMode={onToggleDarkMode}>
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
           <CircularProgress />
+        </Box>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout darkMode={darkMode} onToggleDarkMode={onToggleDarkMode}>
+        <Box sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h5" color="error" gutterBottom>
+            {error}
+          </Typography>
+          {error.includes('log in') && (
+            <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+              Please go to the home page and use the magic link to log in.
+            </Typography>
+          )}
         </Box>
       </Layout>
     );
