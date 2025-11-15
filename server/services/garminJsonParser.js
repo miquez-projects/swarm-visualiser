@@ -39,27 +39,36 @@ class GarminJsonParser {
   async parseSleepFile(jsonContent) {
     const data = JSON.parse(jsonContent);
 
-    return data.map(record => {
-      const deepSleep = this._parseInt(record.deepSleepSeconds);
-      const lightSleep = this._parseInt(record.lightSleepSeconds);
-      const remSleep = this._parseInt(record.remSleepSeconds);
-      const awake = this._parseInt(record.awakeSleepSeconds);
+    return data
+      .filter(record => {
+        // Skip records without a valid date
+        if (!record.calendarDate) {
+          console.warn('[GARMIN PARSER] Skipping sleep record with null/missing calendarDate:', record);
+          return false;
+        }
+        return true;
+      })
+      .map(record => {
+        const deepSleep = this._parseInt(record.deepSleepSeconds);
+        const lightSleep = this._parseInt(record.lightSleepSeconds);
+        const remSleep = this._parseInt(record.remSleepSeconds);
+        const awake = this._parseInt(record.awakeSleepSeconds);
 
-      // Calculate total duration if we have any sleep stage data
-      let totalDuration = null;
-      if (deepSleep !== null || lightSleep !== null || remSleep !== null || awake !== null) {
-        totalDuration = (deepSleep || 0) + (lightSleep || 0) + (remSleep || 0) + (awake || 0);
-      }
+        // Calculate total duration if we have any sleep stage data
+        let totalDuration = null;
+        if (deepSleep !== null || lightSleep !== null || remSleep !== null || awake !== null) {
+          totalDuration = (deepSleep || 0) + (lightSleep || 0) + (remSleep || 0) + (awake || 0);
+        }
 
-      return {
-        date: record.calendarDate,
-        sleep_duration_seconds: totalDuration,
-        deep_sleep_seconds: deepSleep,
-        light_sleep_seconds: lightSleep,
-        rem_sleep_seconds: remSleep,
-        awake_seconds: awake
-      };
-    });
+        return {
+          date: record.calendarDate,
+          sleep_duration_seconds: totalDuration,
+          deep_sleep_seconds: deepSleep,
+          light_sleep_seconds: lightSleep,
+          rem_sleep_seconds: remSleep,
+          awake_seconds: awake
+        };
+      });
   }
 
   /**

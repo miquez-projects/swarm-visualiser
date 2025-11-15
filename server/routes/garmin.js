@@ -237,6 +237,7 @@ router.post('/upload', authenticateToken, upload.array('files', 50), async (req,
       stepsRecords: 0,
       heartRateRecords: 0,
       sleepRecords: 0,
+      skippedRecords: 0,
       errors: []
     };
 
@@ -251,7 +252,17 @@ router.post('/upload', authenticateToken, upload.array('files', 50), async (req,
         // Determine file type and parse accordingly
         if (filename.includes('sleepData')) {
           // Parse sleep data file
+          const rawData = JSON.parse(content);
+          const rawCount = rawData.length;
           const sleepData = await garminJsonParser.parseSleepFile(content);
+          const validCount = sleepData.length;
+
+          // Track skipped records (those with null/missing dates)
+          const skipped = rawCount - validCount;
+          if (skipped > 0) {
+            results.skippedRecords += skipped;
+            console.log(`[GARMIN ROUTE] Skipped ${skipped} sleep record(s) with null/missing dates in ${filename}`);
+          }
 
           // Insert sleep records
           for (const record of sleepData) {
