@@ -42,6 +42,7 @@ See [docs/RENDER_LOGS.md](docs/RENDER_LOGS.md) for full documentation.
 ### Key Services
 - **Render Service**: `srv-d41sc0ali9vc73bbtekg` (swarm-visualizer-api)
 - **Database**: PostgreSQL on Render (PostGIS-enabled)
+  - **Production DB URL**: `postgresql://swarm_visualizer_user:1nlk2RVUmnpg2G2HO4QmaMhncX3ysg40@dpg-d41s9rer433s73cv4t00-a.frankfurt-postgres.render.com/swarm_visualizer`
 - **Frontend URL**: https://swarm-visualiser.vercel.app
 
 ### Important Files

@@ -31,8 +31,8 @@ async function importStravaDataHandler(job) {
       result = await stravaSync.fullHistoricalSync(encryptedTokens, userId, 5, async (progress) => {
         console.log(`Strava import ${jobId}: Progress update`, progress);
         await ImportJob.update(jobId, {
-          totalImported: progress.detailed || progress.fetched || 0,
-          currentBatch: progress.activitiesProcessed || 0
+          totalImported: progress.inserted || 0,  // Use actual inserted count, not fetched
+          currentBatch: progress.detailed || 0
         });
       });
     } else {
@@ -44,8 +44,8 @@ async function importStravaDataHandler(job) {
       result = await stravaSync.incrementalSync(encryptedTokens, userId, lastSyncDate, async (progress) => {
         console.log(`Strava import ${jobId}: Progress update`, progress);
         await ImportJob.update(jobId, {
-          totalImported: progress.detailed || progress.fetched || 0,
-          currentBatch: progress.activitiesProcessed || 0
+          totalImported: progress.inserted || 0,  // Use actual inserted count, not fetched
+          currentBatch: progress.detailed || 0
         });
       });
     }

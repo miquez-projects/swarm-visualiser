@@ -63,8 +63,12 @@ class StravaSyncService {
       console.log(`[STRAVA SYNC] Fetched ${allActivities.length} activities from API`);
 
       // Fetch detailed data for each activity (to get full polyline)
-      console.log(`[STRAVA SYNC] Fetching detailed data for ${allActivities.length} activities...`);
+      // CRITICAL: Insert activities incrementally to preserve progress on failures
+      console.log(`[STRAVA SYNC] Fetching and saving ${allActivities.length} activities in batches...`);
       const batchSize = 10; // Process 10 at a time to respect rate limits
+      const insertBatchSize = 50; // Insert every 50 activities
+      let totalInserted = 0;
+      const detailedActivities = [];
 
       for (let i = 0; i < allActivities.length; i += batchSize) {
         const batch = allActivities.slice(i, i + batchSize);
@@ -80,48 +84,56 @@ class StravaSyncService {
           )
         );
 
-        // Process results
+        // Process results and collect detailed activities
         detailedResults.forEach((result, batchIndex) => {
-          const activityIndex = i + batchIndex;
           if (result.status === 'fulfilled') {
-            allActivities[activityIndex] = result.value;
+            detailedActivities.push(result.value);
           } else {
             console.log(`[STRAVA SYNC] Failed to fetch details for activity ${batch[batchIndex].id}, using summary data`);
-            // Keep summary data if detail fetch fails
+            // Use summary data if detail fetch fails
+            detailedActivities.push(batch[batchIndex]);
           }
         });
 
-        // Progress reporting every batch
-        if (onProgress && (i + batchSize) % 100 === 0) {
-          await onProgress({ detailed: i + batchSize, fetched: allActivities.length });
+        // Insert every insertBatchSize activities to preserve progress
+        if (detailedActivities.length >= insertBatchSize) {
+          const activitiesToInsert = detailedActivities.map(activity =>
+            this.transformActivity(activity, userId)
+          );
+
+          const insertedCount = await StravaActivity.bulkInsert(activitiesToInsert);
+          totalInserted += insertedCount;
+
+          console.log(`[STRAVA SYNC] Batch saved: ${insertedCount}/${activitiesToInsert.length} activities (total: ${totalInserted})`);
+
+          // Clear the batch and report progress
+          detailedActivities.length = 0;
+
+          if (onProgress) {
+            await onProgress({
+              detailed: i + batchSize,
+              fetched: allActivities.length,
+              inserted: totalInserted
+            });
+          }
         }
       }
 
-      // Final progress
-      if (onProgress) {
-        await onProgress({ detailed: allActivities.length, fetched: allActivities.length });
+      // Insert any remaining activities
+      if (detailedActivities.length > 0) {
+        const activitiesToInsert = detailedActivities.map(activity =>
+          this.transformActivity(activity, userId)
+        );
+
+        const insertedCount = await StravaActivity.bulkInsert(activitiesToInsert);
+        totalInserted += insertedCount;
+
+        console.log(`[STRAVA SYNC] Final batch saved: ${insertedCount}/${activitiesToInsert.length} activities`);
       }
 
-      // Transform and bulk insert
-      const activitiesToInsert = allActivities.map(activity =>
-        this.transformActivity(activity, userId)
-      );
+      console.log(`[STRAVA SYNC] Activity sync complete: ${totalInserted} imported, ${allActivities.length} fetched`);
 
-      console.log(`[STRAVA SYNC] Transformed ${activitiesToInsert.length} activities for user ${userId}`);
-      console.log(`[STRAVA SYNC] First transformed activity:`, {
-        user_id: activitiesToInsert[0]?.user_id,
-        strava_activity_id: activitiesToInsert[0]?.strava_activity_id,
-        activity_type: activitiesToInsert[0]?.activity_type
-      });
-
-      // CRITICAL: Use bulkInsert return value, not array length
-      const insertedCount = activitiesToInsert.length > 0
-        ? await StravaActivity.bulkInsert(activitiesToInsert)
-        : 0;
-
-      console.log(`[STRAVA SYNC] Activity sync complete: ${insertedCount} imported, ${allActivities.length} fetched`);
-
-      return { imported: insertedCount, fetched: allActivities.length };
+      return { imported: totalInserted, fetched: allActivities.length };
     } catch (error) {
       console.error(`[STRAVA SYNC] Activity sync error:`, error.message);
       throw error;
