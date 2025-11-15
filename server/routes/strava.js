@@ -127,10 +127,10 @@ router.get('/status', authenticateToken, async (req, res) => {
 });
 
 /**
- * POST /api/strava/disconnect
+ * DELETE /api/strava/disconnect
  * Disconnect Strava account
  */
-router.post('/disconnect', authenticateToken, async (req, res) => {
+router.delete('/disconnect', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
 
