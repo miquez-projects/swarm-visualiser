@@ -39,6 +39,7 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
   }, [date, navigate]);
 
   const loadDayData = async (dateStr) => {
+    console.log('[DayInLife] Loading data for:', dateStr, 'Token present:', !!token);
     setLoading(true);
     setError(null);
     try {
@@ -46,10 +47,13 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
       if (token) {
         params.token = token;
       }
+      console.log('[DayInLife] Calling API with params:', params);
       const data = await getDayInLife(dateStr, params);
+      console.log('[DayInLife] Data received:', data);
       setDayData(data);
     } catch (error) {
-      console.error('Failed to load day data:', error);
+      console.error('[DayInLife] Error loading day data:', error);
+      console.error('[DayInLife] Error response:', error.response);
       if (error.response?.status === 401) {
         setError('Please log in to view your day in life data.');
       } else if (error.response?.status === 400) {
