@@ -5,7 +5,8 @@ import {
   Typography,
   IconButton,
   Grid,
-  CircularProgress
+  CircularProgress,
+  TextField
 } from '@mui/material';
 import { ChevronLeft, ChevronRight, CalendarToday } from '@mui/icons-material';
 import Layout from '../components/Layout';
@@ -83,6 +84,13 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
     setLightboxOpen(true);
   };
 
+  const handleDateChange = (event) => {
+    const newDate = event.target.value;
+    if (newDate) {
+      navigate(`/day-in-life/${newDate}`);
+    }
+  };
+
   const formatSleepDuration = (seconds) => {
     if (!seconds) return 'No data';
     const hours = Math.floor(seconds / 3600);
@@ -144,8 +152,14 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
             })}
           </Typography>
           <Box>
-            <IconButton>
+            <IconButton component="label">
               <CalendarToday />
+              <input
+                type="date"
+                hidden
+                value={date || ''}
+                onChange={handleDateChange}
+              />
             </IconButton>
             <IconButton onClick={handleNextDay}>
               <ChevronRight />
