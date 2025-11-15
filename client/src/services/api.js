@@ -164,11 +164,22 @@ export const startSync = async (token) => {
  * Get sync job status
  * @param {string} jobId - Import job ID
  * @param {string} token - Auth token
+ * @param {string} dataSource - Data source ('foursquare', 'strava', 'garmin')
  * @returns {Promise<Object>} Status info
  */
-export const getSyncStatus = async (jobId, token) => {
-  const response = await api.get(`/api/import/status/${jobId}`, {
-    params: { token }
+export const getSyncStatus = async (jobId, token, dataSource = 'foursquare') => {
+  // Determine the correct endpoint based on data source
+  let endpoint;
+  if (dataSource === 'strava') {
+    endpoint = `/api/strava/sync/status/${jobId}`;
+  } else if (dataSource === 'garmin') {
+    endpoint = `/api/garmin/sync/status/${jobId}`;
+  } else {
+    endpoint = `/api/import/status/${jobId}`;
+  }
+
+  const response = await api.get(endpoint, {
+    headers: { 'x-auth-token': token }
   });
   return response.data;
 };

@@ -36,7 +36,7 @@ function SyncProgressBar({ jobId, token, dataSource = 'data', onComplete, onErro
 
     const pollStatus = async () => {
       try {
-        const status = await getSyncStatus(jobId, token);
+        const status = await getSyncStatus(jobId, token, dataSource);
 
         setProgress({
           totalImported: status.totalImported || 0,
@@ -96,7 +96,7 @@ function SyncProgressBar({ jobId, token, dataSource = 'data', onComplete, onErro
         clearInterval(pollIntervalRef.current);
       }
     };
-  }, [jobId, token, onComplete, onError]);
+  }, [jobId, token, dataSource, onComplete, onError]);
 
   // Calculate progress percentage
   const percentage = progress.totalExpected > 0
