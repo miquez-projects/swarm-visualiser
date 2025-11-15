@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -20,6 +20,7 @@ import 'yet-another-react-lightbox/styles.css';
 const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
   const { date } = useParams();
   const navigate = useNavigate();
+  const dateInputRef = useRef(null);
   const [token] = useState(localStorage.getItem('authToken'));
   const [dayData, setDayData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -152,15 +153,16 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
             })}
           </Typography>
           <Box>
-            <IconButton component="label">
+            <IconButton onClick={() => dateInputRef.current?.click()}>
               <CalendarToday />
-              <input
-                type="date"
-                hidden
-                value={date || ''}
-                onChange={handleDateChange}
-              />
             </IconButton>
+            <input
+              ref={dateInputRef}
+              type="date"
+              style={{ display: 'none' }}
+              value={date || ''}
+              onChange={handleDateChange}
+            />
             <IconButton onClick={handleNextDay}>
               <ChevronRight />
             </IconButton>
