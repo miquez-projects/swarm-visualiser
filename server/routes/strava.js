@@ -95,6 +95,8 @@ router.get('/auth/callback', async (req, res) => {
     res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/data-sources?strava=connected`);
   } catch (error) {
     console.error('[STRAVA ROUTE] Callback error:', error);
+    console.error('[STRAVA ROUTE] Error details:', error.message);
+    console.error('[STRAVA ROUTE] Error stack:', error.stack);
     res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/data-sources?error=strava_failed`);
   }
 });
@@ -114,6 +116,7 @@ router.get('/status', authenticateToken, async (req, res) => {
 
     res.json({
       connected: true,
+      athleteId: user.strava_athlete_id,
       connectedAt: user.strava_connected_at,
       lastSyncAt: user.last_strava_sync_at
     });
@@ -178,7 +181,10 @@ router.post('/sync', authenticateToken, async (req, res) => {
     res.json({ jobId: job.id, status: 'queued' });
   } catch (error) {
     console.error('[STRAVA ROUTE] Sync error:', error);
-    res.status(500).json({ error: 'Failed to queue sync' });
+    res.status(500).json({
+      error: 'Failed to queue sync',
+      details: error.message
+    });
   }
 });
 
