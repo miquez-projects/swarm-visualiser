@@ -173,9 +173,10 @@ describe('dayInLifeService', () => {
         date: '2024-01-15',
         timeline: expect.any(Array),
         dailyMetrics: {
-          steps: mockSteps[0],
-          heartRate: mockHeartRate[0],
-          sleep: mockSleep[0]
+          steps: 10000,
+          avgHeartRate: (55 + 165 + 60) / 3,
+          sleepHours: 8,
+          activities: 2
         },
         weather: mockWeather
       });
@@ -208,9 +209,10 @@ describe('dayInLifeService', () => {
       const result = await dayInLifeService.getDayInLife(userId, date, latitude, longitude);
 
       expect(result.timeline).toEqual([]);
-      expect(result.dailyMetrics.steps).toBeNull();
-      expect(result.dailyMetrics.heartRate).toBeNull();
-      expect(result.dailyMetrics.sleep).toBeNull();
+      expect(result.dailyMetrics.steps).toBeUndefined();
+      expect(result.dailyMetrics.avgHeartRate).toBeUndefined();
+      expect(result.dailyMetrics.sleepHours).toBeUndefined();
+      expect(result.dailyMetrics.activities).toBe(0);
     });
 
     it('should handle missing Strava activities gracefully', async () => {

@@ -255,7 +255,7 @@ router.post('/upload', authenticateToken, upload.array('files', 50), async (req,
 
           // Insert sleep records
           for (const record of sleepData) {
-            await GarminDailySleep.upsert(userId, record);
+            await GarminDailySleep.upsert({ ...record, user_id: userId });
             results.sleepRecords++;
           }
         } else if (filename.startsWith('UDSFile')) {
@@ -264,13 +264,13 @@ router.post('/upload', authenticateToken, upload.array('files', 50), async (req,
 
           // Insert steps records
           for (const record of udsData.steps) {
-            await GarminDailySteps.upsert(userId, record);
+            await GarminDailySteps.upsert({ ...record, user_id: userId });
             results.stepsRecords++;
           }
 
           // Insert heart rate records
           for (const record of udsData.heartRate) {
-            await GarminDailyHeartRate.upsert(userId, record);
+            await GarminDailyHeartRate.upsert({ ...record, user_id: userId });
             results.heartRateRecords++;
           }
         } else {

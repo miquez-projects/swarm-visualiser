@@ -160,15 +160,42 @@ async function getDayInLife(userId, date, latitude = null, longitude = null) {
     // Sort timeline by time
     const sortedTimeline = sortTimeline(timeline);
 
+    // Transform daily metrics to match frontend expectations
+    const transformedMetrics = {};
+
+    // Steps: extract step_count from steps object
+    if (stepsData[0] && stepsData[0].step_count !== null && stepsData[0].step_count !== undefined) {
+      transformedMetrics.steps = stepsData[0].step_count;
+    }
+
+    // Avg Heart Rate: calculate from min/max/resting
+    if (heartRateData[0]) {
+      const hr = heartRateData[0];
+      const validValues = [];
+      if (hr.min_heart_rate !== null && hr.min_heart_rate !== undefined) validValues.push(hr.min_heart_rate);
+      if (hr.max_heart_rate !== null && hr.max_heart_rate !== undefined) validValues.push(hr.max_heart_rate);
+      if (hr.resting_heart_rate !== null && hr.resting_heart_rate !== undefined) validValues.push(hr.resting_heart_rate);
+
+      if (validValues.length > 0) {
+        transformedMetrics.avgHeartRate = validValues.reduce((sum, val) => sum + val, 0) / validValues.length;
+      }
+    }
+
+    // Sleep Hours: convert sleep_duration_seconds to hours
+    if (sleepData[0] && sleepData[0].sleep_duration_seconds !== null && sleepData[0].sleep_duration_seconds !== undefined) {
+      transformedMetrics.sleepHours = sleepData[0].sleep_duration_seconds / 3600;
+    }
+
+    // Activities: count timeline items with type 'strava_activity' or 'garmin_activity'
+    transformedMetrics.activities = sortedTimeline.filter(
+      item => item.type === 'strava_activity' || item.type === 'garmin_activity'
+    ).length;
+
     // Return aggregated data
     return {
       date,
       timeline: sortedTimeline,
-      dailyMetrics: {
-        steps: stepsData[0] || null,
-        heartRate: heartRateData[0] || null,
-        sleep: sleepData[0] || null
-      },
+      dailyMetrics: transformedMetrics,
       weather: weatherData
     };
   } catch (error) {

@@ -133,7 +133,7 @@ function DayInLifePage({ darkMode, onToggleDarkMode }) {
 
   const hasData = dayData && (
     (dayData.timeline && dayData.timeline.length > 0) ||
-    (dayData.metrics && Object.keys(dayData.metrics).length > 0) ||
+    (dayData.dailyMetrics && Object.keys(dayData.dailyMetrics).length > 0) ||
     dayData.weather
   );
 
@@ -210,50 +210,50 @@ function DayInLifePage({ darkMode, onToggleDarkMode }) {
         {!loading && !error && hasData && (
           <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
             {/* Daily Metrics */}
-            {dayData.metrics && Object.keys(dayData.metrics).length > 0 && (
+            {dayData.dailyMetrics && Object.keys(dayData.dailyMetrics).length > 0 && (
               <Box sx={{ mb: 4 }}>
                 <Typography variant="h5" gutterBottom sx={{ mb: 2 }}>
                   Daily Metrics
                 </Typography>
                 <Grid container spacing={3}>
-                  {dayData.metrics.steps !== undefined && dayData.metrics.steps !== null && (
+                  {dayData.dailyMetrics.steps !== undefined && dayData.dailyMetrics.steps !== null && (
                     <Grid item xs={12} sm={6} md={4}>
                       <MetricCard
                         icon={<DirectionsRun sx={{ fontSize: 40 }} />}
                         label="STEPS"
-                        value={dayData.metrics.steps}
+                        value={dayData.dailyMetrics.steps}
                         color="primary"
                       />
                     </Grid>
                   )}
-                  {dayData.metrics.avgHeartRate !== undefined && dayData.metrics.avgHeartRate !== null && (
+                  {dayData.dailyMetrics.avgHeartRate !== undefined && dayData.dailyMetrics.avgHeartRate !== null && (
                     <Grid item xs={12} sm={6} md={4}>
                       <MetricCard
                         icon={<Favorite sx={{ fontSize: 40 }} />}
                         label="AVG HEART RATE"
-                        value={Math.round(dayData.metrics.avgHeartRate)}
+                        value={Math.round(dayData.dailyMetrics.avgHeartRate)}
                         unit="bpm"
                         color="error"
                       />
                     </Grid>
                   )}
-                  {dayData.metrics.sleepHours !== undefined && dayData.metrics.sleepHours !== null && (
+                  {dayData.dailyMetrics.sleepHours !== undefined && dayData.dailyMetrics.sleepHours !== null && (
                     <Grid item xs={12} sm={6} md={4}>
                       <MetricCard
                         icon={<Hotel sx={{ fontSize: 40 }} />}
                         label="SLEEP"
-                        value={dayData.metrics.sleepHours.toFixed(1)}
+                        value={dayData.dailyMetrics.sleepHours.toFixed(1)}
                         unit="hours"
                         color="info"
                       />
                     </Grid>
                   )}
-                  {dayData.metrics.activities !== undefined && dayData.metrics.activities !== null && (
+                  {dayData.dailyMetrics.activities !== undefined && dayData.dailyMetrics.activities !== null && (
                     <Grid item xs={12} sm={6} md={4}>
                       <MetricCard
                         icon={<FitnessCenter sx={{ fontSize: 40 }} />}
                         label="ACTIVITIES"
-                        value={dayData.metrics.activities}
+                        value={dayData.dailyMetrics.activities}
                         color="success"
                       />
                     </Grid>
