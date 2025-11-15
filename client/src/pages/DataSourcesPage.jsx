@@ -102,42 +102,6 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
     }
   }, [token, API_URL]);
 
-  // Handle Strava OAuth callback
-  const handleStravaCallback = useCallback(async (code, state) => {
-    try {
-      // Exchange code for tokens
-      const response = await fetch(`${API_URL}/api/strava/auth/callback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
-        },
-        body: JSON.stringify({ code, state })
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        // Clear URL params
-        window.history.replaceState({}, '', '/data-sources');
-
-        // Refresh status
-        await fetchStravaStatus();
-
-        // Capture job ID for progress bar
-        if (result.jobId) {
-          setStravaJobId(result.jobId);
-        }
-
-        setSuccess('Strava connected! Initial sync started.');
-      } else {
-        setError(result.message || 'Failed to connect Strava');
-      }
-    } catch (error) {
-      console.error('Strava callback error:', error);
-      setError('Failed to complete Strava connection');
-    }
-  }, [API_URL, token, fetchStravaStatus]);
 
   useEffect(() => {
     fetchUserData();
@@ -157,12 +121,23 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
     }
 
     // Handle Strava callback
-    const code = params.get('code');
-    const state = params.get('state');
-    if (code && state && state.startsWith('strava_')) {
-      handleStravaCallback(code, state);
+    if (params.get('strava') === 'connected') {
+      fetchStravaStatus();
+      setSuccess('Strava connected! Initial sync started.');
+      window.history.replaceState({}, '', '/data-sources');
     }
-  }, [fetchGarminStatus, handleStravaCallback]);
+
+    // Handle errors
+    if (params.get('error')) {
+      const errorType = params.get('error');
+      if (errorType === 'session_expired') {
+        setError('Session expired. Please try connecting again.');
+      } else if (errorType === 'strava_failed') {
+        setError('Failed to connect Strava. Please try again.');
+      }
+      window.history.replaceState({}, '', '/data-sources');
+    }
+  }, [fetchGarminStatus, fetchStravaStatus]);
 
   const handleSyncComplete = () => {
     // Refetch user data to update lastSyncAt

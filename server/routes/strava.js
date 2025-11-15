@@ -36,12 +36,12 @@ router.get('/auth/start', authenticateToken, async (req, res) => {
 });
 
 /**
- * POST /api/strava/auth/callback
+ * GET /api/strava/auth/callback
  * OAuth2 callback - exchange authorization code for tokens
- * Note: Changed to POST to accept code in body (more secure than GET with query params)
+ * Strava redirects here with code in query params
  */
-router.post('/auth/callback', authenticateToken, async (req, res) => {
-  const { code } = req.body;
+router.get('/auth/callback', async (req, res) => {
+  const { code, state } = req.query;
 
   if (!code) {
     console.error('[STRAVA ROUTE] Callback missing authorization code');
@@ -49,7 +49,14 @@ router.post('/auth/callback', authenticateToken, async (req, res) => {
   }
 
   try {
-    const userId = req.user.id;
+    // Get user ID from session (stored during auth/start)
+    const userId = req.session?.stravaUserId;
+
+    if (!userId) {
+      console.error('[STRAVA ROUTE] No user ID in session');
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/data-sources?error=session_expired`);
+    }
+
     const callbackUrl = `${process.env.API_URL || 'http://localhost:3001'}/api/strava/auth/callback`;
 
     // Exchange authorization code for tokens
@@ -82,10 +89,11 @@ router.post('/auth/callback', authenticateToken, async (req, res) => {
     // Clean up session
     delete req.session.stravaUserId;
 
-    res.json({ success: true, athleteId, jobId: job.id });
+    // Redirect back to frontend with success
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/data-sources?strava=connected`);
   } catch (error) {
     console.error('[STRAVA ROUTE] Callback error:', error);
-    res.status(500).json({ error: 'Failed to exchange authorization code for tokens' });
+    res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/data-sources?error=strava_failed`);
   }
 });
 
