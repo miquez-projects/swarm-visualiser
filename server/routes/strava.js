@@ -28,7 +28,7 @@ router.get('/auth/start', authenticateToken, async (req, res) => {
 
     console.log(`[STRAVA ROUTE] Generated OAuth URL for user ${userId}`);
 
-    res.json({ authUrl });
+    res.json({ authorizationUrl: authUrl });
   } catch (error) {
     console.error('[STRAVA ROUTE] Auth start error:', error);
     res.status(500).json({ error: 'Failed to initiate OAuth flow' });

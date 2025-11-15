@@ -45,9 +45,9 @@ describe('Strava OAuth2 Routes', () => {
         .set('x-auth-token', mockToken);
 
       expect(response.status).toBe(200);
-      expect(response.body.authUrl).toBeDefined();
-      expect(response.body.authUrl).toContain('strava.com');
-      expect(response.body.authUrl).toContain('oauth/authorize');
+      expect(response.body.authorizationUrl).toBeDefined();
+      expect(response.body.authorizationUrl).toContain('strava.com');
+      expect(response.body.authorizationUrl).toContain('oauth/authorize');
       expect(stravaOAuth.getAuthorizationUrl).toHaveBeenCalled();
     });
 
