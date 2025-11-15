@@ -9,25 +9,15 @@ class StaticMapGenerator {
   generateCheckinMapUrl(checkins, width = 600, height = 400) {
     if (checkins.length === 0) return null;
 
-    // Filter out checkins with invalid coordinates
-    const validCheckins = checkins.filter(c =>
-      c.longitude != null &&
-      c.latitude != null &&
-      !isNaN(c.longitude) &&
-      !isNaN(c.latitude)
-    );
-
-    if (validCheckins.length === 0) return null;
-
     // Create curved path through checkins
-    const coords = validCheckins.map(c => [c.longitude, c.latitude]);
+    const coords = checkins.map(c => [c.longitude, c.latitude]);
     const encodedPath = this.createCurvedPath(coords);
 
     // Calculate dynamic threshold based on map bounds
-    const threshold = this.calculateDynamicThreshold(validCheckins);
+    const threshold = this.calculateDynamicThreshold(checkins);
 
     // Group overlapping markers
-    const markerGroups = this.groupNearbyCheckins(validCheckins, threshold);
+    const markerGroups = this.groupNearbyCheckins(checkins, threshold);
 
     // Add markers - use larger pins for grouped checkins
     const markers = markerGroups
