@@ -13,8 +13,11 @@ class StaticMapGenerator {
     const coords = checkins.map(c => [c.longitude, c.latitude]);
     const encodedPath = this.createCurvedPath(coords);
 
-    // Group overlapping markers (same location within ~10 meters)
-    const markerGroups = this.groupNearbyCheckins(checkins);
+    // Calculate dynamic threshold based on map bounds
+    const threshold = this.calculateDynamicThreshold(checkins);
+
+    // Group overlapping markers
+    const markerGroups = this.groupNearbyCheckins(checkins, threshold);
 
     // Add markers - use larger pins for grouped checkins
     const markers = markerGroups
@@ -39,6 +42,28 @@ class StaticMapGenerator {
     const path = `path-2+ff6b35-0.5(${encodedPath})`;
 
     return `${this.baseUrl}/${path},${markers}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
+  }
+
+  calculateDynamicThreshold(checkins) {
+    if (checkins.length === 0) return 50; // Default fallback
+
+    // Calculate the bounding box
+    const lats = checkins.map(c => c.latitude);
+    const lons = checkins.map(c => c.longitude);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+    const minLon = Math.min(...lons);
+    const maxLon = Math.max(...lons);
+
+    // Calculate the diagonal distance of the bounding box
+    const diagonalDistance = this.calculateDistance(minLat, minLon, maxLat, maxLon);
+
+    // Use 2.5% of the diagonal as the grouping threshold
+    // This means pins need to be at least 2.5% of the map width apart to not group
+    // At typical Mapbox static map sizes, this prevents visual overlap
+    const threshold = Math.max(10, diagonalDistance * 0.025);
+
+    return threshold;
   }
 
   groupNearbyCheckins(checkins, thresholdMeters = 50) {
