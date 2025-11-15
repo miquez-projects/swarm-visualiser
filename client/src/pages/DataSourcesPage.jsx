@@ -337,9 +337,44 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
   };
 
   // Garmin file upload handler
+  // Note: We accept JSON files from Garmin data exports instead of CSV because:
+  // 1. Garmin's official data export provides JSON files (UDSFile_*.json, *_sleepData.json)
+  // 2. JSON preserves complex nested data structures (arrays, objects) without parsing ambiguity
+  // 3. JSON is easier to validate and parse on both client and server side
+  // 4. The backend parser is already built to handle Garmin's specific JSON format
   const handleGarminFileUpload = async (event) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
+
+    // Validation: Check auth token exists
+    if (!token) {
+      setError('Authentication token is missing. Please log in again.');
+      event.target.value = '';
+      return;
+    }
+
+    // Validation: Check file count limit (50 files maximum)
+    const MAX_FILES = 50;
+    if (files.length > MAX_FILES) {
+      setError(`Too many files selected. Maximum ${MAX_FILES} files allowed per upload.`);
+      event.target.value = '';
+      return;
+    }
+
+    // Validation: Check file size limit (10MB per file)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    const oversizedFiles = [];
+    for (let i = 0; i < files.length; i++) {
+      if (files[i].size > MAX_FILE_SIZE) {
+        oversizedFiles.push(files[i].name);
+      }
+    }
+
+    if (oversizedFiles.length > 0) {
+      setError(`The following files exceed the 10MB size limit: ${oversizedFiles.join(', ')}`);
+      event.target.value = '';
+      return;
+    }
 
     setUploadingGarmin(true);
     setUploadResults(null);
