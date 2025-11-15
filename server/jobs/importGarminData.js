@@ -77,7 +77,15 @@ async function importGarminDataHandler(job) {
     // Mark job as failed
     await ImportJob.markFailed(jobId, error.message);
 
-    throw error; // Re-throw so pg-boss knows it failed
+    // CRITICAL: Don't re-throw rate limit errors - they need permanent failure, not retry
+    // Rate limits will not be resolved by retrying immediately
+    if (error.message && error.message.includes('Rate limit')) {
+      console.log(`[GARMIN JOB] Rate limit error - not retrying job ${jobId}`);
+      return; // Exit cleanly so pg-boss doesn't retry
+    }
+
+    // For other errors, re-throw to trigger pg-boss retry
+    throw error;
   }
 }
 

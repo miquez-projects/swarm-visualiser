@@ -543,7 +543,11 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
                         setStravaJobId(null);
                         fetchStravaStatus();
                       }}
-                      onError={() => setStravaJobId(null)}
+                      onError={(errorMsg) => {
+                        // Keep stravaJobId so error message stays visible
+                        // User can start a new sync or refresh to clear
+                        console.log('Strava sync error:', errorMsg);
+                      }}
                     />
                   </Box>
                 )}
