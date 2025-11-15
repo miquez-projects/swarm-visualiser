@@ -228,4 +228,15 @@ export const getVenuePhotos = async (venueId, token) => {
   return response.data;
 };
 
+/**
+ * Get day in the life data for a specific date
+ * @param {string} date - Date in YYYY-MM-DD format
+ * @param {Object} params - Parameters including token
+ * @returns {Promise<Object>} Day data including timeline, metrics, and weather
+ */
+export const getDayInLife = async (date, params = {}) => {
+  const response = await api.get(`/api/day-in-life/${date}`, { params });
+  return response.data;
+};
+
 export default api;

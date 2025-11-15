@@ -16,7 +16,8 @@ import {
   Brightness7,
   Menu as MenuIcon,
   CalendarToday,
-  Map
+  Map,
+  Today
 } from '@mui/icons-material';
 import ContextMenu from './ContextMenu';
 
@@ -34,6 +35,7 @@ function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions, 
   };
 
   const isYearInReview = location.pathname === '/year-in-review';
+  const isDayInLife = location.pathname === '/day-in-life';
   const isHome = location.pathname === '/';
 
   return (
@@ -71,6 +73,14 @@ function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions, 
             sx={{ mr: 1, display: isYearInReview ? 'none' : 'flex' }}
           >
             Year in Review
+          </Button>
+          <Button
+            color="inherit"
+            startIcon={<Today />}
+            onClick={() => navigate('/day-in-life')}
+            sx={{ mr: 1, display: isDayInLife ? 'none' : 'flex' }}
+          >
+            Day in Life
           </Button>
 
           {headerActions}

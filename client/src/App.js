@@ -8,6 +8,7 @@ import ImportPage from './pages/ImportPage';
 import YearInReviewPage from './pages/YearInReviewPage';
 import DataSourcesPage from './pages/DataSourcesPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import DayInLifePage from './pages/DayInLifePage';
 import SplashScreen from './components/SplashScreen';
 import CopilotChat from './components/copilot/CopilotChat';
 
@@ -60,6 +61,7 @@ function App() {
             <Route path="/" element={<HomePage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} mapRef={mapRef} />} />
             <Route path="/import" element={<ImportPage />} />
             <Route path="/year-in-review" element={<YearInReviewPage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} />} />
+            <Route path="/day-in-life" element={<DayInLifePage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} />} />
             <Route path="/data-sources" element={<DataSourcesPage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} />} />
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
           </Routes>
