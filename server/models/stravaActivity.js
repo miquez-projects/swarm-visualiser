@@ -139,11 +139,32 @@ class StravaActivity {
       RETURNING id
     `;
 
-    const result = await db.query(query, allValues);
+    console.log(`[STRAVA BULKINSERT] Attempting to insert ${activities.length} activities`);
+    console.log(`[STRAVA BULKINSERT] First activity sample:`, {
+      user_id: activities[0].user_id,
+      strava_activity_id: activities[0].strava_activity_id,
+      activity_type: activities[0].activity_type,
+      activity_name: activities[0].activity_name,
+      start_time: activities[0].start_time,
+      has_tracklog: !!activities[0].tracklog
+    });
 
-    // CRITICAL: Return the actual number of rows inserted (not activities.length)
-    // This prevents the vicious cycle we had with Foursquare check-ins
-    return result.rowCount;
+    try {
+      const result = await db.query(query, allValues);
+
+      console.log(`[STRAVA BULKINSERT] SQL executed successfully`);
+      console.log(`[STRAVA BULKINSERT] result.rowCount = ${result.rowCount}`);
+      console.log(`[STRAVA BULKINSERT] result.rows.length = ${result.rows?.length || 0}`);
+
+      // CRITICAL: Return the actual number of rows inserted (not activities.length)
+      // This prevents the vicious cycle we had with Foursquare check-ins
+      return result.rowCount;
+    } catch (error) {
+      console.error(`[STRAVA BULKINSERT] Database error:`, error.message);
+      console.error(`[STRAVA BULKINSERT] Error code:`, error.code);
+      console.error(`[STRAVA BULKINSERT] Error detail:`, error.detail);
+      throw error;
+    }
   }
 
   /**

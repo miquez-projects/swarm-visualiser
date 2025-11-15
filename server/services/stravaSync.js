@@ -107,6 +107,13 @@ class StravaSyncService {
         this.transformActivity(activity, userId)
       );
 
+      console.log(`[STRAVA SYNC] Transformed ${activitiesToInsert.length} activities for user ${userId}`);
+      console.log(`[STRAVA SYNC] First transformed activity:`, {
+        user_id: activitiesToInsert[0]?.user_id,
+        strava_activity_id: activitiesToInsert[0]?.strava_activity_id,
+        activity_type: activitiesToInsert[0]?.activity_type
+      });
+
       // CRITICAL: Use bulkInsert return value, not array length
       const insertedCount = activitiesToInsert.length > 0
         ? await StravaActivity.bulkInsert(activitiesToInsert)
