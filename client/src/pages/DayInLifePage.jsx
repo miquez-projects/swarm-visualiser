@@ -160,10 +160,11 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
                 }}
                 slotProps={{
                   textField: {
-                    sx: { display: 'none' }
-                  },
-                  openPickerButton: {
-                    sx: { p: 1 }
+                    sx: {
+                      width: 0,
+                      '& .MuiOutlinedInput-notchedOutline': { border: 0 },
+                      '& .MuiInputBase-input': { display: 'none' }
+                    }
                   }
                 }}
               />
