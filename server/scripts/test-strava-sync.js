@@ -244,6 +244,31 @@ class TestStravaSync {
       endLatlng = `POINT(${activity.end_latlng[1]} ${activity.end_latlng[0]})`;
     }
 
+    // DIAGNOSTIC: Log raw values that might contain decimals for INTEGER fields
+    const integerFields = {
+      elapsed_time: activity.elapsed_time,
+      moving_time: activity.moving_time,
+      calories: activity.calories,
+      average_heartrate: activity.average_heartrate,
+      max_heartrate: activity.max_heartrate,
+      kudos_count: activity.kudos_count,
+      comment_count: activity.comment_count,
+      total_photo_count: activity.total_photo_count,
+      achievement_count: activity.achievement_count
+    };
+
+    // Check for decimal values
+    const decimalsFound = Object.entries(integerFields).filter(([key, value]) => {
+      return value != null && !Number.isInteger(value);
+    });
+
+    if (decimalsFound.length > 0) {
+      console.log(`[TRANSFORM] Activity ${activity.id} has decimal values in INTEGER fields:`);
+      decimalsFound.forEach(([key, value]) => {
+        console.log(`  ${key}: ${value} (type: ${typeof value})`);
+      });
+    }
+
     return {
       user_id: this.userId,
       strava_activity_id: String(activity.id),
