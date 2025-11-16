@@ -248,17 +248,13 @@ class StravaSyncService {
   }
 
   /**
-   * Full historical sync
+   * Full historical sync - gets ALL activities (no date restriction)
    */
-  async fullHistoricalSync(encryptedTokens, userId, yearsBack = 5, onProgress = null) {
-    const today = new Date();
-    const startDate = new Date();
-    startDate.setFullYear(today.getFullYear() - yearsBack);
+  async fullHistoricalSync(encryptedTokens, userId, onProgress = null) {
+    console.log(`[STRAVA SYNC] Full historical sync - fetching all activities`);
 
-    console.log(`[STRAVA SYNC] Full historical sync from ${startDate.toISOString().split('T')[0]}`);
-
-    // Sync activities
-    const activityResult = await this.syncActivities(encryptedTokens, userId, startDate, onProgress);
+    // Sync activities - pass null for afterDate to get everything
+    const activityResult = await this.syncActivities(encryptedTokens, userId, null, onProgress);
 
     // Sync photos for activities with photos
     const photoResult = await this.syncActivityPhotos(encryptedTokens, userId, null, onProgress);

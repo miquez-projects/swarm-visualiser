@@ -153,13 +153,16 @@ router.delete('/disconnect', authenticateToken, async (req, res) => {
 router.post('/sync', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { syncType = 'incremental' } = req.body;
 
     // Verify user has Strava tokens
     const tokens = await User.getStravaTokens(userId);
     if (!tokens) {
       return res.status(400).json({ error: 'Strava not connected' });
     }
+
+    // Auto-detect sync type: full if never synced, incremental otherwise
+    const user = await User.findById(userId);
+    const syncType = user.last_strava_sync_at ? 'incremental' : 'full';
 
     // Create import job
     const job = await ImportJob.create({

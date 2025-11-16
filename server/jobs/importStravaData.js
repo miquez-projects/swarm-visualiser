@@ -27,8 +27,8 @@ async function importStravaDataHandler(job) {
     let result;
 
     if (syncType === 'full') {
-      // Full historical sync (5 years)
-      result = await stravaSync.fullHistoricalSync(encryptedTokens, userId, 5, async (progress) => {
+      // Full historical sync - all activities
+      result = await stravaSync.fullHistoricalSync(encryptedTokens, userId, async (progress) => {
         console.log(`Strava import ${jobId}: Progress update`, progress);
         await ImportJob.update(jobId, {
           totalImported: progress.inserted || 0,  // Use actual inserted count, not fetched
