@@ -192,7 +192,17 @@ class StravaActivity {
    */
   static async findByUserAndDateRange(userId, startDate, endDate) {
     const query = `
-      SELECT * FROM strava_activities
+      SELECT
+        id, user_id, strava_activity_id, activity_type, activity_name, description,
+        start_time, ST_AsText(start_latlng::geometry) as start_latlng,
+        ST_AsText(end_latlng::geometry) as end_latlng,
+        duration_seconds, moving_time_seconds, distance_meters, total_elevation_gain,
+        calories, avg_speed, max_speed, avg_heart_rate, max_heart_rate,
+        avg_cadence, avg_watts,
+        ST_AsText(tracklog::geometry) as tracklog,
+        is_private, kudos_count, comment_count, photo_count, achievement_count,
+        strava_url, created_at, updated_at
+      FROM strava_activities
       WHERE user_id = $1
         AND start_time >= $2
         AND start_time <= $3
