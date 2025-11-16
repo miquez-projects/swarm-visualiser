@@ -1,13 +1,14 @@
 class GarminJsonParser {
   /**
    * Parse UDS (User Daily Summary) file
-   * Returns an object with steps and heartRate arrays
+   * Returns an object with steps, heartRate, and calories arrays
    */
   async parseUDSFile(jsonContent) {
     const data = JSON.parse(jsonContent);
 
     const steps = [];
     const heartRate = [];
+    const calories = [];
 
     for (const record of data) {
       const date = record.calendarDate;
@@ -27,9 +28,19 @@ class GarminJsonParser {
         min_heart_rate: this._parseInt(record.minHeartRate),
         max_heart_rate: this._parseInt(record.maxHeartRate)
       });
+
+      // Extract calories data
+      if (record.totalKilocalories !== undefined || record.activeKilocalories !== undefined || record.bmrKilocalories !== undefined) {
+        calories.push({
+          date,
+          total_calories: this._parseInt(record.totalKilocalories),
+          active_calories: this._parseInt(record.activeKilocalories),
+          bmr_calories: this._parseInt(record.bmrKilocalories)
+        });
+      }
     }
 
-    return { steps, heartRate };
+    return { steps, heartRate, calories };
   }
 
   /**

@@ -10,6 +10,7 @@ const garminJsonParser = require('../services/garminJsonParser');
 const GarminDailySteps = require('../models/garminDailySteps');
 const GarminDailyHeartRate = require('../models/garminDailyHeartRate');
 const GarminDailySleep = require('../models/garminDailySleep');
+const GarminDailyCalories = require('../models/garminDailyCalories');
 
 // Configure multer for file uploads (store in memory)
 const upload = multer({
@@ -237,6 +238,7 @@ router.post('/upload', authenticateToken, upload.array('files', 50), async (req,
       stepsRecords: 0,
       heartRateRecords: 0,
       sleepRecords: 0,
+      caloriesRecords: 0,
       skippedRecords: 0,
       errors: []
     };
@@ -270,7 +272,7 @@ router.post('/upload', authenticateToken, upload.array('files', 50), async (req,
             results.sleepRecords++;
           }
         } else if (filename.startsWith('UDSFile')) {
-          // Parse UDS file (contains steps and heart rate)
+          // Parse UDS file (contains steps, heart rate, and calories)
           const udsData = await garminJsonParser.parseUDSFile(content);
 
           // Insert steps records
@@ -283,6 +285,12 @@ router.post('/upload', authenticateToken, upload.array('files', 50), async (req,
           for (const record of udsData.heartRate) {
             await GarminDailyHeartRate.upsert({ ...record, user_id: userId });
             results.heartRateRecords++;
+          }
+
+          // Insert calories records
+          for (const record of udsData.calories) {
+            await GarminDailyCalories.upsert({ ...record, user_id: userId });
+            results.caloriesRecords++;
           }
         } else {
           console.log(`[GARMIN ROUTE] Skipping unknown file type: ${filename}`);
