@@ -1,49 +1,93 @@
 import React from 'react';
 import { Paper, Typography, Box, Link } from '@mui/material';
-import { Map as MapIcon } from '@mui/icons-material';
+import { OpenInNew } from '@mui/icons-material';
 
-const CheckinEventTile = ({ event, onPhotoClick, authToken }) => {
+const ActivityWithCheckinsTile = ({ event, onPhotoClick }) => {
+  const { activity, checkins, staticMapUrl } = event;
+
+  const formatDuration = (seconds) => {
+    if (!seconds) return 'N/A';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatDistance = (meters) => {
+    if (!meters) return 'N/A';
+    return (meters / 1000).toFixed(1) + ' km';
+  };
+
   return (
     <Paper sx={{ p: 3, mb: 2 }}>
       <Typography variant="h6" gutterBottom>
-        CHECK-INS
+        {activity.type?.toUpperCase() || 'ACTIVITY'}
+      </Typography>
+      <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+        {activity.name}
       </Typography>
 
-      {/* Static Map */}
-      {event.staticMapUrl && (
+      {/* Static Map with Activity Tracklog + Check-in Markers */}
+      {staticMapUrl && (
         <Box sx={{ position: 'relative', mb: 2 }}>
           <img
-            src={event.staticMapUrl}
-            alt="Check-in map"
+            src={staticMapUrl}
+            alt="Activity map with check-ins"
             style={{ width: '100%', borderRadius: 8 }}
           />
-          <Link
-            href={`/?token=${authToken}`}
-            target="_blank"
-            sx={{
-              position: 'absolute',
-              top: 8,
-              right: 8,
-              bgcolor: 'background.paper',
-              p: 1,
-              borderRadius: 1,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5
-            }}
-          >
-            <MapIcon fontSize="small" /> Jump to main map
-          </Link>
+          {activity.url && (
+            <Link
+              href={activity.url}
+              target="_blank"
+              sx={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                bgcolor: 'background.paper',
+                p: 1,
+                borderRadius: 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.5
+              }}
+            >
+              <OpenInNew fontSize="small" /> View Details
+            </Link>
+          )}
         </Box>
       )}
 
-      {/* Timeline */}
-      <Box sx={{ mt: 2 }}>
+      {/* Activity Stats */}
+      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}>
+        {activity.distance && (
+          <Typography variant="body1">
+            {formatDistance(activity.distance)}
+          </Typography>
+        )}
+        {activity.duration && (
+          <>
+            <Typography variant="body1">•</Typography>
+            <Typography variant="body1">
+              {formatDuration(activity.duration)}
+            </Typography>
+          </>
+        )}
+        {activity.calories && (
+          <>
+            <Typography variant="body1">•</Typography>
+            <Typography variant="body1">
+              {activity.calories} cal
+            </Typography>
+          </>
+        )}
+      </Box>
+
+      {/* Check-in Timeline */}
+      <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
         <Typography variant="subtitle2" gutterBottom>
-          Timeline:
+          Check-ins during activity:
         </Typography>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'stretch' }}>
-          {event.checkins.map((checkin, idx) => (
+          {checkins.map((checkin, idx) => (
             <Box key={idx} sx={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column' }}>
               <Typography variant="caption" display="block">
                 {new Date(checkin.checkin_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -62,7 +106,7 @@ const CheckinEventTile = ({ event, onPhotoClick, authToken }) => {
             Photos:
           </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1 }}>
-            {event.checkins.map((checkin, idx) => (
+            {checkins.map((checkin, idx) => (
               <Box key={idx} sx={{ flex: 1, textAlign: 'center' }}>
                 {checkin.photos && checkin.photos.length > 0 ? (
                   <Box
@@ -134,4 +178,4 @@ const CheckinEventTile = ({ event, onPhotoClick, authToken }) => {
   );
 };
 
-export default CheckinEventTile;
+export default ActivityWithCheckinsTile;

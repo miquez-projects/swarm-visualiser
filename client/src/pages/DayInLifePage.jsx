@@ -16,6 +16,7 @@ import Layout from '../components/Layout';
 import PropertyTile from '../components/dayinlife/PropertyTile';
 import CheckinEventTile from '../components/dayinlife/CheckinEventTile';
 import ActivityEventTile from '../components/dayinlife/ActivityEventTile';
+import ActivityWithCheckinsTile from '../components/dayinlife/ActivityWithCheckinsTile';
 import { getDayInLife } from '../services/api';
 import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
@@ -265,7 +266,13 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
                   authToken={token}
                 />
               )}
-              {(event.type.includes('activity')) && (
+              {(event.type === 'strava_activity_with_checkins_mapped' || event.type === 'garmin_activity_with_checkins_mapped') && (
+                <ActivityWithCheckinsTile
+                  event={event}
+                  onPhotoClick={handlePhotoClick}
+                />
+              )}
+              {(event.type.includes('activity') && !event.type.includes('with_checkins')) && (
                 <ActivityEventTile event={event} />
               )}
             </Box>

@@ -178,6 +178,45 @@ class StaticMapGenerator {
       return [lon, lat];
     });
   }
+
+  generateActivityWithCheckinsMapUrl(tracklog, checkins, width = 600, height = 400) {
+    if (!tracklog) return null;
+
+    let encodedPath;
+
+    // Check if it's WKB hex format (starts with 01020000)
+    if (tracklog.startsWith('01020000')) {
+      console.warn('[StaticMap] WKB hex format detected, cannot parse directly');
+      return null;
+    }
+
+    // Parse WKT LINESTRING
+    if (tracklog.startsWith('LINESTRING')) {
+      const coords = this.parseLineString(tracklog);
+      if (coords.length === 0) {
+        console.error('[StaticMap] Failed to parse WKT tracklog');
+        return null;
+      }
+      encodedPath = polyline.encode(coords.map(c => [c[1], c[0]])); // lat,lon for polyline
+    } else {
+      // Already encoded polyline
+      encodedPath = tracklog;
+    }
+
+    // URL-encode the polyline
+    const urlEncodedPath = encodeURIComponent(encodedPath);
+    const path = `path-3+3498db-0.8(${urlEncodedPath})`;
+
+    // Add check-in markers (if any) - no connecting lines, just markers
+    let markers = '';
+    if (checkins && checkins.length > 0) {
+      markers = ',' + checkins
+        .map((c, idx) => `pin-s-${idx + 1}+ff6b35(${c.longitude},${c.latitude})`)
+        .join(',');
+    }
+
+    return `${this.baseUrl}/${path}${markers}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
+  }
 }
 
 module.exports = new StaticMapGenerator();

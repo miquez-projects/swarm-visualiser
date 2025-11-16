@@ -253,28 +253,58 @@ async function getWeather(userId, date, checkins) {
 
 /**
  * Generates events with smart grouping
- * CRITICAL: Only check-ins are grouped. Each activity is displayed individually.
+ * CRITICAL: Check-ins during mapped activities are merged with the activity.
+ * Standalone check-ins are grouped together. Each activity is displayed individually.
  * @param {Array} checkins - Array of check-in objects
  * @param {Array} activities - Array of activity objects (Strava and Garmin combined)
  * @returns {Promise<Array>} Array of event objects
  */
 async function generateEvents(checkins, activities) {
-  // Combine and sort by time
+  // First pass: assign check-ins to activities
+  const mappedActivities = activities
+    .filter(a => !!a.tracklog)
+    .map(a => ({
+      ...a,
+      startTime: new Date(a.start_time),
+      endTime: new Date(new Date(a.start_time).getTime() + (a.duration_seconds || 0) * 1000),
+      source: a.strava_activity_id ? 'strava' : 'garmin',
+      checkins: []
+    }));
+
+  const unmappedActivities = activities
+    .filter(a => !a.tracklog)
+    .map(a => ({
+      ...a,
+      startTime: new Date(a.start_time),
+      source: a.strava_activity_id ? 'strava' : 'garmin'
+    }));
+
+  // Assign check-ins to activities or standalone groups
+  const standAloneCheckins = [];
+
+  for (const checkin of checkins) {
+    const checkinTime = new Date(checkin.checkin_date);
+
+    // Find if this check-in falls within any mapped activity
+    const containingActivity = mappedActivities.find(
+      a => checkinTime >= a.startTime && checkinTime <= a.endTime
+    );
+
+    if (containingActivity) {
+      containingActivity.checkins.push(checkin);
+    } else {
+      standAloneCheckins.push(checkin);
+    }
+  }
+
+  // Second pass: create events in chronological order
   const allEvents = [
-    ...checkins.map(c => ({ type: 'checkin', time: new Date(c.checkin_date), data: c })),
-    ...activities.map(a => {
-      // Determine source: Strava activities have strava_activity_id, Garmin activities have garmin_activity_id
-      const source = a.strava_activity_id ? 'strava' : 'garmin';
-      return {
-        type: 'activity',
-        time: new Date(a.start_time),
-        data: a,
-        source
-      };
-    })
+    ...mappedActivities.map(a => ({ type: 'mapped_activity', time: a.startTime, data: a })),
+    ...unmappedActivities.map(a => ({ type: 'unmapped_activity', time: a.startTime, data: a })),
+    ...standAloneCheckins.map(c => ({ type: 'checkin', time: new Date(c.checkin_date), data: c }))
   ].sort((a, b) => a.time - b.time);
 
-  // Group contiguous checkins (activities interrupt grouping)
+  // Group standalone check-ins
   const events = [];
   let currentCheckinGroup = [];
 
@@ -282,12 +312,21 @@ async function generateEvents(checkins, activities) {
     if (event.type === 'checkin') {
       currentCheckinGroup.push(event.data);
     } else {
-      // Activity interrupts checkins
+      // Activity interrupts check-in grouping
       if (currentCheckinGroup.length > 0) {
         events.push(await createCheckinEvent(currentCheckinGroup));
         currentCheckinGroup = [];
       }
-      events.push(await createActivityEvent(event.data, event.source));
+
+      if (event.type === 'mapped_activity') {
+        if (event.data.checkins.length > 0) {
+          events.push(await createActivityWithCheckinsEvent(event.data, event.data.source, event.data.checkins));
+        } else {
+          events.push(await createActivityEvent(event.data, event.data.source));
+        }
+      } else {
+        events.push(await createActivityEvent(event.data, event.data.source));
+      }
     }
   }
 
@@ -362,9 +401,63 @@ async function createActivityEvent(activity, source) {
   };
 }
 
+/**
+ * Creates an activity event with check-ins merged
+ * @param {Object} activity - Activity object (Strava or Garmin) with tracklog
+ * @param {string} source - 'strava' or 'garmin'
+ * @param {Array} checkins - Array of check-in objects that occurred during the activity
+ * @returns {Promise<Object>} Activity with check-ins event object
+ */
+async function createActivityWithCheckinsEvent(activity, source, checkins) {
+  // Get photos for these checkins
+  const checkinIds = checkins.map(c => c.id);
+  const photosQuery = `
+    SELECT checkin_id, photo_url, photo_url_cached
+    FROM checkin_photos
+    WHERE checkin_id = ANY($1)
+  `;
+  const photosResult = await db.query(photosQuery, [checkinIds]);
+  const photosByCheckin = photosResult.rows.reduce((acc, p) => {
+    if (!acc[p.checkin_id]) acc[p.checkin_id] = [];
+    acc[p.checkin_id].push(p);
+    return acc;
+  }, {});
+
+  // Enrich checkins with photos
+  const enrichedCheckins = checkins.map(c => ({
+    ...c,
+    photos: photosByCheckin[c.id] || []
+  }));
+
+  // Generate combined map: activity tracklog + check-in markers
+  const staticMapUrl = staticMapGenerator.generateActivityWithCheckinsMapUrl(
+    activity.tracklog,
+    checkins // Just coordinates needed
+  );
+
+  return {
+    type: `${source}_activity_with_checkins_mapped`,
+    startTime: activity.start_time,
+    activity: {
+      id: activity.id,
+      type: activity.activity_type,
+      name: activity.activity_name,
+      duration: activity.duration_seconds,
+      distance: activity.distance_meters,
+      calories: activity.calories,
+      url: source === 'strava'
+        ? (activity.strava_activity_id ? `https://www.strava.com/activities/${activity.strava_activity_id}` : null)
+        : activity.garmin_url
+    },
+    checkins: enrichedCheckins,
+    staticMapUrl
+  };
+}
+
 module.exports = {
   getDayInLife,
   generateEvents,
   createCheckinEvent,
-  createActivityEvent
+  createActivityEvent,
+  createActivityWithCheckinsEvent
 };
