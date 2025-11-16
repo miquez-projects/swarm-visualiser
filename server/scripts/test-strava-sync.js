@@ -223,9 +223,15 @@ class TestStravaSync {
   }
 
   /**
-   * Transform activity for database (simplified version)
+   * Transform activity for database
    */
   transformActivity(activity) {
+    // Build tracklog if polyline exists (just use summary for test, not detailed)
+    let tracklog = null;
+    if (activity.map?.summary_polyline) {
+      tracklog = null; // Skip tracklog for now to simplify
+    }
+
     let startLatlng = null;
     if (activity.start_latlng && activity.start_latlng.length === 2) {
       startLatlng = `POINT(${activity.start_latlng[1]} ${activity.start_latlng[0]})`;
@@ -245,6 +251,7 @@ class TestStravaSync {
       start_time: new Date(activity.start_date || activity.start_date_local),
       start_latlng: startLatlng,
       end_latlng: endLatlng,
+      tracklog: tracklog,  // Add tracklog field
       duration_seconds: activity.elapsed_time,
       moving_time_seconds: activity.moving_time,
       distance_meters: activity.distance,
