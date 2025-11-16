@@ -4,7 +4,7 @@ import { OpenInNew } from '@mui/icons-material';
 
 const ActivityEventTile = ({ event }) => {
   const { activity, staticMapUrl } = event;
-  const isMapped = event.type.includes('mapped');
+  const isMapped = event.type.includes('_mapped') && !event.type.includes('unmapped');
 
   const formatDuration = (seconds) => {
     if (!seconds) return 'N/A';
