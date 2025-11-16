@@ -39,7 +39,9 @@ class StaticMapGenerator {
       .join(',');
 
     // Auto-fit bounds
-    const path = `path-2+ff6b35-0.5(${encodedPath})`;
+    // URL-encode the polyline to handle special characters
+    const urlEncodedPath = encodeURIComponent(encodedPath);
+    const path = `path-2+ff6b35-0.5(${urlEncodedPath})`;
 
     return `${this.baseUrl}/${path},${markers}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
   }
@@ -122,18 +124,31 @@ class StaticMapGenerator {
 
     let encodedPath;
 
+    // Check if it's WKB hex format (starts with 01020000)
+    if (tracklogOrPolyline.startsWith('01020000')) {
+      console.warn('[StaticMap] WKB hex format detected, cannot parse directly');
+      // WKB hex format - we need to convert via PostGIS ST_AsText
+      // For now, return null as we can't parse this format client-side
+      return null;
+    }
+
     // Check if it's WKT format (Garmin) or polyline format (Strava)
     if (tracklogOrPolyline.startsWith('LINESTRING')) {
-      // Garmin format: WKT "LINESTRING(lon lat, lon lat, ...)"
+      // Garmin/Strava format: WKT "LINESTRING(lon lat, lon lat, ...)"
       const coords = this.parseLineString(tracklogOrPolyline);
-      if (coords.length === 0) return null;
+      if (coords.length === 0) {
+        console.error('[StaticMap] Failed to parse WKT tracklog');
+        return null;
+      }
       encodedPath = polyline.encode(coords.map(c => [c[1], c[0]])); // lat,lon for polyline
     } else {
-      // Strava format: already encoded polyline
+      // Already encoded polyline
       encodedPath = tracklogOrPolyline;
     }
 
-    const path = `path-3+3498db-0.8(${encodedPath})`;
+    // URL-encode the polyline to handle special characters
+    const urlEncodedPath = encodeURIComponent(encodedPath);
+    const path = `path-3+3498db-0.8(${urlEncodedPath})`;
 
     return `${this.baseUrl}/${path}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
   }

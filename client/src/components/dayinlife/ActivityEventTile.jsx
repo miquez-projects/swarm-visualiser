@@ -59,7 +59,7 @@ const ActivityEventTile = ({ event }) => {
 
       {/* Stats */}
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-        {activity.distance && (
+        {isMapped && activity.distance && (
           <Typography variant="body1">
             {formatDistance(activity.distance)}
           </Typography>
