@@ -113,7 +113,22 @@ class TestStravaSync {
         }
       );
 
-      console.log(`  API Call #${this.apiCallCount}: GET /athlete/activities (returned ${activities.length} items)`);
+      // Debug: Log the response type
+      console.log(`  API Call #${this.apiCallCount}: GET /athlete/activities`);
+      console.log(`  Response type: ${typeof activities}`);
+      console.log(`  Is array: ${Array.isArray(activities)}`);
+
+      if (!activities) {
+        console.log(`  Response is null/undefined`);
+        throw new Error('API returned null/undefined response');
+      }
+
+      if (!Array.isArray(activities)) {
+        console.log(`  Response value:`, JSON.stringify(activities, null, 2));
+        throw new Error(`API returned non-array response: ${typeof activities}`);
+      }
+
+      console.log(`  Returned ${activities.length} items`);
       return activities.slice(0, this.maxActivities);
     } catch (error) {
       this.errors.push(`Failed to fetch activity list: ${error.message}`);
