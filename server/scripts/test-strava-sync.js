@@ -232,12 +232,14 @@ class TestStravaSync {
       tracklog = null; // Skip tracklog for now to simplify
     }
 
-    let startLatlng = null;
+    // IMPORTANT: Must provide string 'POINT(...)' or undefined, NOT null
+    // The bulkInsert function has a bug where null values cause parameter misalignment
+    let startLatlng = undefined;
     if (activity.start_latlng && activity.start_latlng.length === 2) {
       startLatlng = `POINT(${activity.start_latlng[1]} ${activity.start_latlng[0]})`;
     }
 
-    let endLatlng = null;
+    let endLatlng = undefined;
     if (activity.end_latlng && activity.end_latlng.length === 2) {
       endLatlng = `POINT(${activity.end_latlng[1]} ${activity.end_latlng[0]})`;
     }
