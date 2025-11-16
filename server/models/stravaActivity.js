@@ -63,51 +63,67 @@ class StravaActivity {
   static async bulkInsert(activities) {
     if (activities.length === 0) return 0;
 
-    // Build VALUES clause: ($1, $2, ...), ($27, $28, ...), ...
-    const valuesPerRow = 26;
+    // Build VALUES clause with dynamic parameter tracking
     const valuesClauses = [];
     const allValues = [];
+    let paramCounter = 1;
 
-    activities.forEach((activity, idx) => {
-      const offset = idx * valuesPerRow;
+    activities.forEach((activity) => {
       const placeholders = [];
 
-      for (let i = 1; i <= valuesPerRow; i++) {
-        placeholders.push(`$${offset + i}`);
+      // Fixed fields (positions 1-6: user_id through start_time)
+      for (let i = 0; i < 6; i++) {
+        placeholders.push(`$${paramCounter++}`);
       }
 
-      // Special handling for tracklog (ST_GeogFromText)
-      placeholders[19] = `ST_GeogFromText($${offset + 20})`;
+      // Position 7: start_latlng (may be null)
+      if (activity.start_latlng) {
+        placeholders.push(`ST_GeogFromText($${paramCounter++})`);
+      } else {
+        placeholders.push('NULL');
+      }
 
-      // Build values array with conditional inclusion for geography fields
-      const values = [
+      // Position 8: end_latlng (may be null)
+      if (activity.end_latlng) {
+        placeholders.push(`ST_GeogFromText($${paramCounter++})`);
+      } else {
+        placeholders.push('NULL');
+      }
+
+      // Fixed fields (positions 9-19: duration_seconds through avg_watts)
+      for (let i = 0; i < 11; i++) {
+        placeholders.push(`$${paramCounter++}`);
+      }
+
+      // Position 20: tracklog (always present)
+      placeholders.push(`ST_GeogFromText($${paramCounter++})`);
+
+      // Fixed fields (positions 21-26: is_private through strava_url)
+      for (let i = 0; i < 6; i++) {
+        placeholders.push(`$${paramCounter++}`);
+      }
+
+      valuesClauses.push(`(${placeholders.join(', ')})`);
+
+      // Build values array - push in same order as placeholders
+      allValues.push(
         activity.user_id,
         activity.strava_activity_id,
         activity.activity_type,
         activity.activity_name,
         activity.description,
         activity.start_time
-      ];
+      );
 
-      // Special handling for start_latlng (may be null)
+      // Only push coordinate values if they exist
       if (activity.start_latlng) {
-        placeholders[6] = `ST_GeogFromText($${allValues.length + values.length + 1})`;
-        values.push(activity.start_latlng);
-      } else {
-        placeholders[6] = 'NULL';
+        allValues.push(activity.start_latlng);
       }
-
-      // Special handling for end_latlng (may be null)
       if (activity.end_latlng) {
-        placeholders[7] = `ST_GeogFromText($${allValues.length + values.length + 1})`;
-        values.push(activity.end_latlng);
-      } else {
-        placeholders[7] = 'NULL';
+        allValues.push(activity.end_latlng);
       }
 
-      valuesClauses.push(`(${placeholders.join(', ')})`);
-
-      allValues.push(...values,
+      allValues.push(
         activity.duration_seconds,
         activity.moving_time_seconds,
         activity.distance_meters,
