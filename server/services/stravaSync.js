@@ -271,11 +271,11 @@ class StravaSyncService {
   /**
    * Full historical sync - gets ALL activities (no date restriction)
    */
-  async fullHistoricalSync(encryptedTokens, userId, onProgress = null) {
+  async fullHistoricalSync(encryptedTokens, userId, cursor = null, onProgress = null) {
     console.log(`[STRAVA SYNC] Full historical sync - fetching all activities`);
 
     // Sync activities - pass null for afterDate to get everything
-    const activityResult = await this.syncActivities(encryptedTokens, userId, null, onProgress);
+    const activityResult = await this.syncActivities(encryptedTokens, userId, null, cursor, onProgress);
 
     // Sync photos for activities with photos
     const photoResult = await this.syncActivityPhotos(encryptedTokens, userId, null, onProgress);
@@ -290,13 +290,13 @@ class StravaSyncService {
   /**
    * Incremental sync from last successful sync date
    */
-  async incrementalSync(encryptedTokens, userId, lastSyncDate, onProgress = null) {
+  async incrementalSync(encryptedTokens, userId, lastSyncDate, cursor = null, onProgress = null) {
     const startDate = lastSyncDate ? new Date(lastSyncDate) : new Date();
 
     console.log(`[STRAVA SYNC] Incremental sync from ${startDate.toISOString().split('T')[0]}`);
 
     // Sync activities
-    const activityResult = await this.syncActivities(encryptedTokens, userId, startDate, onProgress);
+    const activityResult = await this.syncActivities(encryptedTokens, userId, startDate, cursor, onProgress);
 
     // Sync photos for newly imported activities
     const photoResult = await this.syncActivityPhotos(encryptedTokens, userId, null, onProgress);
