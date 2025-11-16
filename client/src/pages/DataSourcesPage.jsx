@@ -488,7 +488,8 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
           </List>
         </Paper>
 
-        {/* Garmin Integration */}
+        {/* Garmin Integration - OAuth Hidden (application rejected) */}
+        {garminStatus.connected && (
         <Card sx={{ mt: 3 }}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -496,20 +497,7 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
               <Typography variant="h6">Garmin</Typography>
             </Box>
 
-            {!garminStatus.connected ? (
-              <>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Connect your Garmin account to sync activities, steps, heart rate, and sleep data.
-                </Typography>
-                <Button
-                  variant="contained"
-                  onClick={handleGarminConnect}
-                  disabled={garminConnecting}
-                >
-                  {garminConnecting ? 'Connecting...' : 'Connect Garmin'}
-                </Button>
-              </>
-            ) : (
+            {garminStatus.connected && (
               <>
                 <Typography variant="body2" mb={1}>
                   Connected at: {formatDate(garminStatus.connectedAt)}
@@ -566,6 +554,7 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Garmin Data Upload */}
         <Card sx={{ mt: 3 }}>

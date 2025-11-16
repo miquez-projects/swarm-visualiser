@@ -57,31 +57,35 @@ function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions, 
             Swarm Visualizer
           </Typography>
 
-          {/* Navigation Buttons */}
-          <Button
-            color="inherit"
-            startIcon={<Map />}
-            onClick={() => navigate('/')}
-            sx={{ mr: 1, display: isHome ? 'none' : 'flex' }}
-          >
-            Map
-          </Button>
-          <Button
-            color="inherit"
-            startIcon={<CalendarToday />}
-            onClick={() => navigate('/year-in-review')}
-            sx={{ mr: 1, display: isYearInReview ? 'none' : 'flex' }}
-          >
-            Year in Review
-          </Button>
-          <Button
-            color="inherit"
-            startIcon={<Today />}
-            onClick={() => navigate('/day-in-life')}
-            sx={{ mr: 1, display: isDayInLife ? 'none' : 'flex' }}
-          >
-            Day in Life
-          </Button>
+          {/* Navigation Buttons - Hidden on mobile */}
+          {!isMobile && (
+            <>
+              <Button
+                color="inherit"
+                startIcon={<Map />}
+                onClick={() => navigate('/')}
+                sx={{ mr: 1, display: isHome ? 'none' : 'flex' }}
+              >
+                Map
+              </Button>
+              <Button
+                color="inherit"
+                startIcon={<CalendarToday />}
+                onClick={() => navigate('/year-in-review')}
+                sx={{ mr: 1, display: isYearInReview ? 'none' : 'flex' }}
+              >
+                Year in Review
+              </Button>
+              <Button
+                color="inherit"
+                startIcon={<Today />}
+                onClick={() => navigate('/day-in-life')}
+                sx={{ mr: 1, display: isDayInLife ? 'none' : 'flex' }}
+              >
+                Day in Life
+              </Button>
+            </>
+          )}
 
           {headerActions}
           {token && (

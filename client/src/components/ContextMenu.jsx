@@ -9,10 +9,12 @@ import {
   Divider,
   CircularProgress,
   Snackbar,
-  Alert
+  Alert,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
-import { Menu as MenuIcon, Sync, Settings } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { Menu as MenuIcon, Sync, Settings, Map, CalendarToday, Today } from '@mui/icons-material';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { syncAllData } from '../services/api';
 
 const ContextMenu = ({ token, lastSyncAt, onSyncComplete }) => {
@@ -20,6 +22,13 @@ const ContextMenu = ({ token, lastSyncAt, onSyncComplete }) => {
   const [syncing, setSyncing] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const navigate = useNavigate();
+  const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  const isYearInReview = location.pathname === '/year-in-review';
+  const isDayInLife = location.pathname.startsWith('/day-in-life');
+  const isHome = location.pathname === '/';
 
   const handleOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -74,18 +83,50 @@ const ContextMenu = ({ token, lastSyncAt, onSyncComplete }) => {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <MenuItem onClick={handleSyncAll}>
-          <ListItemIcon>
-            <Sync fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Sync All Data" />
-        </MenuItem>
+        {/* Navigation items - only on mobile */}
+        {isMobile && (
+          <>
+            {!isHome && (
+              <MenuItem onClick={() => { handleClose(); navigate('/'); }}>
+                <ListItemIcon>
+                  <Map fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary="Map" />
+              </MenuItem>
+            )}
+            {!isYearInReview && (
+              <MenuItem onClick={() => { handleClose(); navigate('/year-in-review'); }}>
+                <ListItemIcon>
+                  <CalendarToday fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary="Year in Review" />
+              </MenuItem>
+            )}
+            {!isDayInLife && (
+              <MenuItem onClick={() => { handleClose(); navigate('/day-in-life'); }}>
+                <ListItemIcon>
+                  <Today fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary="Day in Life" />
+              </MenuItem>
+            )}
+            <Divider />
+          </>
+        )}
 
+        {/* Settings items */}
         <MenuItem onClick={handleDataSources}>
           <ListItemIcon>
             <Settings fontSize="small" />
           </ListItemIcon>
           <ListItemText primary="Data Sources" />
+        </MenuItem>
+
+        <MenuItem onClick={handleSyncAll}>
+          <ListItemIcon>
+            <Sync fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Sync All Data" />
         </MenuItem>
 
         <Divider />

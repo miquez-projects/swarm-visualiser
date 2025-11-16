@@ -6,7 +6,9 @@ import {
   IconButton,
   Grid,
   CircularProgress,
-  TextField
+  TextField,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { ChevronLeft, ChevronRight, CalendarToday } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -24,6 +26,8 @@ import 'yet-another-react-lightbox/styles.css';
 const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
   const { date } = useParams();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [token] = useState(localStorage.getItem('authToken'));
   const [dayData, setDayData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -138,7 +142,14 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
       <Layout darkMode={darkMode} onToggleDarkMode={onToggleDarkMode} token={token}>
         <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
           {/* Header */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: isMobile ? 'column' : 'row',
+            alignItems: isMobile ? 'stretch' : 'center',
+            justifyContent: 'space-between',
+            gap: isMobile ? 2 : 0,
+            mb: 4
+          }}>
             <Typography variant="h4">
               {currentDate.toLocaleDateString('en-US', {
                 weekday: 'long',
@@ -147,7 +158,7 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
                 day: 'numeric'
               })}
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: isMobile ? 'center' : 'flex-end' }}>
               <IconButton onClick={handlePrevDay}>
                 <ChevronLeft />
               </IconButton>
@@ -164,6 +175,7 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
                     size: 'small'
                   }
                 }}
+                closeOnSelect={false}
               />
               <IconButton onClick={handleNextDay}>
                 <ChevronRight />
