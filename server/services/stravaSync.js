@@ -1,4 +1,6 @@
 const stravaOAuth = require('./stravaOAuth');
+const { StravaRateLimitService, RateLimitError } = require('./stravaRateLimitService');
+const rateLimitService = new StravaRateLimitService();
 const StravaActivity = require('../models/stravaActivity');
 const StravaActivityPhoto = require('../models/stravaActivityPhoto');
 
@@ -10,8 +12,15 @@ class StravaSyncService {
    * - Uses bulkInsert return value, not array length
    * - 7-day lookback for incremental sync
    */
-  async syncActivities(encryptedTokens, userId, afterDate = null, onProgress = null) {
+  async syncActivities(encryptedTokens, userId, afterDate = null, cursor = null, onProgress = null) {
     console.log(`[STRAVA SYNC] Starting activity sync for user ${userId}, afterDate: ${afterDate}`);
+
+    // Determine starting point from cursor if resuming
+    let beforeTimestamp = null;
+    if (cursor && cursor.before) {
+      beforeTimestamp = cursor.before;
+      console.log(`[STRAVA SYNC] Resuming from cursor: ${new Date(beforeTimestamp * 1000).toISOString()}`);
+    }
 
     const after = afterDate ? Math.floor(afterDate.getTime() / 1000) : null;
 
@@ -22,6 +31,15 @@ class StravaSyncService {
     try {
       // Fetch activities in pages
       while (true) {
+        // Check quota before fetching
+        const canProceed = await rateLimitService.checkQuota(userId);
+        if (!canProceed.allowed) {
+          throw new RateLimitError({
+            window: canProceed.limitType,
+            retryAfter: canProceed.resetAt
+          });
+        }
+
         const params = {
           page,
           per_page: perPage
@@ -30,12 +48,15 @@ class StravaSyncService {
         if (after) {
           params.after = after;
         }
+        if (beforeTimestamp) params.before = beforeTimestamp;
 
         const response = await stravaOAuth.makeAuthenticatedRequest(
           encryptedTokens,
           '/athlete/activities',
           params
         );
+
+        await rateLimitService.recordRequest(userId, '/athlete/activities');
 
         // Handle token refresh - response may be {data, newEncryptedTokens} or just data array
         let activities;
