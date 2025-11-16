@@ -228,8 +228,11 @@ class TestStravaSync {
   transformActivity(activity) {
     // DIAGNOSTIC: Dump entire activity object for first activity to see what Strava returns
     if (this.activitiesProcessed === 0) {
-      console.log(`\n[TRANSFORM] RAW ACTIVITY DATA FROM STRAVA:`);
-      console.log(JSON.stringify(activity, null, 2));
+      const fs = require('fs');
+      const filename = `/tmp/strava-activity-${activity.id}.json`;
+      console.log(`\n[TRANSFORM] Saving raw activity data to: ${filename}`);
+      fs.writeFileSync(filename, JSON.stringify(activity, null, 2));
+      console.log(`[TRANSFORM] Saved. You can view it with: cat ${filename} | grep 115.5`);
       console.log(`\n`);
     }
 
