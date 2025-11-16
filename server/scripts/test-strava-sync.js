@@ -104,7 +104,7 @@ class TestStravaSync {
   async fetchActivityList(encryptedTokens) {
     try {
       this.apiCallCount++;
-      const activities = await stravaOAuth.makeAuthenticatedRequest(
+      const response = await stravaOAuth.makeAuthenticatedRequest(
         encryptedTokens,
         '/athlete/activities',
         {
@@ -113,22 +113,20 @@ class TestStravaSync {
         }
       );
 
-      // Debug: Log the response type
-      console.log(`  API Call #${this.apiCallCount}: GET /athlete/activities`);
-      console.log(`  Response type: ${typeof activities}`);
-      console.log(`  Is array: ${Array.isArray(activities)}`);
-
-      if (!activities) {
-        console.log(`  Response is null/undefined`);
-        throw new Error('API returned null/undefined response');
+      // Handle token refresh - response may be { data, newEncryptedTokens } or just data array
+      let activities;
+      if (response && typeof response === 'object' && response.data) {
+        activities = response.data;
+        // Update encrypted tokens if they were refreshed
+        if (response.newEncryptedTokens) {
+          this.newEncryptedTokens = response.newEncryptedTokens;
+          console.log(`  ✓ Token refreshed automatically`);
+        }
+      } else {
+        activities = response;
       }
 
-      if (!Array.isArray(activities)) {
-        console.log(`  Response value:`, JSON.stringify(activities, null, 2));
-        throw new Error(`API returned non-array response: ${typeof activities}`);
-      }
-
-      console.log(`  Returned ${activities.length} items`);
+      console.log(`  API Call #${this.apiCallCount}: GET /athlete/activities (returned ${activities.length} items)`);
       return activities.slice(0, this.maxActivities);
     } catch (error) {
       this.errors.push(`Failed to fetch activity list: ${error.message}`);
@@ -153,11 +151,23 @@ class TestStravaSync {
         const results = await Promise.allSettled(
           batch.map(async (activity) => {
             this.apiCallCount++;
-            const detail = await stravaOAuth.makeAuthenticatedRequest(
+            const response = await stravaOAuth.makeAuthenticatedRequest(
               encryptedTokens,
               `/activities/${activity.id}`,
               {}
             );
+
+            // Handle token refresh
+            let detail;
+            if (response && typeof response === 'object' && response.data) {
+              detail = response.data;
+              if (response.newEncryptedTokens && !this.newEncryptedTokens) {
+                this.newEncryptedTokens = response.newEncryptedTokens;
+              }
+            } else {
+              detail = response;
+            }
+
             console.log(`    ✓ Activity #${this.apiCallCount}: ${activity.name} (${activity.id})`);
             return detail;
           })
