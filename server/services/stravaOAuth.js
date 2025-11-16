@@ -188,32 +188,10 @@ class StravaOAuthService {
     return expiresAt <= (now + buffer);
   }
 
-  /**
-   * Handle rate limit errors with exponential backoff
-   * @param {Error} error - Axios error object
-   * @param {number} retryCount - Current retry attempt
-   * @returns {Promise<number>} Delay in milliseconds before retry
-   */
-  async handleRateLimit(error, retryCount = 0) {
-    if (error.response?.status === 429) {
-      const maxRetries = 3;
-      if (retryCount >= maxRetries) {
-        throw new Error('Rate limit exceeded: Maximum retries reached');
-      }
-
-      // Exponential backoff: 2^retryCount * 1000ms
-      const delay = Math.pow(2, retryCount) * 1000;
-      console.warn(`[STRAVA API] Rate limit hit. Retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})`);
-
-      await new Promise(resolve => setTimeout(resolve, delay));
-      return delay;
-    }
-    throw error;
-  }
 
   /**
    * Make authenticated API request with Bearer token
-   * Handles token refresh and rate limiting with exponential backoff
+   * Handles token refresh, fails fast on rate limits
    * @param {string} encryptedTokens - Encrypted OAuth tokens
    * @param {string} endpoint - API endpoint (e.g., '/athlete/activities')
    * @param {object} params - Query parameters or request body
@@ -262,97 +240,83 @@ class StravaOAuthService {
       }
     };
 
-    // Retry logic with exponential backoff for rate limits
-    const maxRetries = 3;
-    let retryCount = 0;
+    try {
+      let response;
 
-    while (retryCount <= maxRetries) {
-      try {
-        let response;
-
-        if (method.toUpperCase() === 'GET') {
-          config.params = params;
-          response = await axios.get(url, config);
-        } else if (method.toUpperCase() === 'POST') {
-          response = await axios.post(url, params, config);
-        } else if (method.toUpperCase() === 'PUT') {
-          response = await axios.put(url, params, config);
-        } else if (method.toUpperCase() === 'DELETE') {
-          response = await axios.delete(url, config);
-        } else {
-          throw new Error(`Unsupported HTTP method: ${method}`);
-        }
-
-        // If tokens were refreshed, return both data and new tokens
-        if (encryptedTokens !== arguments[0]) {
-          return {
-            data: response.data,
-            newEncryptedTokens: encryptedTokens
-          };
-        }
-
-        return response.data;
-      } catch (error) {
-        // Handle rate limiting with exponential backoff
-        if (error.response?.status === 429) {
-          try {
-            await this.handleRateLimit(error, retryCount);
-            retryCount++;
-            continue; // Retry the request
-          } catch (rateLimitError) {
-            throw rateLimitError; // Max retries exceeded
-          }
-        }
-
-        // Handle token expiration (401)
-        if (error.response?.status === 401) {
-          console.log('[STRAVA API] 401 Unauthorized, attempting token refresh...');
-          try {
-            const newTokens = await this.refreshAccessToken(refreshToken);
-            const newEncryptedTokens = this.encryptTokens(
-              newTokens.accessToken,
-              newTokens.refreshToken,
-              newTokens.expiresAt
-            );
-
-            // Retry the request with new token
-            const retryConfig = {
-              headers: {
-                'Authorization': `Bearer ${newTokens.accessToken}`,
-                'Accept': 'application/json'
-              }
-            };
-
-            let retryResponse;
-            if (method.toUpperCase() === 'GET') {
-              retryConfig.params = params;
-              retryResponse = await axios.get(url, retryConfig);
-            } else if (method.toUpperCase() === 'POST') {
-              retryResponse = await axios.post(url, params, retryConfig);
-            } else if (method.toUpperCase() === 'PUT') {
-              retryResponse = await axios.put(url, params, retryConfig);
-            } else if (method.toUpperCase() === 'DELETE') {
-              retryResponse = await axios.delete(url, retryConfig);
-            }
-
-            // Return both the response data and new encrypted tokens
-            return {
-              data: retryResponse.data,
-              newEncryptedTokens: newEncryptedTokens
-            };
-          } catch (refreshError) {
-            console.error('[STRAVA API] Token refresh failed:', refreshError.message);
-            throw new Error('OAuth token expired and refresh failed. Please re-authenticate.');
-          }
-        }
-
-        // Log and rethrow other errors
-        console.error(`[STRAVA API] Request failed:`, error.response?.data || error.message);
-        throw error;
+      if (method.toUpperCase() === 'GET') {
+        config.params = params;
+        response = await axios.get(url, config);
+      } else if (method.toUpperCase() === 'POST') {
+        response = await axios.post(url, params, config);
+      } else if (method.toUpperCase() === 'PUT') {
+        response = await axios.put(url, params, config);
+      } else if (method.toUpperCase() === 'DELETE') {
+        response = await axios.delete(url, config);
+      } else {
+        throw new Error(`Unsupported HTTP method: ${method}`);
       }
-    }
 
-    throw new Error('Request failed after maximum retries');
+      // If tokens were refreshed, return both data and new tokens
+      if (encryptedTokens !== arguments[0]) {
+        return {
+          data: response.data,
+          newEncryptedTokens: encryptedTokens
+        };
+      }
+
+      return response.data;
+    } catch (error) {
+      // Handle rate limiting - throw immediately, no retry
+      if (error.response?.status === 429) {
+        throw new Error('Rate limit exceeded');
+      }
+
+      // Handle token expiration (401)
+      if (error.response?.status === 401) {
+        console.log('[STRAVA API] 401 Unauthorized, attempting token refresh...');
+        try {
+          const newTokens = await this.refreshAccessToken(refreshToken);
+          const newEncryptedTokens = this.encryptTokens(
+            newTokens.accessToken,
+            newTokens.refreshToken,
+            newTokens.expiresAt
+          );
+
+          // Retry the request with new token
+          const retryConfig = {
+            headers: {
+              'Authorization': `Bearer ${newTokens.accessToken}`,
+              'Accept': 'application/json'
+            }
+          };
+
+          let retryResponse;
+          if (method.toUpperCase() === 'GET') {
+            retryConfig.params = params;
+            retryResponse = await axios.get(url, retryConfig);
+          } else if (method.toUpperCase() === 'POST') {
+            retryResponse = await axios.post(url, params, retryConfig);
+          } else if (method.toUpperCase() === 'PUT') {
+            retryResponse = await axios.put(url, params, retryConfig);
+          } else if (method.toUpperCase() === 'DELETE') {
+            retryResponse = await axios.delete(url, retryConfig);
+          }
+
+          // Return both the response data and new encrypted tokens
+          return {
+            data: retryResponse.data,
+            newEncryptedTokens: newEncryptedTokens
+          };
+        } catch (refreshError) {
+          console.error('[STRAVA API] Token refresh failed:', refreshError.message);
+          throw new Error('OAuth token expired and refresh failed. Please re-authenticate.');
+        }
+      }
+
+      // Log and rethrow other errors
+      console.error(`[STRAVA API] Request failed:`, error.response?.data || error.message);
+      throw error;
+    }
   }
 
   /**
