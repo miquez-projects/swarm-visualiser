@@ -203,6 +203,8 @@ class StravaSyncService {
           }
 
           if (photos && photos.length > 0) {
+            console.log(`[STRAVA SYNC] Sample photo from API:`, JSON.stringify(photos[0], null, 2));
+
             // Transform photos
             const photosToInsert = photos.map(photo => ({
               strava_activity_id: activity.id, // Internal DB ID
