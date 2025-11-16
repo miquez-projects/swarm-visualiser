@@ -267,12 +267,10 @@ class StravaSyncService {
   }
 
   /**
-   * Incremental sync with 7-day lookback
-   * CRITICAL: Goes back 7 days to catch missed data
+   * Incremental sync from last successful sync date
    */
   async incrementalSync(encryptedTokens, userId, lastSyncDate, onProgress = null) {
     const startDate = lastSyncDate ? new Date(lastSyncDate) : new Date();
-    startDate.setDate(startDate.getDate() - 7); // CRITICAL: 7-day lookback
 
     console.log(`[STRAVA SYNC] Incremental sync from ${startDate.toISOString().split('T')[0]}`);
 
