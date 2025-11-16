@@ -79,31 +79,35 @@ class StravaActivity {
       // Special handling for tracklog (ST_GeogFromText)
       placeholders[19] = `ST_GeogFromText($${offset + 20})`;
 
+      // Build values array with conditional inclusion for geography fields
+      const values = [
+        activity.user_id,
+        activity.strava_activity_id,
+        activity.activity_type,
+        activity.activity_name,
+        activity.description,
+        activity.start_time
+      ];
+
       // Special handling for start_latlng (may be null)
       if (activity.start_latlng) {
-        placeholders[6] = `ST_GeogFromText($${offset + 7})`;
+        placeholders[6] = `ST_GeogFromText($${allValues.length + values.length + 1})`;
+        values.push(activity.start_latlng);
       } else {
         placeholders[6] = 'NULL';
       }
 
       // Special handling for end_latlng (may be null)
       if (activity.end_latlng) {
-        placeholders[7] = `ST_GeogFromText($${offset + 8})`;
+        placeholders[7] = `ST_GeogFromText($${allValues.length + values.length + 1})`;
+        values.push(activity.end_latlng);
       } else {
         placeholders[7] = 'NULL';
       }
 
       valuesClauses.push(`(${placeholders.join(', ')})`);
 
-      allValues.push(
-        activity.user_id,
-        activity.strava_activity_id,
-        activity.activity_type,
-        activity.activity_name,
-        activity.description,
-        activity.start_time,
-        activity.start_latlng,
-        activity.end_latlng,
+      allValues.push(...values,
         activity.duration_seconds,
         activity.moving_time_seconds,
         activity.distance_meters,
