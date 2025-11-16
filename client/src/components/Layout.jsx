@@ -15,6 +15,7 @@ import {
   Brightness4,
   Brightness7,
   Menu as MenuIcon,
+  FilterList,
   CalendarToday,
   Map,
   Today
@@ -50,7 +51,7 @@ function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions, 
               onClick={handleDrawerToggle}
               sx={{ mr: 2 }}
             >
-              <MenuIcon />
+              <FilterList />
             </IconButton>
           )}
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
