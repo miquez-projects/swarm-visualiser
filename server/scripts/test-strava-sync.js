@@ -226,6 +226,13 @@ class TestStravaSync {
    * Transform activity for database
    */
   transformActivity(activity) {
+    // DIAGNOSTIC: Dump entire activity object for first activity to see what Strava returns
+    if (this.activitiesProcessed === 0) {
+      console.log(`\n[TRANSFORM] RAW ACTIVITY DATA FROM STRAVA:`);
+      console.log(JSON.stringify(activity, null, 2));
+      console.log(`\n`);
+    }
+
     // Build tracklog if polyline exists (just use summary for test, not detailed)
     let tracklog = null;
     if (activity.map?.summary_polyline) {
@@ -263,7 +270,7 @@ class TestStravaSync {
     });
 
     if (decimalsFound.length > 0) {
-      console.log(`[TRANSFORM] Activity ${activity.id} has decimal values in INTEGER fields:`);
+      console.log(`[TRANSFORM] Activity ${activity.id} (${activity.name}) has decimal values in INTEGER fields:`);
       decimalsFound.forEach(([key, value]) => {
         console.log(`  ${key}: ${value} (type: ${typeof value})`);
       });
