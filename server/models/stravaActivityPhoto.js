@@ -39,38 +39,52 @@ class StravaActivityPhoto {
   static async bulkInsert(photos) {
     if (photos.length === 0) return 0;
 
-    // Build VALUES clause: ($1, $2, ...), ($9, $10, ...), ...
-    const valuesPerRow = 8;
+    // Build VALUES clause dynamically, adjusting for null locations
     const valuesClauses = [];
     const allValues = [];
+    let paramIndex = 1;
 
-    photos.forEach((photo, idx) => {
-      const offset = idx * valuesPerRow;
+    photos.forEach((photo) => {
       const placeholders = [];
 
-      for (let i = 1; i <= valuesPerRow; i++) {
-        placeholders.push(`$${offset + i}`);
+      // strava_activity_id
+      placeholders.push(`$${paramIndex++}`);
+      allValues.push(photo.strava_activity_id);
+
+      // strava_photo_id
+      placeholders.push(`$${paramIndex++}`);
+      allValues.push(photo.strava_photo_id);
+
+      // photo_url_full
+      placeholders.push(`$${paramIndex++}`);
+      allValues.push(photo.photo_url_full);
+
+      // photo_url_600
+      placeholders.push(`$${paramIndex++}`);
+      allValues.push(photo.photo_url_600);
+
+      // photo_url_300
+      placeholders.push(`$${paramIndex++}`);
+      allValues.push(photo.photo_url_300);
+
+      // caption
+      placeholders.push(`$${paramIndex++}`);
+      allValues.push(photo.caption);
+
+      // location - special handling for PostGIS
+      if (photo.location) {
+        placeholders.push(`ST_GeogFromText($${paramIndex++})`);
+        allValues.push(photo.location);
+      } else {
+        placeholders.push('NULL');
+        // Don't add to allValues when NULL
       }
 
-      // Special handling for location (ST_GeogFromText)
-      if (photo.location) {
-        placeholders[6] = `ST_GeogFromText($${offset + 7})`;
-      } else {
-        placeholders[6] = 'NULL';
-      }
+      // created_at_strava
+      placeholders.push(`$${paramIndex++}`);
+      allValues.push(photo.created_at_strava);
 
       valuesClauses.push(`(${placeholders.join(', ')})`);
-
-      allValues.push(
-        photo.strava_activity_id,
-        photo.strava_photo_id,
-        photo.photo_url_full,
-        photo.photo_url_600,
-        photo.photo_url_300,
-        photo.caption,
-        photo.location,
-        photo.created_at_strava
-      );
     });
 
     const query = `
