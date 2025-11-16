@@ -52,13 +52,21 @@ See [docs/RENDER_LOGS.md](docs/RENDER_LOGS.md) for full documentation.
 - `/server/utils/copilotTools.js` - Function definitions for Gemini
 
 ### Recent Work
-- Implemented Gemini thought signature preservation using `chat.getHistory()`
-- Fixed conversation history handling to include all function calls
-- Deployed to production (commit 1d91bdf)
+- **Strava Rate Limiting**: Implemented resumable sync with rate limit handling (migrations 014/015)
+  - Pauses sync when rate-limited, resumes after cooldown
+  - Cursor-based pagination for resumable sync
+  - See docs/plans/2025-01-11-strava-rate-limit-implementation-plan.md
+- **Mobile UX Improvements** (commit 02bb962):
+  - Fixed DatePicker to not close when selecting year/month
+  - Moved navigation to context menu on mobile
+  - Stacked date picker under heading on Day in Life page
+  - Changed filter sidebar icon to FilterList on mobile
+  - Hidden Garmin OAuth option (application rejected)
+- **Gemini AI Copilot**: Thought signature preservation and conversation history
+- **Garmin Integration**: Daily calorie tracking for Day in Life page
 
 ### Known Issues
-- Users need to clear localStorage after thought signature update
-- See CHANGELOG.md for migration instructions
+- None currently
 
 ---
 
