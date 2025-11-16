@@ -100,59 +100,70 @@ class StravaSyncService {
       let totalInserted = 0;
       const detailedActivities = [];
 
-      for (let i = 0; i < allActivities.length; i += batchSize) {
-        const batch = allActivities.slice(i, i + batchSize);
+      for (let i = 0; i < allActivities.length; i++) {
+        const summary = allActivities[i];
 
-        // Fetch batch concurrently
-        const detailedResults = await Promise.allSettled(
-          batch.map(summary =>
-            stravaOAuth.makeAuthenticatedRequest(
-              encryptedTokens,
-              `/activities/${summary.id}`,
-              {}
-            )
-          )
-        );
-
-        // Process results and collect detailed activities
-        detailedResults.forEach((result, batchIndex) => {
-          if (result.status === 'fulfilled') {
-            // Handle token refresh - response may be {data, newEncryptedTokens} or just data
-            let activity;
-            if (result.value && typeof result.value === 'object' && result.value.data) {
-              activity = result.value.data;
-            } else {
-              activity = result.value;
-            }
-            detailedActivities.push(activity);
-          } else {
-            console.log(`[STRAVA SYNC] Failed to fetch details for activity ${batch[batchIndex].id}, using summary data`);
-            // Use summary data if detail fetch fails
-            detailedActivities.push(batch[batchIndex]);
+        // Check quota before each detail request
+        const canProceed = await rateLimitService.checkQuota(userId);
+        if (!canProceed.allowed) {
+          // Save progress so far
+          if (detailedActivities.length > 0) {
+            const activitiesToInsert = detailedActivities.map(a =>
+              this.transformActivity(a, userId)
+            );
+            const insertedCount = await StravaActivity.bulkInsert(activitiesToInsert);
+            totalInserted += insertedCount;
+            console.log(`[STRAVA SYNC] Pre-pause save: ${insertedCount} activities`);
+            detailedActivities.length = 0;
           }
-        });
 
-        // Insert every insertBatchSize activities to preserve progress
+          throw new RateLimitError({
+            window: canProceed.limitType,
+            retryAfter: canProceed.resetAt
+          });
+        }
+
+        try {
+          const response = await stravaOAuth.makeAuthenticatedRequest(
+            encryptedTokens,
+            `/activities/${summary.id}`,
+            {}
+          );
+
+          await rateLimitService.recordRequest(userId, '/activities/*');
+
+          const activity = response?.data || response;
+          detailedActivities.push(activity);
+        } catch (error) {
+          console.log(`[STRAVA SYNC] Failed to fetch details for activity ${summary.id}, using summary`);
+          detailedActivities.push(summary);
+        }
+
+        // Insert every insertBatchSize activities
         if (detailedActivities.length >= insertBatchSize) {
-          const activitiesToInsert = detailedActivities.map(activity =>
-            this.transformActivity(activity, userId)
+          const activitiesToInsert = detailedActivities.map(a =>
+            this.transformActivity(a, userId)
           );
 
           const insertedCount = await StravaActivity.bulkInsert(activitiesToInsert);
           totalInserted += insertedCount;
 
-          console.log(`[STRAVA SYNC] Batch saved: ${insertedCount}/${activitiesToInsert.length} activities (total: ${totalInserted})`);
+          console.log(`[STRAVA SYNC] Batch saved: ${insertedCount}/${activitiesToInsert.length} (total: ${totalInserted})`);
 
-          // Clear the batch and report progress
-          detailedActivities.length = 0;
+          // Update progress with oldest activity timestamp for cursor
+          const oldestActivity = detailedActivities[detailedActivities.length - 1];
+          const oldestTimestamp = Math.floor(new Date(oldestActivity.start_date).getTime() / 1000);
 
           if (onProgress) {
             await onProgress({
-              detailed: i + batchSize,
+              detailed: i + 1,
               fetched: allActivities.length,
-              inserted: totalInserted
+              inserted: totalInserted,
+              oldestActivityTimestamp: oldestTimestamp
             });
           }
+
+          detailedActivities.length = 0;
         }
       }
 
@@ -172,6 +183,9 @@ class StravaSyncService {
 
       return { imported: totalInserted, fetched: allActivities.length };
     } catch (error) {
+      if (error.name === 'RateLimitError') {
+        throw error; // Re-throw to be caught by job handler
+      }
       console.error(`[STRAVA SYNC] Activity sync error:`, error.message);
       throw error;
     }
