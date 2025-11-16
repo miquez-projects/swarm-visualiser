@@ -279,6 +279,9 @@ class TestStravaSync {
       });
     }
 
+    // Helper function to safely convert to integer
+    const toInt = (value) => value != null ? Math.round(value) : null;
+
     return {
       user_id: this.userId,
       strava_activity_id: String(activity.id),
@@ -288,23 +291,23 @@ class TestStravaSync {
       start_time: new Date(activity.start_date || activity.start_date_local),
       start_latlng: startLatlng,
       end_latlng: endLatlng,
-      tracklog: tracklog,  // Add tracklog field
-      duration_seconds: activity.elapsed_time,
-      moving_time_seconds: activity.moving_time,
+      tracklog: tracklog,
+      duration_seconds: toInt(activity.elapsed_time),
+      moving_time_seconds: toInt(activity.moving_time),
       distance_meters: activity.distance,
       total_elevation_gain: activity.total_elevation_gain,
-      calories: activity.calories,
+      calories: toInt(activity.calories),
       avg_speed: activity.average_speed,
       max_speed: activity.max_speed,
-      avg_heart_rate: activity.average_heartrate,
-      max_heart_rate: activity.max_heartrate,
+      avg_heart_rate: toInt(activity.average_heartrate),
+      max_heart_rate: toInt(activity.max_heartrate),
       avg_cadence: activity.average_cadence,
       avg_watts: activity.average_watts,
       is_private: activity.private || false,
-      kudos_count: activity.kudos_count || 0,
-      comment_count: activity.comment_count || 0,
-      photo_count: activity.total_photo_count || 0,
-      achievement_count: activity.achievement_count || 0,
+      kudos_count: toInt(activity.kudos_count) || 0,
+      comment_count: toInt(activity.comment_count) || 0,
+      photo_count: toInt(activity.total_photo_count) || 0,
+      achievement_count: toInt(activity.achievement_count) || 0,
       strava_url: `https://www.strava.com/activities/${activity.id}`
     };
   }
