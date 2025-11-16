@@ -31,11 +31,20 @@ class StravaSyncService {
           params.after = after;
         }
 
-        const activities = await stravaOAuth.makeAuthenticatedRequest(
+        const response = await stravaOAuth.makeAuthenticatedRequest(
           encryptedTokens,
           '/athlete/activities',
           params
         );
+
+        // Handle token refresh - response may be {data, newEncryptedTokens} or just data array
+        let activities;
+        if (response && typeof response === 'object' && response.data) {
+          activities = response.data;
+          // Token was refreshed, but we don't need to update it here since it's passed by reference
+        } else {
+          activities = response;
+        }
 
         if (!activities || activities.length === 0) {
           break;
@@ -87,7 +96,14 @@ class StravaSyncService {
         // Process results and collect detailed activities
         detailedResults.forEach((result, batchIndex) => {
           if (result.status === 'fulfilled') {
-            detailedActivities.push(result.value);
+            // Handle token refresh - response may be {data, newEncryptedTokens} or just data
+            let activity;
+            if (result.value && typeof result.value === 'object' && result.value.data) {
+              activity = result.value.data;
+            } else {
+              activity = result.value;
+            }
+            detailedActivities.push(activity);
           } else {
             console.log(`[STRAVA SYNC] Failed to fetch details for activity ${batch[batchIndex].id}, using summary data`);
             // Use summary data if detail fetch fails
@@ -172,11 +188,19 @@ class StravaSyncService {
 
         try {
           // Fetch photos for this activity
-          const photos = await stravaOAuth.makeAuthenticatedRequest(
+          const response = await stravaOAuth.makeAuthenticatedRequest(
             encryptedTokens,
             `/activities/${activity.strava_activity_id}/photos`,
             { size: 600 } // Get 600px size URLs
           );
+
+          // Handle token refresh - response may be {data, newEncryptedTokens} or just data
+          let photos;
+          if (response && typeof response === 'object' && response.data) {
+            photos = response.data;
+          } else {
+            photos = response;
+          }
 
           if (photos && photos.length > 0) {
             // Transform photos
