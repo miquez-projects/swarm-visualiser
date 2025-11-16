@@ -2,6 +2,7 @@ const User = require('../models/user');
 const ImportJob = require('../models/importJob');
 const stravaSync = require('../services/stravaSync');
 const { RateLimitError } = require('../services/stravaRateLimitService');
+const { getQueue } = require('./queue');
 
 /**
  * Background job handler for importing Strava data
@@ -110,8 +111,7 @@ async function importStravaDataHandler(job) {
       await ImportJob.markRateLimited(jobId, error.retryAfter);
 
       // Schedule delayed retry via pg-boss
-      const delayMs = new Date(error.retryAfter) - new Date();
-      const { getQueue } = require('./queue');
+      const delayMs = Math.max(0, new Date(error.retryAfter) - new Date());
       const boss = getQueue();
       await boss.send('import-strava-data', job.data, {
         startAfter: delayMs,
