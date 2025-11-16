@@ -198,6 +198,36 @@ class ImportJob {
   }
 
   /**
+   * Mark job as rate limited with retry time
+   */
+  static async markRateLimited(jobId, retryAfter) {
+    const query = `
+      UPDATE import_jobs
+      SET status = 'rate_limited', retry_after = $2, updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `;
+
+    const result = await db.query(query, [jobId, retryAfter]);
+    return result.rows[0];
+  }
+
+  /**
+   * Update sync cursor for resumable imports
+   */
+  static async updateCursor(jobId, cursor) {
+    const query = `
+      UPDATE import_jobs
+      SET sync_cursor = $2, updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `;
+
+    const result = await db.query(query, [jobId, JSON.stringify(cursor)]);
+    return result.rows[0];
+  }
+
+  /**
    * Delete old completed/failed jobs (for cleanup)
    * @param {number} daysOld - Delete jobs older than this many days
    * @returns {Promise<number>} Number of deleted jobs
