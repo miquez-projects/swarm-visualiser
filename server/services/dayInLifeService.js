@@ -8,6 +8,7 @@ const GarminActivity = require('../models/garminActivity');
 const GarminDailySteps = require('../models/garminDailySteps');
 const GarminDailyHeartRate = require('../models/garminDailyHeartRate');
 const GarminDailySleep = require('../models/garminDailySleep');
+const GarminDailyCalories = require('../models/garminDailyCalories');
 
 /**
  * Day in Life Service
@@ -81,6 +82,7 @@ async function getDayInLife(userId, date, latitude = null, longitude = null) {
       dailySteps,
       dailyHeartRate,
       dailySleep,
+      dailyCalories,
       weather
     ] = await Promise.allSettled([
       // Check-ins (uses startDate/endDate filters)
@@ -100,6 +102,7 @@ async function getDayInLife(userId, date, latitude = null, longitude = null) {
       GarminDailySteps.findByUserAndDateRange(userId, date, date),
       GarminDailyHeartRate.findByUserAndDateRange(userId, date, date),
       GarminDailySleep.findByUserAndDateRange(userId, date, date),
+      GarminDailyCalories.findByUserAndDateRange(userId, date, date),
 
       // Weather data (only if lat/lng provided)
       latitude && longitude
@@ -114,6 +117,7 @@ async function getDayInLife(userId, date, latitude = null, longitude = null) {
     const stepsData = dailySteps.status === 'fulfilled' ? dailySteps.value : [];
     const heartRateData = dailyHeartRate.status === 'fulfilled' ? dailyHeartRate.value : [];
     const sleepData = dailySleep.status === 'fulfilled' ? dailySleep.value : [];
+    const caloriesData = dailyCalories.status === 'fulfilled' ? dailyCalories.value : [];
     const weatherData = weather.status === 'fulfilled' ? weather.value : null;
 
     // Combine activities from both sources
@@ -138,9 +142,9 @@ async function getDayInLife(userId, date, latitude = null, longitude = null) {
         min: heartRateData[0].min_heart_rate,
         max: heartRateData[0].max_heart_rate
       } : null,
-      calories: {
-        total: allActivities.reduce((sum, a) => sum + (a.calories || 0), 0)
-      }
+      calories: caloriesData[0] ? {
+        total: caloriesData[0].total_calories
+      } : null
     };
 
     // Generate events with grouping
