@@ -1,6 +1,7 @@
 const User = require('../models/user');
 const ImportJob = require('../models/importJob');
 const stravaSync = require('../services/stravaSync');
+const { RateLimitError } = require('../services/stravaRateLimitService');
 
 /**
  * Background job handler for importing Strava data
@@ -24,14 +25,32 @@ async function importStravaDataHandler(job) {
       throw new Error('No Strava OAuth tokens found');
     }
 
+    // Check for existing cursor (resuming partial import)
+    const existingJob = await ImportJob.findById(jobId);
+    const cursor = existingJob.sync_cursor;
+
+    if (cursor) {
+      console.log(`[STRAVA JOB] Resuming job ${jobId} from cursor:`, cursor);
+    }
+
     let result;
 
     if (syncType === 'full') {
       // Full historical sync - all activities
-      result = await stravaSync.fullHistoricalSync(encryptedTokens, userId, async (progress) => {
+      result = await stravaSync.fullHistoricalSync(encryptedTokens, userId, cursor, async (progress) => {
         console.log(`Strava import ${jobId}: Progress update`, progress);
+
+        // Update cursor if we have timestamp
+        if (progress.oldestActivityTimestamp) {
+          await ImportJob.updateCursor(jobId, {
+            before: progress.oldestActivityTimestamp,
+            activities_imported: progress.inserted || 0,
+            photos_imported: 0
+          });
+        }
+
         await ImportJob.update(jobId, {
-          totalImported: progress.inserted || 0,  // Use actual inserted count, not fetched
+          totalImported: progress.inserted || 0,
           currentBatch: progress.detailed || 0
         });
       });
@@ -41,10 +60,20 @@ async function importStravaDataHandler(job) {
       const lastSyncDate = user.last_strava_sync_at;
       console.log(`[STRAVA JOB] User ${userId}: last_strava_sync_at = ${lastSyncDate}`);
 
-      result = await stravaSync.incrementalSync(encryptedTokens, userId, lastSyncDate, async (progress) => {
+      result = await stravaSync.incrementalSync(encryptedTokens, userId, lastSyncDate, cursor, async (progress) => {
         console.log(`Strava import ${jobId}: Progress update`, progress);
+
+        // Update cursor if we have timestamp
+        if (progress.oldestActivityTimestamp) {
+          await ImportJob.updateCursor(jobId, {
+            before: progress.oldestActivityTimestamp,
+            activities_imported: progress.inserted || 0,
+            photos_imported: 0
+          });
+        }
+
         await ImportJob.update(jobId, {
-          totalImported: progress.inserted || 0,  // Use actual inserted count, not fetched
+          totalImported: progress.inserted || 0,
           currentBatch: progress.detailed || 0
         });
       });
@@ -73,6 +102,25 @@ async function importStravaDataHandler(job) {
 
   } catch (error) {
     console.error(`Strava import job ${jobId} failed:`, error);
+
+    if (error.name === 'RateLimitError') {
+      // Don't fail - schedule retry
+      console.log(`[STRAVA JOB] Rate limit hit (${error.window}). Auto-retry at ${error.retryAfter}`);
+
+      await ImportJob.markRateLimited(jobId, error.retryAfter);
+
+      // Schedule delayed retry via pg-boss
+      const delayMs = new Date(error.retryAfter) - new Date();
+      const { getQueue } = require('./queue');
+      const boss = getQueue();
+      await boss.send('import-strava-data', job.data, {
+        startAfter: delayMs,
+        singletonKey: `strava-sync-${userId}` // Prevent duplicate jobs
+      });
+
+      console.log(`[STRAVA JOB] Scheduled retry in ${Math.round(delayMs / 1000)} seconds`);
+      return; // Exit cleanly, no throw
+    }
 
     // Mark job as failed
     await ImportJob.markFailed(jobId, error.message);
