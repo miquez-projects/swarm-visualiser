@@ -155,7 +155,31 @@ class StravaActivity {
         strava_url
       )
       VALUES ${valuesClauses.join(', ')}
-      ON CONFLICT (user_id, strava_activity_id) DO NOTHING
+      ON CONFLICT (user_id, strava_activity_id) DO UPDATE SET
+        activity_type = EXCLUDED.activity_type,
+        activity_name = EXCLUDED.activity_name,
+        description = EXCLUDED.description,
+        start_time = EXCLUDED.start_time,
+        start_latlng = EXCLUDED.start_latlng,
+        end_latlng = EXCLUDED.end_latlng,
+        duration_seconds = EXCLUDED.duration_seconds,
+        moving_time_seconds = EXCLUDED.moving_time_seconds,
+        distance_meters = EXCLUDED.distance_meters,
+        total_elevation_gain = EXCLUDED.total_elevation_gain,
+        calories = EXCLUDED.calories,
+        avg_speed = EXCLUDED.avg_speed,
+        max_speed = EXCLUDED.max_speed,
+        avg_heart_rate = EXCLUDED.avg_heart_rate,
+        max_heart_rate = EXCLUDED.max_heart_rate,
+        avg_cadence = EXCLUDED.avg_cadence,
+        avg_watts = EXCLUDED.avg_watts,
+        tracklog = EXCLUDED.tracklog,
+        is_private = EXCLUDED.is_private,
+        kudos_count = EXCLUDED.kudos_count,
+        comment_count = EXCLUDED.comment_count,
+        photo_count = EXCLUDED.photo_count,
+        achievement_count = EXCLUDED.achievement_count,
+        strava_url = EXCLUDED.strava_url
       RETURNING id
     `;
 
