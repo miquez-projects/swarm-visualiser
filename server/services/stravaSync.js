@@ -33,7 +33,9 @@ class StravaSyncService {
       while (true) {
         // Check quota before fetching
         const canProceed = await rateLimitService.checkQuota(userId);
+        console.log(`[STRAVA SYNC] Quota check for user ${userId}:`, JSON.stringify(canProceed));
         if (!canProceed.allowed) {
+          console.log(`[STRAVA SYNC] RATE LIMIT HIT - limitType: ${canProceed.limitType}, resetAt: ${canProceed.resetAt}`);
           throw new RateLimitError({
             window: canProceed.limitType,
             retryAfter: canProceed.resetAt

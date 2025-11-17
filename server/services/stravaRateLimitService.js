@@ -43,9 +43,11 @@ class StravaRateLimitService {
     `, [userId]);
 
     const shortCount = parseInt(shortWindow.rows[0].count, 10);
+    console.log(`[RATE LIMIT] User ${userId} - 15min: ${shortCount}/${this.limits.short.max}`);
 
     if (shortCount >= this.limits.short.max) {
       const resetAt = await this.getResetTime('short', userId);
+      console.log(`[RATE LIMIT] 15min limit exceeded! Reset at: ${resetAt}`);
       return {
         allowed: false,
         limitType: '15min',
@@ -61,9 +63,11 @@ class StravaRateLimitService {
     `, [userId]);
 
     const dailyCount = parseInt(dailyWindow.rows[0].count, 10);
+    console.log(`[RATE LIMIT] User ${userId} - 24hrs: ${dailyCount}/${this.limits.daily.max}`);
 
     if (dailyCount >= this.limits.daily.max) {
       const resetAt = await this.getResetTime('daily', userId);
+      console.log(`[RATE LIMIT] 24hr limit exceeded! Reset at: ${resetAt}`);
       return {
         allowed: false,
         limitType: 'daily',
@@ -71,6 +75,7 @@ class StravaRateLimitService {
       };
     }
 
+    console.log(`[RATE LIMIT] Quota check passed`);
     return { allowed: true };
   }
 
