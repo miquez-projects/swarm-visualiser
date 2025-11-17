@@ -3,6 +3,7 @@ const GarminActivity = require('../models/garminActivity');
 const GarminDailySteps = require('../models/garminDailySteps');
 const GarminDailyHeartRate = require('../models/garminDailyHeartRate');
 const GarminDailySleep = require('../models/garminDailySleep');
+const { getTimezoneFromCoordinates } = require('../utils/timezoneUtils');
 
 class GarminSyncService {
   /**
@@ -183,6 +184,9 @@ class GarminSyncService {
   transformActivity(activity, userId) {
     // Build tracklog if coordinates exist
     let tracklog = null;
+    let startLat = null;
+    let startLon = null;
+
     if (activity.geoPolylineDTO && activity.geoPolylineDTO.polyline) {
       // Decode polyline to coordinates
       const coords = this.decodePolyline(activity.geoPolylineDTO.polyline);
@@ -191,8 +195,14 @@ class GarminSyncService {
           .map(([lat, lon]) => `${lon} ${lat}`)
           .join(',');
         tracklog = `LINESTRING(${lineString})`;
+
+        // Get start coordinates for timezone lookup
+        [startLat, startLon] = coords[0];
       }
     }
+
+    // Calculate timezone from start location
+    const timezone = (startLat && startLon) ? getTimezoneFromCoordinates(startLat, startLon) : null;
 
     return {
       user_id: userId,
@@ -206,6 +216,7 @@ class GarminSyncService {
       avg_heart_rate: activity.averageHeartRateInBeatsPerMinute,
       max_heart_rate: activity.maxHeartRateInBeatsPerMinute,
       tracklog,
+      timezone: timezone,
       garmin_url: `https://connect.garmin.com/modern/activity/${activity.activityId}`
     };
   }

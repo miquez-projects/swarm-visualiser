@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { getTimezoneFromCoordinates } = require('../utils/timezoneUtils');
 
 const FOURSQUARE_API_BASE = 'https://api.foursquare.com/v2';
 const BATCH_SIZE = 100; // Fetch 100 check-ins per request
@@ -134,6 +135,9 @@ function transformCheckin(checkin, userId) {
     });
   }
 
+  // Calculate timezone from coordinates
+  const timezone = getTimezoneFromCoordinates(location.lat, location.lng);
+
   return {
     user_id: userId,
     venue_id: venue.id,
@@ -144,6 +148,7 @@ function transformCheckin(checkin, userId) {
     checkin_date: new Date(checkin.createdAt * 1000), // Convert Unix timestamp to Date
     city: location.city || null,
     country: location.country || null,
+    timezone: timezone,
     photos: photos
   };
 }

@@ -3,6 +3,7 @@ const { StravaRateLimitService, RateLimitError } = require('./stravaRateLimitSer
 const rateLimitService = new StravaRateLimitService();
 const StravaActivity = require('../models/stravaActivity');
 const StravaActivityPhoto = require('../models/stravaActivityPhoto');
+const { getTimezoneFromPoint } = require('../utils/timezoneUtils');
 
 class StravaSyncService {
   /**
@@ -384,15 +385,20 @@ class StravaSyncService {
     // Helper function to safely convert to integer (Strava returns decimals for some integer fields)
     const toInt = (value) => value != null ? Math.round(value) : null;
 
+    // Calculate timezone from start location
+    // Prefer start_date_local from Strava as it already has local time
+    const timezone = startLatlng ? getTimezoneFromPoint(startLatlng) : null;
+
     return {
       user_id: userId,
       strava_activity_id: String(activity.id),
       activity_type: this.mapActivityType(activity.type || activity.sport_type),
       activity_name: activity.name,
       description: activity.description,
-      start_time: new Date(activity.start_date || activity.start_date_local),
+      start_time: new Date(activity.start_date_local || activity.start_date), // Prefer local time
       start_latlng: startLatlng,
       end_latlng: endLatlng,
+      timezone: timezone,
       duration_seconds: toInt(activity.elapsed_time),
       moving_time_seconds: toInt(activity.moving_time),
       distance_meters: activity.distance,
