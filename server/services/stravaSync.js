@@ -222,12 +222,25 @@ class StravaSyncService {
         const activity = activitiesWithPhotos[i];
 
         try {
+          // Check quota before fetching photos
+          const canProceed = await rateLimitService.checkQuota(userId);
+          if (!canProceed.allowed) {
+            console.log(`[STRAVA SYNC] Rate limit hit during photo sync, processed ${i}/${activitiesWithPhotos.length} activities`);
+            throw new RateLimitError({
+              window: canProceed.limitType,
+              retryAfter: canProceed.resetAt
+            });
+          }
+
           // Fetch photos for this activity
           const response = await stravaOAuth.makeAuthenticatedRequest(
             encryptedTokens,
             `/activities/${activity.strava_activity_id}/photos`,
             { size: 600 } // Get 600px size URLs
           );
+
+          // Record the API request
+          await rateLimitService.recordRequest(userId, '/activities/*/photos');
 
           // Handle token refresh - response may be {data, newEncryptedTokens} or just data
           let photos;
@@ -266,6 +279,11 @@ class StravaSyncService {
             });
           }
         } catch (error) {
+          // If it's a rate limit error, re-throw to pause the job
+          if (error.name === 'RateLimitError') {
+            throw error;
+          }
+          // Otherwise just log and continue with next activity
           console.error(`[STRAVA SYNC] Failed to fetch photos for activity ${activity.strava_activity_id}:`, error.message);
         }
       }
@@ -277,6 +295,10 @@ class StravaSyncService {
         photosInserted: totalPhotosInserted
       };
     } catch (error) {
+      // Re-throw rate limit errors to pause the job
+      if (error.name === 'RateLimitError') {
+        throw error;
+      }
       console.error(`[STRAVA SYNC] Photo sync error:`, error.message);
       throw error;
     }
