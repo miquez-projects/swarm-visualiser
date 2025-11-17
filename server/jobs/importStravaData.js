@@ -111,10 +111,11 @@ async function importStravaDataHandler(job) {
       await ImportJob.markRateLimited(jobId, error.retryAfter);
 
       // Schedule delayed retry via pg-boss
-      const delayMs = Math.max(0, new Date(error.retryAfter) - new Date());
+      const retryDate = new Date(error.retryAfter);
+      const delayMs = Math.max(0, retryDate - new Date());
       const boss = getQueue();
       await boss.send('import-strava-data', job.data, {
-        startAfter: delayMs,
+        startAfter: retryDate, // pg-boss expects a Date object
         singletonKey: `strava-sync-${userId}` // Prevent duplicate jobs
       });
 
