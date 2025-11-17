@@ -203,7 +203,7 @@ class ImportJob {
   static async markRateLimited(jobId, retryAfter) {
     const query = `
       UPDATE import_jobs
-      SET status = 'rate_limited', retry_after = $2, updated_at = NOW()
+      SET status = 'rate_limited', retry_after = $2
       WHERE id = $1
       RETURNING *
     `;
@@ -218,7 +218,7 @@ class ImportJob {
   static async updateCursor(jobId, cursor) {
     const query = `
       UPDATE import_jobs
-      SET sync_cursor = $2, updated_at = NOW()
+      SET sync_cursor = $2
       WHERE id = $1
       RETURNING *
     `;
