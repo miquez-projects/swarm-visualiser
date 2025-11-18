@@ -1,35 +1,62 @@
-import { formatInTimeZone } from 'date-fns-tz';
-
 /**
- * Format a date/time in the timezone where it occurred
+ * Format a date/time in the timezone where it occurred using native Intl API
  * @param {string|Date} date - ISO date string or Date object
  * @param {string} timezone - IANA timezone (e.g., "America/Guatemala", "Asia/Tokyo")
- * @param {string} format - date-fns format string
+ * @param {string} format - Format type: 'HH:mm', 'date', or 'datetime'
  * @returns {string} Formatted date/time in local timezone
  */
 export function formatInLocalTimeZone(date, timezone, format = 'HH:mm') {
   if (!date) return '';
 
+  const d = new Date(date);
+
   // If no timezone provided, fall back to browser's timezone
   if (!timezone) {
     console.warn('[TIMEZONE] No timezone provided for date:', date);
-    const d = new Date(date);
     if (format === 'HH:mm') {
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
     }
     return d.toLocaleDateString();
   }
 
   try {
-    const result = formatInTimeZone(date, timezone, format);
-    console.log('[TIMEZONE] Formatted', date, 'in', timezone, 'as', result);
-    return result;
+    // Use Intl.DateTimeFormat for reliable timezone conversion
+    if (format === 'HH:mm') {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      const result = formatter.format(d);
+      console.log('[TIMEZONE] Formatted', date, 'in', timezone, 'as', result);
+      return result;
+    } else if (format === 'datetime') {
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      return formatter.format(d);
+    } else {
+      // Date only
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+      return formatter.format(d);
+    }
   } catch (error) {
     console.error('Error formatting date in timezone:', error, 'date:', date, 'timezone:', timezone);
     // Fallback to default formatting
-    const d = new Date(date);
     if (format === 'HH:mm') {
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
     }
     return d.toLocaleDateString();
   }
@@ -52,7 +79,7 @@ export function formatTimeInLocalZone(date, timezone) {
  * @returns {string}
  */
 export function formatDateInLocalZone(date, timezone) {
-  return formatInLocalTimeZone(date, timezone, 'MMM d, yyyy');
+  return formatInLocalTimeZone(date, timezone, 'date');
 }
 
 /**
@@ -62,5 +89,5 @@ export function formatDateInLocalZone(date, timezone) {
  * @returns {string}
  */
 export function formatDateTimeInLocalZone(date, timezone) {
-  return formatInLocalTimeZone(date, timezone, 'MMM d, yyyy HH:mm');
+  return formatInLocalTimeZone(date, timezone, 'datetime');
 }
