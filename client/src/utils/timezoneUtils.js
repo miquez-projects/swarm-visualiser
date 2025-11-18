@@ -12,21 +12,24 @@ export function formatInLocalTimeZone(date, timezone, format = 'HH:mm') {
 
   // If no timezone provided, fall back to browser's timezone
   if (!timezone) {
+    console.warn('[TIMEZONE] No timezone provided for date:', date);
     const d = new Date(date);
     if (format === 'HH:mm') {
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     }
     return d.toLocaleDateString();
   }
 
   try {
-    return formatInTimeZone(date, timezone, format);
+    const result = formatInTimeZone(date, timezone, format);
+    console.log('[TIMEZONE] Formatted', date, 'in', timezone, 'as', result);
+    return result;
   } catch (error) {
-    console.error('Error formatting date in timezone:', error);
+    console.error('Error formatting date in timezone:', error, 'date:', date, 'timezone:', timezone);
     // Fallback to default formatting
     const d = new Date(date);
     if (format === 'HH:mm') {
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     }
     return d.toLocaleDateString();
   }
