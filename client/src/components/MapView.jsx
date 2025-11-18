@@ -5,6 +5,7 @@ import { Box, Typography, Chip, CircularProgress, Modal, IconButton, Link, Tabs,
 import { Room, Close, CalendarMonth } from '@mui/icons-material';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import VenuePhotosGallery from './VenuePhotosGallery';
+import { formatDateInLocalZone } from '../utils/timezoneUtils';
 
 const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -366,10 +367,16 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
                   Visited {selectedVenue.checkins.length} {selectedVenue.checkins.length === 1 ? 'time' : 'times'}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" display="block">
-                  First: {new Date(selectedVenue.checkins.sort((a,b) => new Date(a.checkin_date) - new Date(b.checkin_date))[0].checkin_date).toLocaleDateString()}
+                  First: {(() => {
+                    const firstCheckin = selectedVenue.checkins.sort((a,b) => new Date(a.checkin_date) - new Date(b.checkin_date))[0];
+                    return formatDateInLocalZone(firstCheckin.checkin_date, firstCheckin.timezone);
+                  })()}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" display="block">
-                  Last: {new Date(selectedVenue.checkins.sort((a,b) => new Date(b.checkin_date) - new Date(a.checkin_date))[0].checkin_date).toLocaleDateString()}
+                  Last: {(() => {
+                    const lastCheckin = selectedVenue.checkins.sort((a,b) => new Date(b.checkin_date) - new Date(a.checkin_date))[0];
+                    return formatDateInLocalZone(lastCheckin.checkin_date, lastCheckin.timezone);
+                  })()}
                 </Typography>
               </Box>
               <Link

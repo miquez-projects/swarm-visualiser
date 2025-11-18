@@ -1,6 +1,7 @@
 import React from 'react';
 import { Paper, Typography, Box, Link } from '@mui/material';
 import { Map as MapIcon } from '@mui/icons-material';
+import { formatTimeInLocalZone } from '../../utils/timezoneUtils';
 
 const CheckinEventTile = ({ event, onPhotoClick, authToken }) => {
   return (
@@ -46,7 +47,7 @@ const CheckinEventTile = ({ event, onPhotoClick, authToken }) => {
           {event.checkins.map((checkin, idx) => (
             <Box key={idx} sx={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column' }}>
               <Typography variant="caption" display="block">
-                {new Date(checkin.checkin_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {formatTimeInLocalZone(checkin.checkin_date, checkin.timezone)}
               </Typography>
               <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'primary.main', mx: 'auto', my: 1 }} />
               <Typography variant="caption" display="block" sx={{ mb: 1 }}>
