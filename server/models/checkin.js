@@ -132,7 +132,7 @@ class Checkin {
           FLOOR(longitude * 10)
         )
         id, venue_id, venue_name, venue_category,
-        latitude, longitude, checkin_date,
+        latitude, longitude, checkin_date, timezone,
         city, country
         FROM checkins
         ${whereClause}
@@ -149,7 +149,7 @@ class Checkin {
       dataQuery = `
         SELECT
           id, venue_id, venue_name, venue_category,
-          latitude, longitude, checkin_date,
+          latitude, longitude, checkin_date, timezone,
           city, country
         FROM checkins
         ${whereClause}
