@@ -97,9 +97,20 @@ class GarminActivity {
 
   /**
    * Find activities by user and date range
+   * @param {string} userId - User ID
+   * @param {string} startDateOrLocalDate - Either ISO timestamp (for UTC range) or YYYY-MM-DD (for local date)
+   * @param {string} endDate - Optional: ISO timestamp (required if using UTC range, omit for local date)
    */
-  static async findByUserAndDateRange(userId, startDate, endDate) {
-    const query = `
+  static async findByUserAndDateRange(userId, startDateOrLocalDate, endDate = null) {
+    // If endDate is null, treat startDateOrLocalDate as a local date (YYYY-MM-DD)
+    const isLocalDate = !endDate && /^\d{4}-\d{2}-\d{2}$/.test(startDateOrLocalDate);
+
+    const query = isLocalDate ? `
+      SELECT * FROM garmin_activities
+      WHERE user_id = $1
+        AND DATE(start_time AT TIME ZONE timezone) = $2
+      ORDER BY start_time ASC
+    ` : `
       SELECT * FROM garmin_activities
       WHERE user_id = $1
         AND start_time >= $2
@@ -107,7 +118,8 @@ class GarminActivity {
       ORDER BY start_time DESC
     `;
 
-    const result = await db.query(query, [userId, startDate, endDate]);
+    const params = isLocalDate ? [userId, startDateOrLocalDate] : [userId, startDateOrLocalDate, endDate];
+    const result = await db.query(query, params);
     return result.rows;
   }
 

@@ -3,7 +3,7 @@ const db = require('../db/connection');
 class Checkin {
   /**
    * Find check-ins with optional filters and pagination
-   * @param {Object} filters - { userId, startDate, endDate, category, country, city, search, bounds, zoom, limit, offset }
+   * @param {Object} filters - { userId, startDate, endDate, localDate, category, country, city, search, bounds, zoom, limit, offset }
    * @returns {Promise<{data: Array, total: number}>}
    */
   static async find(filters = {}) {
@@ -11,6 +11,7 @@ class Checkin {
       userId,
       startDate,
       endDate,
+      localDate,  // NEW - filter by local date instead of UTC
       category,
       country,
       city,
@@ -40,14 +41,22 @@ class Checkin {
       params.push(userId);
     }
 
-    if (startDate) {
-      conditions.push(`checkin_date >= $${paramIndex++}`);
-      params.push(startDate);
-    }
+    // Local date filtering (preferred for Day in Life queries)
+    // Converts UTC timestamp to local timezone, extracts date, and compares
+    if (localDate) {
+      conditions.push(`DATE(checkin_date AT TIME ZONE timezone) = $${paramIndex++}`);
+      params.push(localDate);
+    } else {
+      // Fallback to UTC date filtering (for map queries)
+      if (startDate) {
+        conditions.push(`checkin_date >= $${paramIndex++}`);
+        params.push(startDate);
+      }
 
-    if (endDate) {
-      conditions.push(`checkin_date <= $${paramIndex++}`);
-      params.push(endDate);
+      if (endDate) {
+        conditions.push(`checkin_date <= $${paramIndex++}`);
+        params.push(endDate);
+      }
     }
 
     if (category) {

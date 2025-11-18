@@ -85,18 +85,17 @@ async function getDayInLife(userId, date, latitude = null, longitude = null) {
       dailyCalories,
       weather
     ] = await Promise.allSettled([
-      // Check-ins (uses startDate/endDate filters)
+      // Check-ins (uses localDate filter to get all check-ins on this local date regardless of timezone)
       Checkin.find({
         userId,
-        startDate: startTime,
-        endDate: endTime
+        localDate: date  // Use local date instead of UTC timestamps
       }),
 
-      // Strava activities
-      StravaActivity.findByUserAndDateRange(userId, startTime, endTime),
+      // Strava activities (use local date to match check-ins)
+      StravaActivity.findByUserAndDateRange(userId, date),
 
-      // Garmin activities
-      GarminActivity.findByUserAndDateRange(userId, startTime, endTime),
+      // Garmin activities (use local date to match check-ins)
+      GarminActivity.findByUserAndDateRange(userId, date),
 
       // Daily metrics (use date format YYYY-MM-DD)
       GarminDailySteps.findByUserAndDateRange(userId, date, date),
