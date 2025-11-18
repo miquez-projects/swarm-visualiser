@@ -60,8 +60,9 @@ async function backfillStravaActivities() {
   console.log('[BACKFILL] Starting Strava activities timezone backfill...');
 
   // Get all Strava activities with start coordinates but no timezone
+  // Use ST_AsText to convert geography to WKT string
   const result = await db.query(`
-    SELECT id, start_latlng
+    SELECT id, ST_AsText(start_latlng) as start_point
     FROM strava_activities
     WHERE timezone IS NULL
       AND start_latlng IS NOT NULL
@@ -76,7 +77,8 @@ async function backfillStravaActivities() {
 
   for (const activity of activities) {
     try {
-      const timezone = getTimezoneFromPoint(activity.start_latlng);
+      // start_point is now WKT format like "POINT(-0.085338 51.480057)"
+      const timezone = getTimezoneFromPoint(activity.start_point);
 
       if (timezone) {
         await db.query(
@@ -105,8 +107,9 @@ async function backfillGarminActivities() {
   console.log('[BACKFILL] Starting Garmin activities timezone backfill...');
 
   // Get all Garmin activities with tracklog but no timezone
+  // Cast geography to geometry, then get start point, then convert to WKT
   const result = await db.query(`
-    SELECT id, ST_AsText(ST_StartPoint(tracklog)) as start_point
+    SELECT id, ST_AsText(ST_StartPoint(tracklog::geometry)) as start_point
     FROM garmin_activities
     WHERE timezone IS NULL
       AND tracklog IS NOT NULL
@@ -121,6 +124,7 @@ async function backfillGarminActivities() {
 
   for (const activity of activities) {
     try {
+      // start_point is WKT format like "POINT(-0.085338 51.480057)"
       const timezone = getTimezoneFromPoint(activity.start_point);
 
       if (timezone) {
