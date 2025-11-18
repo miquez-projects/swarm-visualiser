@@ -300,27 +300,27 @@ async function generateEvents(checkins, activities) {
     }
   }
 
-  // Helper function to get a sortable time value based on local time
+  // Helper function to calculate local time for sorting
   // For Day in Life view, we want events ordered by local time, not UTC
-  const getLocalTimeSortValue = (event) => {
-    const utcTime = event.type === 'checkin'
-      ? new Date(event.data.checkin_date)
-      : event.data.startTime;
+  const getLocalTime = (event) => {
+    if (event.type === 'checkin') {
+      const utcTime = new Date(event.data.checkin_date);
+      const timezone = event.data.timezone;
+      if (!timezone) return utcTime;
 
-    const timezone = event.data.timezone;
-    if (!timezone) return utcTime.getTime();
+      // Get timezone offset in minutes (positive for west of UTC, negative for east)
+      // For example: America/Guatemala is UTC-6, so offset is +360 minutes
+      const localTimeString = utcTime.toLocaleString('en-US', { timeZone: timezone });
+      return new Date(localTimeString);
+    } else {
+      // Activity
+      const utcTime = event.data.startTime;
+      const timezone = event.data.timezone;
+      if (!timezone) return utcTime;
 
-    // Get the time components in the target timezone
-    const year = utcTime.toLocaleString('en-US', { timeZone: timezone, year: 'numeric' });
-    const month = utcTime.toLocaleString('en-US', { timeZone: timezone, month: '2-digit' });
-    const day = utcTime.toLocaleString('en-US', { timeZone: timezone, day: '2-digit' });
-    const hour = utcTime.toLocaleString('en-US', { timeZone: timezone, hour: '2-digit', hour12: false });
-    const minute = utcTime.toLocaleString('en-US', { timeZone: timezone, minute: '2-digit' });
-    const second = utcTime.toLocaleString('en-US', { timeZone: timezone, second: '2-digit' });
-
-    // Create a sortable numeric value: YYYYMMDDHHMM
-    // This ensures proper chronological ordering within the local day
-    return parseInt(`${year}${month}${day}${hour.padStart(2, '0')}${minute}${second}`) ;
+      const localTimeString = utcTime.toLocaleString('en-US', { timeZone: timezone });
+      return new Date(localTimeString);
+    }
   };
 
   // Second pass: create events in local time order (for Day in Life view)
@@ -330,8 +330,8 @@ async function generateEvents(checkins, activities) {
     ...standAloneCheckins.map(c => ({ type: 'checkin', time: new Date(c.checkin_date), data: c }))
   ].sort((a, b) => {
     // Sort by local time for Day in Life view
-    const aLocal = getLocalTimeSortValue(a);
-    const bLocal = getLocalTimeSortValue(b);
+    const aLocal = getLocalTime(a);
+    const bLocal = getLocalTime(b);
     return aLocal - bLocal;
   });
 
