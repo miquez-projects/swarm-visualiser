@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
-import { Box, Typography, Paper, IconButton, Tooltip, Chip } from '@mui/material';
-import { ContentCopy, Room } from '@mui/icons-material';
+import { Box, Typography, Paper, IconButton, Chip } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import { Copy, MapPin } from '@phosphor-icons/react';
 import { parseVenueMentions } from './venueParser';
 import PropTypes from 'prop-types';
 
 function ChatMessage({ role, content, timestamp, onVenueClick }) {
+  const theme = useTheme();
   const isUser = role === 'user';
 
   const parsedContent = useMemo(
@@ -25,13 +27,11 @@ function ChatMessage({ role, content, timestamp, onVenueClick }) {
       }}
     >
       <Paper
-        elevation={1}
         sx={{
           maxWidth: '80%',
           p: 2,
-          bgcolor: isUser ? 'primary.main' : 'grey.100',
-          color: isUser ? 'primary.contrastText' : 'text.primary',
-          borderRadius: 2,
+          bgcolor: isUser ? '#252525' : 'rgba(45, 154, 140, 0.08)',
+          color: 'text.primary',
           position: 'relative',
           '&:hover .copy-button': {
             opacity: 1
@@ -45,7 +45,7 @@ function ChatMessage({ role, content, timestamp, onVenueClick }) {
             ) : (
               <Chip
                 key={i}
-                icon={<Room fontSize="small" />}
+                icon={<MapPin size={16} />}
                 label={part.venueName}
                 size="small"
                 clickable
@@ -54,10 +54,10 @@ function ChatMessage({ role, content, timestamp, onVenueClick }) {
                   mx: 0.5,
                   my: 0.25,
                   cursor: 'pointer',
-                  bgcolor: 'primary.light',
-                  color: 'primary.contrastText',
+                  bgcolor: 'secondary.main',
+                  color: 'secondary.contrastText',
                   '&:hover': {
-                    bgcolor: 'primary.main',
+                    bgcolor: 'secondary.dark',
                     transform: 'scale(1.05)'
                   },
                   transition: 'all 0.2s ease'
@@ -69,12 +69,12 @@ function ChatMessage({ role, content, timestamp, onVenueClick }) {
 
         {timestamp && (
           <Typography
-            variant="caption"
             sx={{
               display: 'block',
               mt: 0.5,
-              opacity: 0.7,
-              fontSize: '0.7rem'
+              fontFamily: theme.typography.fontFamilyMono,
+              fontSize: '0.75rem',
+              color: 'text.disabled',
             }}
           >
             {new Date(timestamp).toLocaleTimeString()}
@@ -86,18 +86,16 @@ function ChatMessage({ role, content, timestamp, onVenueClick }) {
             className="copy-button"
             size="small"
             onClick={handleCopy}
+            title="Copy"
             sx={{
               position: 'absolute',
               top: 4,
               right: 4,
               opacity: 0,
               transition: 'opacity 0.2s',
-              bgcolor: 'background.paper'
             }}
           >
-            <Tooltip title="Copy">
-              <ContentCopy fontSize="small" />
-            </Tooltip>
+            <Copy size={16} />
           </IconButton>
         )}
       </Paper>

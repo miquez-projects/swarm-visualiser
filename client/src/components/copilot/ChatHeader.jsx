@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, Typography, IconButton, Tooltip } from '@mui/material';
-import { Close, Minimize, Fullscreen, FullscreenExit, Delete } from '@mui/icons-material';
+import { Box, Typography, IconButton } from '@mui/material';
+import { Trash, ArrowsOut, ArrowsIn, Minus, X } from '@phosphor-icons/react';
 
 function ChatHeader({ onClose, onMinimize, onToggleExpand, isExpanded, onClear }) {
   return (
@@ -9,41 +9,28 @@ function ChatHeader({ onClose, onMinimize, onToggleExpand, isExpanded, onClear }
         p: 2,
         borderBottom: 1,
         borderColor: 'divider',
-        bgcolor: 'primary.main',
-        color: 'primary.contrastText',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        bgcolor: 'background.paper',
       }}
     >
-      <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-        Swarm Copilot
+      <Typography variant="h6" sx={{ fontWeight: 600 }}>
+        Copilot
       </Typography>
-
       <Box sx={{ display: 'flex', gap: 0.5 }}>
-        <Tooltip title="Clear history">
-          <IconButton size="small" onClick={onClear} sx={{ color: 'inherit' }}>
-            <Delete fontSize="small" />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title={isExpanded ? "Normal view" : "Expand"}>
-          <IconButton size="small" onClick={onToggleExpand} sx={{ color: 'inherit' }}>
-            {isExpanded ? <FullscreenExit fontSize="small" /> : <Fullscreen fontSize="small" />}
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title="Minimize">
-          <IconButton size="small" onClick={onMinimize} sx={{ color: 'inherit' }}>
-            <Minimize fontSize="small" />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title="Close">
-          <IconButton size="small" onClick={onClose} sx={{ color: 'inherit' }}>
-            <Close fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <IconButton size="small" onClick={onClear} title="Clear history">
+          <Trash size={18} />
+        </IconButton>
+        <IconButton size="small" onClick={onToggleExpand} title={isExpanded ? "Collapse" : "Expand"}>
+          {isExpanded ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
+        </IconButton>
+        <IconButton size="small" onClick={onMinimize} title="Minimize">
+          <Minus size={18} />
+        </IconButton>
+        <IconButton size="small" onClick={onClose} title="Close">
+          <X size={18} />
+        </IconButton>
       </Box>
     </Box>
   );

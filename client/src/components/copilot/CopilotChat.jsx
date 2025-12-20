@@ -9,7 +9,7 @@ import {
   Slide,
   Alert
 } from '@mui/material';
-import { Chat } from '@mui/icons-material';
+import { ChatCircle } from '@phosphor-icons/react';
 import ChatHeader from './ChatHeader';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
@@ -167,14 +167,13 @@ function CopilotChat({ token, onVenueClick }) {
             zIndex: 1000
           }}
         >
-          <Chat />
+          <ChatCircle size={24} />
         </Fab>
       )}
 
       {/* Chat Panel */}
       <Slide direction="up" in={isOpen} mountOnEnter unmountOnExit>
         <Paper
-          elevation={8}
           sx={{
             position: 'fixed',
             bottom: 24,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, TextField, IconButton } from '@mui/material';
-import { Send } from '@mui/icons-material';
+import { PaperPlaneTilt } from '@phosphor-icons/react';
 
 function ChatInput({ onSend, disabled }) {
   const [message, setMessage] = useState('');
@@ -51,7 +51,7 @@ function ChatInput({ onSend, disabled }) {
         disabled={disabled || !message.trim()}
         sx={{ alignSelf: 'flex-end' }}
       >
-        <Send />
+        <PaperPlaneTilt size={20} />
       </IconButton>
     </Box>
   );
