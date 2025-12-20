@@ -111,12 +111,15 @@ async function importStravaDataHandler(job) {
       await ImportJob.markRateLimited(jobId, error.retryAfter);
 
       // Schedule delayed retry via pg-boss
+      // NOTE: We don't use singletonKey here because:
+      // 1. The current job is still 'active' when we call boss.send()
+      // 2. pg-boss deduplicates active jobs with same singletonKey
+      // 3. This was causing retry jobs to be silently dropped
       const retryDate = new Date(error.retryAfter);
       const delayMs = Math.max(0, retryDate - new Date());
       const boss = getQueue();
       await boss.send('import-strava-data', job.data, {
-        startAfter: retryDate, // pg-boss expects a Date object
-        singletonKey: `strava-sync-${userId}` // Prevent duplicate jobs
+        startAfter: retryDate
       });
 
       console.log(`[STRAVA JOB] Scheduled retry in ${Math.round(delayMs / 1000)} seconds`);
