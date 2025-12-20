@@ -12,45 +12,46 @@
  */
 
 // Design system colors (keep in sync with theme.js)
+// Teal-tinted dark cartographic palette - classic nautical chart aesthetic
 const colors = {
-  // Base map colors
-  land: '#1a1a1a',
-  landAlt: '#1f1f1f', // for contrast in some areas
-  water: '#0d1117',
-  waterway: '#0d1117',
-  parks: '#1e2420',
-  buildings: '#252525',
+  // Base map colors - teal undertones throughout
+  land: '#1a2124',           // Dark with visible teal undertone
+  landAlt: '#1f2629',        // Slightly lighter for contrast
+  water: '#0c1518',          // Deep teal-navy (darker than land)
+  waterway: '#0c1518',
+  parks: '#162822',          // Muted teal-green, visible
+  buildings: '#232a2a',      // Teal-tinted gray
   roads: {
-    highway: '#2a2a2a',
-    major: '#242424',
-    minor: '#1e1e1e',
-    path: '#1a1a1a',
+    highway: '#2d3535',      // Teal-gray, visible against land
+    major: '#283030',
+    minor: '#222a2a',
+    path: '#1e2626',
   },
   boundaries: {
-    country: 'rgba(45, 154, 140, 0.3)',
-    state: 'rgba(45, 154, 140, 0.15)',
+    country: 'rgba(45, 154, 140, 0.45)',   // Prominent borders
+    state: 'rgba(45, 154, 140, 0.28)',
   },
 
-  // Contours
-  contour: 'rgba(45, 154, 140, 0.12)',
-  contourIndex: 'rgba(45, 154, 140, 0.2)', // every 5th contour
+  // Contours - visible topographic lines
+  contour: 'rgba(45, 154, 140, 0.22)',
+  contourIndex: 'rgba(45, 154, 140, 0.35)', // every 5th contour
 
   // Grid overlay
-  grid: 'rgba(45, 154, 140, 0.08)',
+  grid: 'rgba(45, 154, 140, 0.15)',
 
-  // Labels
+  // Labels - teal-gray for cartographic feel
   labels: {
-    country: '#666666',
-    state: '#555555',
-    city: '#777777',
-    town: '#666666',
-    village: '#555555',
-    street: '#444444',
-    poi: '#555555',
+    country: '#6a8585',
+    state: '#5c7575',
+    city: '#7a9595',
+    town: '#6a8585',
+    village: '#5c7575',
+    street: '#4d6565',
+    poi: '#5c7575',
   },
 
-  // Label halos (for readability)
-  halo: 'rgba(18, 18, 18, 0.8)',
+  // Label halos (teal-tinted dark)
+  halo: 'rgba(18, 24, 24, 0.85)',
 };
 
 // Typography settings
