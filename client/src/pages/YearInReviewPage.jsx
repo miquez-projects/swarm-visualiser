@@ -14,17 +14,19 @@ import {
   CircularProgress,
   Alert
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import {
-  LocationOn,
-  Public,
-  Business,
-  Category,
-  Event,
-  EmojiEvents
-} from '@mui/icons-material';
+  MapPin,
+  Globe,
+  Buildings,
+  SquaresFour,
+  Calendar,
+  Trophy,
+} from '@phosphor-icons/react';
 import { getAvailableYears, getYearInReview, validateToken } from '../services/api';
 
 function YearInReviewPage() {
+  const theme = useTheme();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || localStorage.getItem('authToken');
 
@@ -125,7 +127,6 @@ function YearInReviewPage() {
 
   const StatTile = ({ icon, label, value, color = 'primary' }) => (
     <Paper
-      elevation={2}
       sx={{
         p: 3,
         display: 'flex',
@@ -133,17 +134,23 @@ function YearInReviewPage() {
         alignItems: 'center',
         justifyContent: 'center',
         minHeight: 150,
-        bgcolor: 'background.paper'
       }}
     >
-      <Box sx={{ color: `${color}.main`, mb: 1 }}>
+      <Box sx={{ color: 'secondary.main', mb: 1 }}>
         {icon}
       </Box>
-      <Typography variant="body2" color="text.secondary" gutterBottom>
+      <Typography variant="overline" color="text.secondary" gutterBottom>
         {label}
       </Typography>
-      <Typography variant="h3" component="div" sx={{ fontWeight: 'bold' }}>
-        {value?.toLocaleString() || 0}
+      <Typography
+        sx={{
+          fontFamily: theme.typography.fontFamilyMono,
+          fontSize: '2rem',
+          fontWeight: 500,
+          textAlign: 'center',
+        }}
+      >
+        {typeof value === 'number' ? value.toLocaleString() : value || 0}
       </Typography>
     </Paper>
   );
@@ -222,23 +229,20 @@ function YearInReviewPage() {
           <Box
             sx={{
               width: 200,
-              height: 4,
-              bgcolor: 'primary.main',
+              height: 2,
+              bgcolor: 'secondary.main',
               mx: 'auto',
               mt: 2,
-              borderRadius: 2
             }}
           />
         </Box>
 
         {/* Main Card */}
         <Card
-          elevation={3}
           sx={{
             maxWidth: 1200,
             mx: 'auto',
             p: { xs: 3, md: 5 },
-            bgcolor: 'background.paper'
           }}
         >
           {loading ? (
@@ -251,58 +255,52 @@ function YearInReviewPage() {
               <Grid container spacing={3} sx={{ mb: 4 }}>
                 <Grid item xs={12} sm={6} md={4}>
                   <StatTile
-                    icon={<LocationOn sx={{ fontSize: 40 }} />}
+                    icon={<MapPin size={40} weight="regular" />}
                     label="TOTAL CHECK-INS"
                     value={summary.total_checkins}
-                    color="primary"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
                   <StatTile
-                    icon={<Public sx={{ fontSize: 40 }} />}
+                    icon={<Globe size={40} weight="regular" />}
                     label="COUNTRIES"
                     value={summary.countries_count}
-                    color="success"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
                   <StatTile
-                    icon={<Business sx={{ fontSize: 40 }} />}
+                    icon={<Buildings size={40} weight="regular" />}
                     label="VENUES"
                     value={summary.venues_count}
-                    color="info"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
                   <StatTile
-                    icon={<Category sx={{ fontSize: 40 }} />}
+                    icon={<SquaresFour size={40} weight="regular" />}
                     label="CATEGORIES"
                     value={summary.categories_count}
-                    color="warning"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
                   <StatTile
-                    icon={<Event sx={{ fontSize: 40 }} />}
+                    icon={<Calendar size={40} weight="regular" />}
                     label="FIRST CHECK-IN"
                     value={formatDate(summary.first_checkin)}
-                    color="secondary"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={4}>
                   <StatTile
-                    icon={<Event sx={{ fontSize: 40 }} />}
+                    icon={<Calendar size={40} weight="regular" />}
                     label="LAST CHECK-IN"
                     value={formatDate(summary.last_checkin)}
-                    color="secondary"
                   />
                 </Grid>
               </Grid>
 
               {/* Countries Section */}
-              <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+              <Paper sx={{ p: 3, mb: 3 }}>
                 <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Public color="primary" />
+                  <Globe size={24} weight="regular" color={theme.palette.secondary.main} />
                   COUNTRIES VISITED
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
@@ -318,9 +316,9 @@ function YearInReviewPage() {
               </Paper>
 
               {/* Top Categories Section */}
-              <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
+              <Paper sx={{ p: 3, mb: 3 }}>
                 <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Category color="primary" />
+                  <SquaresFour size={24} weight="regular" color={theme.palette.secondary.main} />
                   TOP CATEGORIES
                 </Typography>
                 <Box sx={{ mt: 2 }}>
@@ -347,9 +345,9 @@ function YearInReviewPage() {
               </Paper>
 
               {/* Top Venues Section */}
-              <Paper elevation={1} sx={{ p: 3 }}>
+              <Paper sx={{ p: 3 }}>
                 <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <EmojiEvents color="primary" />
+                  <Trophy size={24} weight="regular" color={theme.palette.secondary.main} />
                   TOP VENUES
                 </Typography>
                 <Box sx={{ mt: 2 }}>
