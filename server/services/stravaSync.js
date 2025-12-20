@@ -3,6 +3,7 @@ const { StravaRateLimitService, RateLimitError } = require('./stravaRateLimitSer
 const rateLimitService = new StravaRateLimitService();
 const StravaActivity = require('../models/stravaActivity');
 const StravaActivityPhoto = require('../models/stravaActivityPhoto');
+const User = require('../models/user');
 const { getTimezoneFromPoint } = require('../utils/timezoneUtils');
 
 class StravaSyncService {
@@ -115,6 +116,12 @@ class StravaSyncService {
             const insertedCount = await StravaActivity.bulkInsert(activitiesToInsert);
             totalInserted += insertedCount;
             console.log(`[STRAVA SYNC] Pre-pause save: ${insertedCount} activities`);
+
+            // Update last_strava_sync_at immediately so next sync starts from correct point
+            if (insertedCount > 0) {
+              await User.updateLastStravaSync(userId);
+              console.log(`[STRAVA SYNC] Updated last_strava_sync_at after pre-pause save`);
+            }
             detailedActivities.length = 0;
           }
 
@@ -151,6 +158,11 @@ class StravaSyncService {
 
           console.log(`[STRAVA SYNC] Batch saved: ${insertedCount}/${activitiesToInsert.length} (total: ${totalInserted})`);
 
+          // Update last_strava_sync_at after each batch so progress is preserved
+          if (insertedCount > 0) {
+            await User.updateLastStravaSync(userId);
+          }
+
           // Update progress with oldest activity timestamp for cursor
           const oldestActivity = detailedActivities[detailedActivities.length - 1];
           const oldestTimestamp = Math.floor(new Date(oldestActivity.start_date).getTime() / 1000);
@@ -178,6 +190,11 @@ class StravaSyncService {
         totalInserted += insertedCount;
 
         console.log(`[STRAVA SYNC] Final batch saved: ${insertedCount}/${activitiesToInsert.length} activities`);
+
+        // Update last_strava_sync_at after final batch
+        if (insertedCount > 0) {
+          await User.updateLastStravaSync(userId);
+        }
       }
 
       console.log(`[STRAVA SYNC] Activity sync complete: ${totalInserted} imported, ${allActivities.length} fetched`);
