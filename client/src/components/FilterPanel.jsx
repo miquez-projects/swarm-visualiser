@@ -20,7 +20,7 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { FilterList, Clear, Fullscreen, FullscreenExit } from '@mui/icons-material';
+import { Funnel, X, ArrowsOut, ArrowsIn } from '@phosphor-icons/react';
 import { getFilterOptions } from '../services/api';
 
 // Custom listbox component for category dropdown with search and actions
@@ -251,14 +251,14 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
       <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <FilterList color="primary" />
-          <Typography variant="h6" component="h2" sx={{ flexGrow: 1 }}>
+          <Funnel size={24} weight="regular" color="currentColor" />
+          <Typography variant="h6" component="h2" sx={{ flexGrow: 1, fontWeight: 600 }}>
             Filters
           </Typography>
           {onToggleExpand && (
             <Tooltip title={isExpanded ? "Collapse" : "Expand Full Screen"}>
               <IconButton onClick={onToggleExpand} size="small">
-                {isExpanded ? <FullscreenExit /> : <Fullscreen />}
+                {isExpanded ? <ArrowsIn size={18} /> : <ArrowsOut size={18} />}
               </IconButton>
             </Tooltip>
           )}
@@ -459,7 +459,7 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
             variant="contained"
             color="primary"
             onClick={handleApplyFilters}
-            startIcon={<FilterList />}
+            startIcon={<Funnel size={18} />}
           >
             Apply Filters
           </Button>
@@ -468,7 +468,7 @@ function FilterPanel({ onFilterChange, initialFilters = {}, comparisonModeActive
             variant="outlined"
             color="secondary"
             onClick={handleClearFilters}
-            startIcon={<Clear />}
+            startIcon={<X size={18} />}
           >
             Clear
           </Button>
