@@ -95,6 +95,7 @@ const baseTheme = {
     background: {
       default: colors.backgroundPrimary,
       paper: colors.backgroundElevated,
+      surface: colors.backgroundSurface,
     },
     text: {
       primary: colors.textPrimary,
