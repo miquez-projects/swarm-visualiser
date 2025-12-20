@@ -108,7 +108,7 @@ class GarminActivity {
     const query = isLocalDate ? `
       SELECT * FROM garmin_activities
       WHERE user_id = $1
-        AND DATE(start_time AT TIME ZONE timezone) = $2
+        AND DATE(start_time AT TIME ZONE COALESCE(timezone, 'UTC')) = $2
       ORDER BY start_time ASC
     ` : `
       SELECT * FROM garmin_activities

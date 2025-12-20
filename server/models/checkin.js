@@ -43,8 +43,9 @@ class Checkin {
 
     // Local date filtering (preferred for Day in Life queries)
     // Converts UTC timestamp to local timezone, extracts date, and compares
+    // Uses COALESCE to handle NULL timezone (defaults to UTC)
     if (localDate) {
-      conditions.push(`DATE(checkin_date AT TIME ZONE timezone) = $${paramIndex++}`);
+      conditions.push(`DATE(checkin_date AT TIME ZONE COALESCE(timezone, 'UTC')) = $${paramIndex++}`);
       params.push(localDate);
     } else {
       // Fallback to UTC date filtering (for map queries)
@@ -427,8 +428,8 @@ class Checkin {
       INSERT INTO checkins (
         user_id, venue_id, venue_name, venue_category,
         latitude, longitude, checkin_date,
-        city, country
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        city, country, timezone
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `;
 
@@ -441,7 +442,8 @@ class Checkin {
       checkin.longitude || null,
       checkin.checkin_date,
       checkin.city || 'Unknown',
-      checkin.country || 'Unknown'
+      checkin.country || 'Unknown',
+      checkin.timezone || null
     ];
 
     const result = await db.query(query, params);
@@ -465,8 +467,8 @@ class Checkin {
     }
 
     const values = checkins.map((c, index) => {
-      const offset = index * 9;
-      return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9})`;
+      const offset = index * 10;
+      return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10})`;
     }).join(',');
 
     const params = checkins.flatMap(c => [
@@ -478,14 +480,15 @@ class Checkin {
       c.longitude || null,
       c.checkin_date,
       c.city || 'Unknown',
-      c.country || 'Unknown'
+      c.country || 'Unknown',
+      c.timezone || null
     ]);
 
     const query = `
       INSERT INTO checkins (
         user_id, venue_id, venue_name, venue_category,
         latitude, longitude, checkin_date,
-        city, country
+        city, country, timezone
       ) VALUES ${values}
       ON CONFLICT DO NOTHING
     `;

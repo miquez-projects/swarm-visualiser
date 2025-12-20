@@ -13,11 +13,11 @@ class StravaActivity {
         distance_meters, total_elevation_gain, calories, avg_speed, max_speed,
         avg_heart_rate, max_heart_rate, avg_cadence, avg_watts, tracklog,
         is_private, kudos_count, comment_count, photo_count, achievement_count,
-        strava_url
+        strava_url, timezone
       )
       VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-        $16, $17, $18, $19, ST_GeogFromText($20), $21, $22, $23, $24, $25, $26
+        $16, $17, $18, $19, ST_GeogFromText($20), $21, $22, $23, $24, $25, $26, $27
       )
       ON CONFLICT (user_id, strava_activity_id) DO NOTHING
       RETURNING *
@@ -49,7 +49,8 @@ class StravaActivity {
       activityData.comment_count,
       activityData.photo_count,
       activityData.achievement_count,
-      activityData.strava_url
+      activityData.strava_url,
+      activityData.timezone || null
     ];
 
     const result = await db.query(query, values);
@@ -103,6 +104,9 @@ class StravaActivity {
         placeholders.push(`$${paramCounter++}`);
       }
 
+      // Position 27: timezone
+      placeholders.push(`$${paramCounter++}`);
+
       valuesClauses.push(`(${placeholders.join(', ')})`);
 
       // Build values array - push in same order as placeholders
@@ -141,7 +145,8 @@ class StravaActivity {
         activity.comment_count,
         activity.photo_count,
         activity.achievement_count,
-        activity.strava_url
+        activity.strava_url,
+        activity.timezone || null
       );
     });
 
@@ -152,7 +157,7 @@ class StravaActivity {
         distance_meters, total_elevation_gain, calories, avg_speed, max_speed,
         avg_heart_rate, max_heart_rate, avg_cadence, avg_watts, tracklog,
         is_private, kudos_count, comment_count, photo_count, achievement_count,
-        strava_url
+        strava_url, timezone
       )
       VALUES ${valuesClauses.join(', ')}
       ON CONFLICT (user_id, strava_activity_id) DO UPDATE SET
@@ -179,7 +184,8 @@ class StravaActivity {
         comment_count = EXCLUDED.comment_count,
         photo_count = EXCLUDED.photo_count,
         achievement_count = EXCLUDED.achievement_count,
-        strava_url = EXCLUDED.strava_url
+        strava_url = EXCLUDED.strava_url,
+        timezone = EXCLUDED.timezone
       RETURNING id
     `;
 
@@ -234,7 +240,7 @@ class StravaActivity {
         strava_url, timezone, created_at, updated_at
       FROM strava_activities
       WHERE user_id = $1
-        AND DATE(start_time AT TIME ZONE timezone) = $2
+        AND DATE(start_time AT TIME ZONE COALESCE(timezone, 'UTC')) = $2
       ORDER BY start_time ASC
     ` : `
       SELECT
