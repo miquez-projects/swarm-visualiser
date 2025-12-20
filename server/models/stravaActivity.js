@@ -290,7 +290,22 @@ class StravaActivity {
   }
 
   /**
-   * Find activities with photos
+   * Find activities with photos that haven't been synced yet
+   * Only returns activities where photos_synced_at IS NULL
+   */
+  static async findActivitiesNeedingPhotoSync(userId) {
+    const query = `
+      SELECT * FROM strava_activities
+      WHERE user_id = $1 AND photo_count > 0 AND photos_synced_at IS NULL
+      ORDER BY start_time DESC
+    `;
+
+    const result = await db.query(query, [userId]);
+    return result.rows;
+  }
+
+  /**
+   * Find all activities with photos (for backward compatibility)
    */
   static async findActivitiesWithPhotos(userId) {
     const query = `
@@ -301,6 +316,21 @@ class StravaActivity {
 
     const result = await db.query(query, [userId]);
     return result.rows;
+  }
+
+  /**
+   * Mark an activity's photos as synced
+   */
+  static async markPhotosSynced(activityId) {
+    const query = `
+      UPDATE strava_activities
+      SET photos_synced_at = NOW()
+      WHERE id = $1
+      RETURNING photos_synced_at
+    `;
+
+    const result = await db.query(query, [activityId]);
+    return result.rows[0]?.photos_synced_at;
   }
 
   /**

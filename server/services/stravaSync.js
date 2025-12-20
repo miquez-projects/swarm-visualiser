@@ -216,23 +216,23 @@ class StravaSyncService {
     console.log(`[STRAVA SYNC] Starting photo sync for user ${userId}`);
 
     try {
-      // Get activities with photos
+      // Get activities that need photo sync (photos_synced_at IS NULL)
       let activitiesWithPhotos;
       if (activityIds && activityIds.length > 0) {
         // Sync specific activities
         activitiesWithPhotos = [];
         for (const id of activityIds) {
           const activity = await StravaActivity.findById(id);
-          if (activity && activity.photo_count > 0) {
+          if (activity && activity.photo_count > 0 && !activity.photos_synced_at) {
             activitiesWithPhotos.push(activity);
           }
         }
       } else {
-        // Sync all activities with photos
-        activitiesWithPhotos = await StravaActivity.findActivitiesWithPhotos(userId);
+        // Sync only activities that haven't had photos synced yet
+        activitiesWithPhotos = await StravaActivity.findActivitiesNeedingPhotoSync(userId);
       }
 
-      console.log(`[STRAVA SYNC] Found ${activitiesWithPhotos.length} activities with photos`);
+      console.log(`[STRAVA SYNC] Found ${activitiesWithPhotos.length} activities needing photo sync`);
 
       let totalPhotosInserted = 0;
 
@@ -288,6 +288,9 @@ class StravaSyncService {
 
             console.log(`[STRAVA SYNC] Activity ${activity.strava_activity_id}: ${insertedCount}/${photos.length} photos inserted`);
           }
+
+          // Mark this activity's photos as synced (even if 0 photos - we've checked)
+          await StravaActivity.markPhotosSynced(activity.id);
 
           if (onProgress && (i + 1) % 5 === 0) {
             await onProgress({
