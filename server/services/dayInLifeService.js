@@ -4,6 +4,7 @@ const staticMapGenerator = require('./staticMapGenerator');
 const DailyWeather = require('../models/dailyWeather');
 const Checkin = require('../models/checkin');
 const StravaActivity = require('../models/stravaActivity');
+const StravaActivityPhoto = require('../models/stravaActivityPhoto');
 const GarminActivity = require('../models/garminActivity');
 const GarminDailySteps = require('../models/garminDailySteps');
 const GarminDailyHeartRate = require('../models/garminDailyHeartRate');
@@ -384,6 +385,12 @@ async function createActivityEvent(activity, source) {
   const trackData = activity.tracklog;
   const isMapped = !!trackData;
 
+  // Get Strava activity photos (only for Strava activities)
+  let activityPhotos = [];
+  if (source === 'strava' && activity.id) {
+    activityPhotos = await StravaActivityPhoto.findByActivityId(activity.id);
+  }
+
   return {
     type: isMapped ? `${source}_activity_mapped` : `${source}_activity_unmapped`,
     startTime: activity.start_time,
@@ -396,7 +403,13 @@ async function createActivityEvent(activity, source) {
       calories: activity.calories,
       url: source === 'strava'
         ? (activity.strava_activity_id ? `https://www.strava.com/activities/${activity.strava_activity_id}` : null)
-        : activity.garmin_url
+        : activity.garmin_url,
+      photos: activityPhotos.map(p => ({
+        id: p.id,
+        photo_url: p.photo_url_600 || p.photo_url_full,
+        photo_url_full: p.photo_url_full,
+        caption: p.caption
+      }))
     },
     staticMapUrl: isMapped
       ? staticMapGenerator.generateActivityMapUrl(trackData)
@@ -426,6 +439,12 @@ async function createActivityWithCheckinsEvent(activity, source, checkins) {
     return acc;
   }, {});
 
+  // Get Strava activity photos (only for Strava activities)
+  let activityPhotos = [];
+  if (source === 'strava' && activity.id) {
+    activityPhotos = await StravaActivityPhoto.findByActivityId(activity.id);
+  }
+
   // Enrich checkins with photos
   const enrichedCheckins = checkins.map(c => ({
     ...c,
@@ -450,7 +469,13 @@ async function createActivityWithCheckinsEvent(activity, source, checkins) {
       calories: activity.calories,
       url: source === 'strava'
         ? (activity.strava_activity_id ? `https://www.strava.com/activities/${activity.strava_activity_id}` : null)
-        : activity.garmin_url
+        : activity.garmin_url,
+      photos: activityPhotos.map(p => ({
+        id: p.id,
+        photo_url: p.photo_url_600 || p.photo_url_full,
+        photo_url_full: p.photo_url_full,
+        caption: p.caption
+      }))
     },
     checkins: enrichedCheckins,
     staticMapUrl

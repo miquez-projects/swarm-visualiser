@@ -285,7 +285,7 @@ const DayInLifePage = () => {
                 />
               )}
               {(event.type.includes('activity') && !event.type.includes('with_checkins')) && (
-                <ActivityEventTile event={event} />
+                <ActivityEventTile event={event} onPhotoClick={handlePhotoClick} />
               )}
             </Box>
           ))

@@ -2,8 +2,9 @@ import React from 'react';
 import { Paper, Typography, Box, Link } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { ArrowSquareOut } from '@phosphor-icons/react';
+import { overlayColors } from '../../theme';
 
-const ActivityEventTile = ({ event }) => {
+const ActivityEventTile = ({ event, onPhotoClick }) => {
   const theme = useTheme();
   const { activity, staticMapUrl } = event;
   const isMapped = event.type.includes('_mapped') && !event.type.includes('unmapped');
@@ -92,6 +93,63 @@ const ActivityEventTile = ({ event }) => {
           </>
         )}
       </Box>
+
+      {/* Activity Photos */}
+      {activity.photos && activity.photos.length > 0 && (
+        <Box sx={{ mt: 3, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ flex: 1, maxWidth: 200, textAlign: 'center' }}>
+              <Box
+                onClick={() => onPhotoClick && onPhotoClick(activity.photos)}
+                sx={{
+                  width: '100%',
+                  height: 100,
+                  borderRadius: 1,
+                  overflow: 'hidden',
+                  cursor: onPhotoClick ? 'pointer' : 'default',
+                  position: 'relative',
+                  border: '2px solid',
+                  borderColor: 'primary.main',
+                  '&:hover': onPhotoClick ? {
+                    opacity: 0.8
+                  } : {}
+                }}
+              >
+                <img
+                  src={activity.photos[0].photo_url}
+                  alt="Activity photo"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                />
+                {activity.photos.length > 1 && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 4,
+                      right: 4,
+                      bgcolor: overlayColors.strong,
+                      color: 'text.primary',
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 0.5,
+                      fontSize: '0.75rem',
+                      fontFamily: theme.typography.fontFamilyMono
+                    }}
+                  >
+                    +{activity.photos.length - 1}
+                  </Box>
+                )}
+              </Box>
+              <Typography variant="caption" display="block" sx={{ mt: 0.5, fontWeight: 500 }}>
+                Activity
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      )}
     </Paper>
   );
 };
