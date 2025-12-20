@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { lightTheme, darkTheme } from './theme';
+import { darkTheme } from './theme';
 import HomePage from './pages/HomePage';
 import ImportPage from './pages/ImportPage';
 import YearInReviewPage from './pages/YearInReviewPage';
@@ -13,7 +13,6 @@ import SplashScreen from './components/SplashScreen';
 import CopilotChat from './components/copilot/CopilotChat';
 
 function App() {
-  const [darkMode, setDarkMode] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [authToken, setAuthToken] = useState(
     localStorage.getItem('authToken') || null
@@ -27,10 +26,6 @@ function App() {
       setAuthToken(token);
     }
   }, [authToken]);
-
-  const handleThemeToggle = () => {
-    setDarkMode(!darkMode);
-  };
 
   const handleTokenValidated = (token) => {
     if (token) {
@@ -55,15 +50,15 @@ function App() {
     <>
       {showSplash && <SplashScreen onTokenValidated={handleTokenValidated} />}
       <BrowserRouter>
-        <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
+        <ThemeProvider theme={darkTheme}>
           <CssBaseline />
           <Routes>
-            <Route path="/" element={<HomePage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} mapRef={mapRef} />} />
+            <Route path="/" element={<HomePage mapRef={mapRef} />} />
             <Route path="/import" element={<ImportPage />} />
-            <Route path="/year-in-review" element={<YearInReviewPage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} />} />
-            <Route path="/day-in-life/:date" element={<DayInLifePage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} />} />
-            <Route path="/day-in-life" element={<DayInLifePage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} />} />
-            <Route path="/data-sources" element={<DataSourcesPage darkMode={darkMode} onToggleDarkMode={handleThemeToggle} />} />
+            <Route path="/year-in-review" element={<YearInReviewPage />} />
+            <Route path="/day-in-life/:date" element={<DayInLifePage />} />
+            <Route path="/day-in-life" element={<DayInLifePage />} />
+            <Route path="/data-sources" element={<DataSourcesPage />} />
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
           </Routes>
           {/* AI Copilot - show only if authenticated */}
