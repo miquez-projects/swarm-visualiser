@@ -12,12 +12,11 @@ import {
   Button
 } from '@mui/material';
 import {
-  Menu as MenuIcon,
-  FilterList,
-  CalendarToday,
-  Map,
-  Today
-} from '@mui/icons-material';
+  Funnel,
+  CalendarBlank,
+  MapTrifold,
+  Sun
+} from '@phosphor-icons/react';
 import ContextMenu from './ContextMenu';
 
 const DRAWER_WIDTH = 320;
@@ -49,7 +48,7 @@ function Layout({ children, sidebar, headerActions, sidebarExpanded = false, tok
               onClick={handleDrawerToggle}
               sx={{ mr: 2 }}
             >
-              <FilterList />
+              <Funnel size={24} />
             </IconButton>
           )}
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
@@ -61,7 +60,7 @@ function Layout({ children, sidebar, headerActions, sidebarExpanded = false, tok
             <>
               <Button
                 color="inherit"
-                startIcon={<Map />}
+                startIcon={<MapTrifold size={20} />}
                 onClick={() => navigate('/')}
                 sx={{ mr: 1, display: isHome ? 'none' : 'flex' }}
               >
@@ -69,7 +68,7 @@ function Layout({ children, sidebar, headerActions, sidebarExpanded = false, tok
               </Button>
               <Button
                 color="inherit"
-                startIcon={<CalendarToday />}
+                startIcon={<CalendarBlank size={20} />}
                 onClick={() => navigate('/year-in-review')}
                 sx={{ mr: 1, display: isYearInReview ? 'none' : 'flex' }}
               >
@@ -77,7 +76,7 @@ function Layout({ children, sidebar, headerActions, sidebarExpanded = false, tok
               </Button>
               <Button
                 color="inherit"
-                startIcon={<Today />}
+                startIcon={<Sun size={20} />}
                 onClick={() => navigate('/day-in-life')}
                 sx={{ mr: 1, display: isDayInLife ? 'none' : 'flex' }}
               >
