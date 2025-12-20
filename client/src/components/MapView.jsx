@@ -1,16 +1,17 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Map, Source, Layer, Popup } from 'react-map-gl/mapbox';
-import { Box, Typography, Chip, CircularProgress, Modal, IconButton, Link, Tabs, Tab } from '@mui/material';
-import { Room, Close, CalendarMonth } from '@mui/icons-material';
+import { Box, Typography, Chip, CircularProgress, Modal, IconButton, Link, Tabs, Tab, useTheme } from '@mui/material';
+import { MapPin, X, CalendarBlank } from '@phosphor-icons/react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import VenuePhotosGallery from './VenuePhotosGallery';
 import { formatDateInLocalZone } from '../utils/timezoneUtils';
-import { CATEGORY_COLORS, getContributionColor } from '../theme';
+import { CATEGORY_COLORS, getContributionColor, mapColors } from '../theme';
 
 const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
 function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange, token }) {
+  const theme = useTheme();
   const [selectedVenue, setSelectedVenue] = useState(null);
   const [showCheckinGrid, setShowCheckinGrid] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
@@ -218,7 +219,7 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
           <Typography variant="body2" color="text.secondary">
             Import your Swarm data to get started:
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontFamily: '"JetBrains Mono", monospace', mt: 1 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ fontFamily: theme.typography.fontFamilyMono, mt: 1 }}>
             npm run import -- /path/to/swarm-export.json
           </Typography>
         </Box>
@@ -266,11 +267,11 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
               'circle-color': [
                 'step',
                 ['get', 'point_count'],
-                '#2d9a8c',
+                mapColors.clusterLow,
                 100,
-                '#246b60',
+                mapColors.clusterMedium,
                 750,
-                '#1e7544'
+                mapColors.clusterHigh
               ],
               'circle-radius': [
                 'step',
@@ -295,7 +296,7 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
               'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold']
             }}
             paint={{
-              'text-color': '#f5f5f5'
+              'text-color': mapColors.text
             }}
           />
 
@@ -308,19 +309,19 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
               'circle-color': [
                 'match',
                 ['get', 'category'],
-                'Restaurant', '#a63d30',
-                'Bar', '#6d4080',
-                'Café', '#b87a0f',
-                'Coffee Shop', '#8f3d00',
-                'Museum', '#2a6a94',
-                'Park', '#1e7544',
-                'Hotel', '#127560',
-                'Shop', '#a35a18',
-                '#5a6566' // default
+                'Restaurant', CATEGORY_COLORS['Restaurant'],
+                'Bar', CATEGORY_COLORS['Bar'],
+                'Café', CATEGORY_COLORS['Café'],
+                'Coffee Shop', CATEGORY_COLORS['Coffee Shop'],
+                'Museum', CATEGORY_COLORS['Museum'],
+                'Park', CATEGORY_COLORS['Park'],
+                'Hotel', CATEGORY_COLORS['Hotel'],
+                'Shop', CATEGORY_COLORS['Shop'],
+                CATEGORY_COLORS['Unknown'] // default
               ],
               'circle-radius': 8,
               'circle-stroke-width': 2,
-              'circle-stroke-color': '#1e1e1e'
+              'circle-stroke-color': mapColors.stroke
             }}
           />
         </Source>
@@ -381,7 +382,7 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
                   mt: 1
                 }}
               >
-                <CalendarMonth fontSize="small" />
+                <CalendarBlank size={16} style={{ marginRight: 4 }} />
                 View all check-in dates
               </Link>
             </Box>
@@ -408,7 +409,7 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
         </Typography>
         {Object.entries(CATEGORY_COLORS).map(([category, color]) => (
           <Box key={category} sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-            <Room sx={{ color, fontSize: 16, mr: 1 }} />
+            <MapPin size={16} color={color} style={{ marginRight: 8 }} />
             <Typography variant="caption">{category}</Typography>
           </Box>
         ))}
@@ -462,7 +463,7 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
                 }
               }}
             >
-              <Close />
+              <X size={24} />
             </IconButton>
           </Box>
 
