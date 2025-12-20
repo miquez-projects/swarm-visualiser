@@ -218,7 +218,7 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
           <Typography variant="body2" color="text.secondary">
             Import your Swarm data to get started:
           </Typography>
-          <Typography variant="body2" color="text.secondary" fontFamily="monospace" sx={{ mt: 1 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ fontFamily: '"JetBrains Mono", monospace', mt: 1 }}>
             npm run import -- /path/to/swarm-export.json
           </Typography>
         </Box>
