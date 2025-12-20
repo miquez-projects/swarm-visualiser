@@ -30,7 +30,7 @@ function ChatMessage({ role, content, timestamp, onVenueClick }) {
         sx={{
           maxWidth: '80%',
           p: 2,
-          bgcolor: isUser ? '#252525' : 'rgba(45, 154, 140, 0.08)',
+          bgcolor: isUser ? 'background.surface' : 'rgba(45, 154, 140, 0.08)',
           color: 'text.primary',
           position: 'relative',
           '&:hover .copy-button': {
