@@ -1731,54 +1731,60 @@ cd /Users/gabormikes/swarm-visualizer && npm run dev
 
 ---
 
-## Task 22: Create Custom Mapbox Style (External)
+## Task 22: Integrate Custom Map Style
 
-**Note:** This task requires Mapbox Studio and cannot be done in code.
+**Files:**
+- Already created: `client/src/mapStyle.js`
+- Modify: `client/src/components/MapView.jsx`
 
-**Step 1: Log into Mapbox Studio**
+**Note:** The custom map style is defined as a JavaScript object in `client/src/mapStyle.js`. This allows version control and easy iteration - we can adjust colors, contour opacity, label sizes directly in the file.
 
-Go to https://studio.mapbox.com/
+**Step 1: Import the map style in MapView.jsx**
 
-**Step 2: Create new style based on "Dark"**
-
-- Start with Dark template
-- Name: "Life Visualizer Cartographic"
-
-**Step 3: Customize land and water colors**
-
-- Land: #1a1a1a
-- Water: #0d1117
-- Parks: #1e2420
-- Buildings: #252525
-
-**Step 4: Add topographic contours**
-
-- Add Mapbox Terrain source
-- Create contour layer with:
-  - Color: rgba(45, 154, 140, 0.15)
-  - Width: 0.5px
-  - Min zoom: 10
-
-**Step 5: Update label fonts**
-
-- Change all labels to use condensed/monospace fonts
-- Country labels: #666666, uppercase, 10px
-- City labels: #888888, 11px
-- Street labels: #555555, 9px
-
-**Step 6: Publish and get style URL**
-
-Copy the style URL and update MapView.jsx:
+At the top of MapView.jsx, add:
 ```javascript
-mapStyle="mapbox://styles/YOUR_USERNAME/YOUR_STYLE_ID"
+import { mapStyle } from '../mapStyle';
 ```
 
-**Step 7: Commit**
+**Step 2: Update the Map component to use the style object**
+
+Find the Map component and change:
+```javascript
+// CHANGE from:
+mapStyle="mapbox://styles/mapbox/streets-v12"
+
+// TO:
+mapStyle={mapStyle}
+```
+
+**Step 3: Test the custom style**
 
 ```bash
-git add client/src/components/MapView.jsx
-git commit -m "feat: use custom cartographic Mapbox style"
+cd /Users/gabormikes/swarm-visualizer && npm run dev
 ```
+
+Verify:
+- [ ] Map shows dark land (#1a1a1a)
+- [ ] Water is near-black (#0d1117)
+- [ ] Parks are dark olive (#1e2420)
+- [ ] Contour lines appear at zoom 9+ (subtle teal)
+- [ ] Country/city labels are muted grays
+- [ ] Boundaries have dashed teal lines
+
+**Step 4: Commit**
+
+```bash
+git add client/src/mapStyle.js client/src/components/MapView.jsx
+git commit -m "feat: add custom cartographic map style with contours"
+```
+
+**Future iterations:**
+To adjust the map style, edit `client/src/mapStyle.js`:
+- `colors.contour` - contour line opacity/color
+- `colors.labels.*` - label brightness
+- `colors.water` - water color
+- Zoom levels in `minzoom` properties
+- Font stacks in `fonts.*`
 
 ---
 
@@ -1791,8 +1797,9 @@ git commit -m "feat: use custom cartographic Mapbox style"
 | `client/src/App.css` | DELETED |
 | `client/src/App.js` | Single dark theme |
 | `client/src/theme.js` | Complete design system |
+| `client/src/mapStyle.js` | Custom Mapbox style with contours |
 | `client/src/components/Layout.jsx` | Theme styling |
-| `client/src/components/MapView.jsx` | Theme colors, dark map |
+| `client/src/components/MapView.jsx` | Theme colors, custom map style |
 | `client/src/components/StatsPanel.jsx` | Chart colors |
 | `client/src/components/FilterPanel.jsx` | Phosphor icons |
 | `client/src/components/SplashScreen.jsx` | Cartographic reveal |
@@ -1832,14 +1839,14 @@ git commit -m "feat: use custom cartographic Mapbox style"
 Run after each major task:
 
 ```bash
-# Check for remaining hard-coded colors
-grep -rn "#[0-9a-fA-F]\{3,6\}" client/src --include="*.jsx" | grep -v theme.js
+# Check for remaining hard-coded colors (excluding theme.js and mapStyle.js)
+grep -rn "#[0-9a-fA-F]\{3,6\}" client/src --include="*.jsx" --include="*.js" | grep -v theme.js | grep -v mapStyle.js
 
 # Check for remaining elevation
 grep -rn "elevation=" client/src --include="*.jsx"
 
-# Check for remaining fontFamily
-grep -rn "fontFamily:" client/src --include="*.jsx" | grep -v theme.js
+# Check for remaining fontFamily (excluding theme files)
+grep -rn "fontFamily:" client/src --include="*.jsx" | grep -v theme.js | grep -v mapStyle.js
 
 # Verify build succeeds
 cd client && npm run build
