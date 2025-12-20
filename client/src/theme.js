@@ -78,6 +78,15 @@ export const chartColors = {
   tooltip: colors.backgroundElevated,
 };
 
+// Map colors for Mapbox GL layers
+export const mapColors = {
+  clusterLow: colors.accentData,        // '#2d9a8c'
+  clusterMedium: colors.accentDataMuted, // '#246b60'
+  clusterHigh: colors.categoryPark,     // '#1e7544'
+  text: colors.textPrimary,             // '#f5f5f5'
+  stroke: colors.backgroundElevated,    // '#1e1e1e'
+};
+
 // Create base theme configuration
 const baseTheme = {
   palette: {
