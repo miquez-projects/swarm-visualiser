@@ -189,7 +189,7 @@ const DayInLifePage = () => {
           {dayData.properties && dayData.properties.weather && (
             <Grid item>
               <PropertyTile
-                icon={dayData.properties.weather.icon}
+                iconType="weather"
                 label="Weather"
                 value={`${dayData.properties.weather.temp}°C`}
                 sublabel={dayData.properties.weather.country}
@@ -200,7 +200,7 @@ const DayInLifePage = () => {
           {/* Sleep */}
           <Grid item>
             <PropertyTile
-              icon="💤"
+              iconType="sleep"
               label="Sleep"
               value={dayData.properties && dayData.properties.sleep
                 ? formatSleepDuration(dayData.properties.sleep.duration)
@@ -214,7 +214,7 @@ const DayInLifePage = () => {
           {/* Steps */}
           <Grid item>
             <PropertyTile
-              icon="👟"
+              iconType="steps"
               label="Steps"
               value={dayData.properties && dayData.properties.steps && dayData.properties.steps.count ? dayData.properties.steps.count.toLocaleString() : 'No data'}
             />
@@ -223,7 +223,7 @@ const DayInLifePage = () => {
           {/* Check-ins */}
           <Grid item>
             <PropertyTile
-              icon="📍"
+              iconType="checkins"
               label="Check-ins"
               value={dayData.properties && dayData.properties.checkins ? dayData.properties.checkins.count : 0}
             />
@@ -232,7 +232,7 @@ const DayInLifePage = () => {
           {/* Activities */}
           <Grid item>
             <PropertyTile
-              icon="🏃"
+              iconType="activities"
               label="Activities"
               value={dayData.properties && dayData.properties.activities ? dayData.properties.activities.count : 0}
             />
@@ -241,7 +241,7 @@ const DayInLifePage = () => {
           {/* Heart Rate */}
           <Grid item>
             <PropertyTile
-              icon="❤️"
+              iconType="heartRate"
               label="Heart Rate"
               value={dayData.properties && dayData.properties.heartRate
                 ? `${dayData.properties.heartRate.min}-${dayData.properties.heartRate.max}`
@@ -253,7 +253,7 @@ const DayInLifePage = () => {
           {/* Calories */}
           <Grid item>
             <PropertyTile
-              icon="🔥"
+              iconType="calories"
               label="Calories"
               value={dayData.properties && dayData.properties.calories && dayData.properties.calories.total ? dayData.properties.calories.total : 'No data'}
             />
