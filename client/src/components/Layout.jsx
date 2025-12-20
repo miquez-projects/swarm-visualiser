@@ -12,8 +12,6 @@ import {
   Button
 } from '@mui/material';
 import {
-  Brightness4,
-  Brightness7,
   Menu as MenuIcon,
   FilterList,
   CalendarToday,
@@ -24,7 +22,7 @@ import ContextMenu from './ContextMenu';
 
 const DRAWER_WIDTH = 320;
 
-function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions, sidebarExpanded = false, token, lastSyncAt, onSyncComplete }) {
+function Layout({ children, sidebar, headerActions, sidebarExpanded = false, token, lastSyncAt, onSyncComplete }) {
   const muiTheme = useMuiTheme();
   const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -42,7 +40,7 @@ function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions, 
   return (
     <Box sx={{ display: 'flex', height: '100vh', flexDirection: 'column' }}>
       {/* App Bar */}
-      <AppBar position="static" elevation={1}>
+      <AppBar position="static">
         <Toolbar>
           {isMobile && sidebar && (
             <IconButton
@@ -96,9 +94,6 @@ function Layout({ children, darkMode, onToggleDarkMode, sidebar, headerActions, 
               onSyncComplete={onSyncComplete}
             />
           )}
-          <IconButton color="inherit" onClick={onToggleDarkMode}>
-            {darkMode ? <Brightness7 /> : <Brightness4 />}
-          </IconButton>
         </Toolbar>
       </AppBar>
 
