@@ -26,6 +26,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { getStats, compareTimePeriods } from '../services/api';
+import { chartColors } from '../theme';
 
 function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMode = false, onComparisonModeChange, token, refreshTrigger = 0 }) {
   const [stats, setStats] = useState(null);
@@ -442,24 +443,28 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
                 ? prepareComparisonBarData(period1Data.top_countries, period2Data.top_countries, 'country')
                 : period1Data.top_countries
               }>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                 <XAxis
                   dataKey={showingComparison ? "name" : "country"}
                   angle={-45}
                   textAnchor="end"
                   height={80}
-                  style={{ fontSize: '12px' }}
+                  tick={{ fill: chartColors.axis, fontSize: 12 }}
+                  axisLine={{ stroke: chartColors.grid }}
                 />
-                <YAxis />
+                <YAxis
+                  tick={{ fill: chartColors.axis }}
+                  axisLine={{ stroke: chartColors.grid }}
+                />
                 <ChartTooltip />
                 {showingComparison ? (
                   <>
                     <Legend />
-                    <Bar dataKey="period1" fill="#1976d2" name="Period 1" />
-                    <Bar dataKey="period2" fill="#dc004e" name="Period 2" />
+                    <Bar dataKey="period1" fill={chartColors.primary} name="Period 1" />
+                    <Bar dataKey="period2" fill={chartColors.secondary} name="Period 2" />
                   </>
                 ) : (
-                  <Bar dataKey="count" fill="#1976d2" />
+                  <Bar dataKey="count" fill={chartColors.primary} />
                 )}
               </BarChart>
             </ResponsiveContainer>
@@ -477,24 +482,28 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
                 ? prepareComparisonBarData(period1Data.top_categories, period2Data.top_categories, 'category')
                 : period1Data.top_categories
               }>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                 <XAxis
                   dataKey={showingComparison ? "name" : "category"}
                   angle={-45}
                   textAnchor="end"
                   height={80}
-                  style={{ fontSize: '12px' }}
+                  tick={{ fill: chartColors.axis, fontSize: 12 }}
+                  axisLine={{ stroke: chartColors.grid }}
                 />
-                <YAxis />
+                <YAxis
+                  tick={{ fill: chartColors.axis }}
+                  axisLine={{ stroke: chartColors.grid }}
+                />
                 <ChartTooltip />
                 {showingComparison ? (
                   <>
                     <Legend />
-                    <Bar dataKey="period1" fill="#1976d2" name="Period 1" />
-                    <Bar dataKey="period2" fill="#dc004e" name="Period 2" />
+                    <Bar dataKey="period1" fill={chartColors.primary} name="Period 1" />
+                    <Bar dataKey="period2" fill={chartColors.secondary} name="Period 2" />
                   </>
                 ) : (
-                  <Bar dataKey="count" fill="#f57c00" />
+                  <Bar dataKey="count" fill={chartColors.tertiary} />
                 )}
               </BarChart>
             </ResponsiveContainer>
@@ -512,16 +521,20 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
                 ? prepareComparisonTimelineData(period1Data.timeline, period2Data.timeline)
                 : prepareTimelineData()
               }>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                 <XAxis
                   dataKey={showingComparison ? "index" : "date"}
                   angle={-45}
                   textAnchor="end"
                   height={80}
-                  style={{ fontSize: '10px' }}
+                  tick={{ fill: chartColors.axis, fontSize: 10 }}
+                  axisLine={{ stroke: chartColors.grid }}
                   label={showingComparison ? { value: 'Time Period Index', position: 'insideBottom', offset: -5 } : undefined}
                 />
-                <YAxis />
+                <YAxis
+                  tick={{ fill: chartColors.axis }}
+                  axisLine={{ stroke: chartColors.grid }}
+                />
                 <ChartTooltip />
                 <Legend />
                 {showingComparison ? (
@@ -529,7 +542,7 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
                     <Line
                       type="monotone"
                       dataKey="period1"
-                      stroke="#1976d2"
+                      stroke={chartColors.primary}
                       name="Period 1"
                       strokeWidth={2}
                       dot={{ r: 3 }}
@@ -538,7 +551,7 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
                     <Line
                       type="monotone"
                       dataKey="period2"
-                      stroke="#dc004e"
+                      stroke={chartColors.secondary}
                       name="Period 2"
                       strokeWidth={2}
                       dot={{ r: 3 }}
@@ -549,7 +562,7 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
                   <Line
                     type="monotone"
                     dataKey="count"
-                    stroke="#1976d2"
+                    stroke={chartColors.primary}
                     name="Check-ins"
                     strokeWidth={2}
                     dot={{ r: 3 }}
