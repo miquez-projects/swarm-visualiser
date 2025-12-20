@@ -10,12 +10,14 @@ import {
   Card,
   CardContent
 } from '@mui/material';
-import { CloudUpload, CheckCircle, Error as ErrorIcon } from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
+import { CloudArrowUp, CheckCircle, XCircle } from '@phosphor-icons/react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 function ImportPage() {
+  const theme = useTheme();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const token = searchParams.get('token');
@@ -121,7 +123,7 @@ function ImportPage() {
   if (!token) {
     return (
       <Container maxWidth="sm" sx={{ mt: 8 }}>
-        <Paper elevation={3} sx={{ p: 4, textAlign: 'center' }}>
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="h4" gutterBottom>
             Swarm Visualizer
           </Typography>
@@ -131,7 +133,7 @@ function ImportPage() {
           <Button
             variant="contained"
             size="large"
-            startIcon={<CloudUpload />}
+            startIcon={<CloudArrowUp size={20} />}
             onClick={handleOAuthLogin}
             sx={{ mt: 2 }}
           >
@@ -145,7 +147,7 @@ function ImportPage() {
   // Show import interface if token is present
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Paper elevation={3} sx={{ p: 4 }}>
+      <Paper sx={{ p: 4 }}>
         <Typography variant="h4" gutterBottom>
           Import Your Check-ins
         </Typography>
@@ -166,8 +168,16 @@ function ImportPage() {
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                {importJob.status === 'completed' && <CheckCircle color="success" sx={{ mr: 1 }} />}
-                {importJob.status === 'failed' && <ErrorIcon color="error" sx={{ mr: 1 }} />}
+                {importJob.status === 'completed' && (
+                  <Box sx={{ color: 'success.main', mr: 1, display: 'flex', alignItems: 'center' }}>
+                    <CheckCircle size={24} weight="fill" />
+                  </Box>
+                )}
+                {importJob.status === 'failed' && (
+                  <Box sx={{ color: 'error.main', mr: 1, display: 'flex', alignItems: 'center' }}>
+                    <XCircle size={24} weight="fill" />
+                  </Box>
+                )}
                 <Typography variant="h6">
                   Import Status: {importJob.status.charAt(0).toUpperCase() + importJob.status.slice(1)}
                 </Typography>
@@ -213,7 +223,7 @@ function ImportPage() {
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
             variant="contained"
-            startIcon={<CloudUpload />}
+            startIcon={<CloudArrowUp size={20} />}
             onClick={startImport}
             disabled={loading || (importJob && (importJob.status === 'pending' || importJob.status === 'running'))}
           >
@@ -230,9 +240,18 @@ function ImportPage() {
           )}
         </Box>
 
-        <Box sx={{ mt: 4, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+        <Box sx={{ mt: 4, p: 2, bgcolor: 'background.surface', borderRadius: 1 }}>
           <Typography variant="caption" color="text.secondary">
-            Your magic link: {window.location.href}
+            Your magic link:{' '}
+            <Box
+              component="span"
+              sx={{
+                fontFamily: theme.typography.fontFamilyMono,
+                color: 'text.primary',
+              }}
+            >
+              {window.location.href}
+            </Box>
           </Typography>
           <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
             Bookmark this URL to access your data anytime without logging in again.
