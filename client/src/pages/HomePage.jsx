@@ -7,7 +7,7 @@ import StatsPanel from '../components/StatsPanel';
 import { getCheckins, validateToken } from '../services/api';
 import { Box, Snackbar, Alert } from '@mui/material';
 
-function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
+function HomePage({ mapRef: externalMapRef }) {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || localStorage.getItem('authToken');
 
@@ -302,8 +302,6 @@ function HomePage({ darkMode, onToggleDarkMode, mapRef: externalMapRef }) {
 
   return (
     <Layout
-      darkMode={darkMode}
-      onToggleDarkMode={onToggleDarkMode}
       sidebar={sidebar}
       sidebarExpanded={sidebarExpanded}
       token={token}

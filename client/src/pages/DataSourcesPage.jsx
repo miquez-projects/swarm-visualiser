@@ -20,7 +20,7 @@ import Layout from '../components/Layout';
 import SyncProgressBar from '../components/SyncProgressBar';
 import { validateToken } from '../services/api';
 
-const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
+const DataSourcesPage = () => {
   const [searchParams] = useSearchParams();
   const [token] = useState(
     searchParams.get('token') || localStorage.getItem('authToken')
@@ -427,8 +427,6 @@ const DataSourcesPage = ({ darkMode, onToggleDarkMode }) => {
 
   return (
     <Layout
-      darkMode={darkMode}
-      onToggleDarkMode={onToggleDarkMode}
       token={token}
       lastSyncAt={userData?.lastSyncAt}
       onSyncComplete={handleSyncComplete}

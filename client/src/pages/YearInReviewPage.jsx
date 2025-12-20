@@ -24,7 +24,7 @@ import {
 } from '@mui/icons-material';
 import { getAvailableYears, getYearInReview, validateToken } from '../services/api';
 
-function YearInReviewPage({ darkMode, onToggleDarkMode }) {
+function YearInReviewPage() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || localStorage.getItem('authToken');
 
@@ -151,8 +151,6 @@ function YearInReviewPage({ darkMode, onToggleDarkMode }) {
   if (loading && !summary) {
     return (
       <Layout
-        darkMode={darkMode}
-        onToggleDarkMode={onToggleDarkMode}
         token={token}
         lastSyncAt={userData?.lastSyncAt}
         onSyncComplete={handleSyncComplete}
@@ -167,8 +165,6 @@ function YearInReviewPage({ darkMode, onToggleDarkMode }) {
   if (error) {
     return (
       <Layout
-        darkMode={darkMode}
-        onToggleDarkMode={onToggleDarkMode}
         token={token}
         lastSyncAt={userData?.lastSyncAt}
         onSyncComplete={handleSyncComplete}
@@ -182,8 +178,6 @@ function YearInReviewPage({ darkMode, onToggleDarkMode }) {
 
   return (
     <Layout
-      darkMode={darkMode}
-      onToggleDarkMode={onToggleDarkMode}
       token={token}
       lastSyncAt={userData?.lastSyncAt}
       onSyncComplete={handleSyncComplete}

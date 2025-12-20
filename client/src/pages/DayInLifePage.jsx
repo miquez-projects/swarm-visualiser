@@ -23,7 +23,7 @@ import { getDayInLife } from '../services/api';
 import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';
 
-const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
+const DayInLifePage = () => {
   const { date } = useParams();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -102,7 +102,7 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
 
   if (loading) {
     return (
-      <Layout darkMode={darkMode} onToggleDarkMode={onToggleDarkMode}>
+      <Layout>
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
           <CircularProgress />
         </Box>
@@ -112,7 +112,7 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
 
   if (error) {
     return (
-      <Layout darkMode={darkMode} onToggleDarkMode={onToggleDarkMode}>
+      <Layout>
         <Box sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="h5" color="error" gutterBottom>
             {error}
@@ -129,7 +129,7 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
 
   if (!dayData) {
     return (
-      <Layout darkMode={darkMode} onToggleDarkMode={onToggleDarkMode}>
+      <Layout>
         <Box sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="h5">No data available for this date</Typography>
         </Box>
@@ -139,7 +139,7 @@ const DayInLifePage = ({ darkMode, onToggleDarkMode }) => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <Layout darkMode={darkMode} onToggleDarkMode={onToggleDarkMode} token={token}>
+      <Layout token={token}>
         <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
           {/* Header */}
           <Box sx={{
