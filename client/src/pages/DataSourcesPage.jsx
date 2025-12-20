@@ -15,12 +15,14 @@ import {
   FormControlLabel,
   Switch
 } from '@mui/material';
-import { ContentCopy, CheckCircle, FitnessCenter, DirectionsBike, CloudUpload } from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
+import { CopySimple, CheckCircle, Barbell, Bicycle, CloudArrowUp } from '@phosphor-icons/react';
 import Layout from '../components/Layout';
 import SyncProgressBar from '../components/SyncProgressBar';
 import { validateToken } from '../services/api';
 
 const DataSourcesPage = () => {
+  const theme = useTheme();
   const [searchParams] = useSearchParams();
   const [token] = useState(
     searchParams.get('token') || localStorage.getItem('authToken')
@@ -448,7 +450,7 @@ const DataSourcesPage = () => {
             sx={{
               display: 'flex',
               alignItems: 'center',
-              bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.800' : 'grey.100',
+              bgcolor: 'background.surface',
               p: 2,
               borderRadius: 1,
               mt: 2
@@ -457,7 +459,7 @@ const DataSourcesPage = () => {
             <Typography
               variant="body2"
               sx={{
-                fontFamily: 'monospace',
+                fontFamily: theme.typography.fontFamilyMono,
                 flex: 1,
                 wordBreak: 'break-all'
               }}
@@ -465,7 +467,7 @@ const DataSourcesPage = () => {
               {tokenUrl}
             </Typography>
             <IconButton onClick={handleCopy} size="small">
-              <ContentCopy />
+              <CopySimple size={20} />
             </IconButton>
           </Box>
         </Paper>
@@ -491,7 +493,7 @@ const DataSourcesPage = () => {
         <Card sx={{ mt: 3 }}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <FitnessCenter sx={{ mr: 1, color: 'primary.main' }} />
+              <Barbell size={24} weight="regular" style={{ marginRight: 8, color: theme.palette.secondary.main }} />
               <Typography variant="h6">Garmin</Typography>
             </Box>
 
@@ -558,7 +560,7 @@ const DataSourcesPage = () => {
         <Card sx={{ mt: 3 }}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <CloudUpload sx={{ mr: 1, color: 'primary.main' }} />
+              <CloudArrowUp size={24} weight="regular" style={{ marginRight: 8, color: theme.palette.secondary.main }} />
               <Typography variant="h6">Upload Garmin Data Dump</Typography>
             </Box>
 
@@ -579,7 +581,7 @@ const DataSourcesPage = () => {
               <Button
                 variant="contained"
                 component="span"
-                startIcon={<CloudUpload />}
+                startIcon={<CloudArrowUp size={20} weight="regular" />}
                 disabled={uploadingGarmin}
               >
                 {uploadingGarmin ? 'Uploading...' : 'Select Files'}
@@ -624,7 +626,7 @@ const DataSourcesPage = () => {
         <Card sx={{ mt: 3 }}>
           <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <DirectionsBike sx={{ mr: 1, color: '#FC4C02' }} />
+              <Bicycle size={24} weight="regular" style={{ marginRight: 8, color: theme.palette.primary.main }} />
               <Typography variant="h6">Strava</Typography>
             </Box>
 
@@ -635,8 +637,8 @@ const DataSourcesPage = () => {
                 </Typography>
                 <Button
                   variant="contained"
+                  color="primary"
                   onClick={handleStravaConnect}
-                  sx={{ bgcolor: '#FC4C02', '&:hover': { bgcolor: '#E34402' } }}
                 >
                   Connect Strava
                 </Button>
