@@ -22,6 +22,11 @@ const colors = {
   borderDefault: 'rgba(45, 154, 140, 0.2)',
   borderStrong: 'rgba(45, 154, 140, 0.4)',
 
+  // Overlays
+  overlayDim: 'rgba(18, 18, 18, 0.3)',
+  overlayStrong: 'rgba(18, 18, 18, 0.8)',
+  accentDataSubtle: 'rgba(45, 154, 140, 0.08)',
+
   // Category Colors (muted)
   categoryRestaurant: '#a63d30',
   categoryBar: '#6d4080',
@@ -85,6 +90,14 @@ export const mapColors = {
   clusterHigh: colors.categoryPark,     // '#1e7544'
   text: colors.textPrimary,             // '#f5f5f5'
   stroke: colors.backgroundElevated,    // '#1e1e1e'
+};
+
+// Overlay colors for components
+export const overlayColors = {
+  dim: colors.overlayDim,               // 'rgba(18, 18, 18, 0.3)'
+  strong: colors.overlayStrong,         // 'rgba(18, 18, 18, 0.8)'
+  accentSubtle: colors.accentDataSubtle, // 'rgba(45, 154, 140, 0.08)'
+  borderStrong: colors.borderStrong,    // 'rgba(45, 154, 140, 0.4)'
 };
 
 // Create base theme configuration

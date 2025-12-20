@@ -6,7 +6,7 @@ import { MapPin, X, CalendarBlank } from '@phosphor-icons/react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import VenuePhotosGallery from './VenuePhotosGallery';
 import { formatDateInLocalZone } from '../utils/timezoneUtils';
-import { CATEGORY_COLORS, getContributionColor, mapColors } from '../theme';
+import { CATEGORY_COLORS, getContributionColor, mapColors, overlayColors } from '../theme';
 
 const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -168,7 +168,7 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            bgcolor: 'rgba(18, 18, 18, 0.3)',
+            bgcolor: overlayColors.dim,
             zIndex: 1000
           }}
         >
@@ -648,7 +648,7 @@ function CheckinContributionGrid({ checkins }) {
                           borderRadius: 0.5,
                           cursor: week.count > 0 ? 'pointer' : 'default',
                           '&:hover': week.count > 0 ? {
-                            outline: '2px solid rgba(45, 154, 140, 0.4)',
+                            outline: `2px solid ${overlayColors.borderStrong}`,
                             outlineOffset: 1,
                             transform: 'scale(1.1)'
                           } : {}

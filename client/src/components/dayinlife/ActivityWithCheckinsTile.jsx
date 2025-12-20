@@ -3,6 +3,7 @@ import { Paper, Typography, Box, Link } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { ArrowSquareOut } from '@phosphor-icons/react';
 import { formatTimeInLocalZone } from '../../utils/timezoneUtils';
+import { overlayColors } from '../../theme';
 
 const ActivityWithCheckinsTile = ({ event, onPhotoClick }) => {
   const theme = useTheme();
@@ -156,7 +157,7 @@ const ActivityWithCheckinsTile = ({ event, onPhotoClick }) => {
                           position: 'absolute',
                           bottom: 4,
                           right: 4,
-                          bgcolor: 'rgba(18, 18, 18, 0.8)',
+                          bgcolor: overlayColors.strong,
                           color: 'text.primary',
                           px: 1,
                           py: 0.5,

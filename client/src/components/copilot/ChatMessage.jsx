@@ -3,6 +3,7 @@ import { Box, Typography, Paper, IconButton, Chip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Copy, MapPin } from '@phosphor-icons/react';
 import { parseVenueMentions } from './venueParser';
+import { overlayColors } from '../../theme';
 import PropTypes from 'prop-types';
 
 function ChatMessage({ role, content, timestamp, onVenueClick }) {
@@ -30,7 +31,7 @@ function ChatMessage({ role, content, timestamp, onVenueClick }) {
         sx={{
           maxWidth: '80%',
           p: 2,
-          bgcolor: isUser ? 'background.surface' : 'rgba(45, 154, 140, 0.08)',
+          bgcolor: isUser ? 'background.surface' : overlayColors.accentSubtle,
           color: 'text.primary',
           position: 'relative',
           '&:hover .copy-button': {
