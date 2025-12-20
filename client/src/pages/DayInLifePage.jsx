@@ -10,7 +10,7 @@ import {
   useMediaQuery,
   useTheme
 } from '@mui/material';
-import { ChevronLeft, ChevronRight, CalendarToday } from '@mui/icons-material';
+import { CaretLeft, CaretRight, CalendarBlank } from '@phosphor-icons/react';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -160,7 +160,7 @@ const DayInLifePage = () => {
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: isMobile ? 'center' : 'flex-end' }}>
               <IconButton onClick={handlePrevDay}>
-                <ChevronLeft />
+                <CaretLeft size={24} />
               </IconButton>
               <DatePicker
                 value={currentDate}
@@ -178,7 +178,7 @@ const DayInLifePage = () => {
                 closeOnSelect={false}
               />
               <IconButton onClick={handleNextDay}>
-                <ChevronRight />
+                <CaretRight size={24} />
               </IconButton>
             </Box>
           </Box>

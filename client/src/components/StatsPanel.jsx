@@ -9,7 +9,7 @@ import {
   IconButton,
   Tooltip
 } from '@mui/material';
-import { CompareArrows } from '@mui/icons-material';
+import { ArrowsLeftRight } from '@phosphor-icons/react';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -249,7 +249,7 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
                 size="small"
                 color={comparisonMode ? "primary" : "default"}
               >
-                <CompareArrows />
+                <ArrowsLeftRight size={20} />
               </IconButton>
             </Tooltip>
           )}

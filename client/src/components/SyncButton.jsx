@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button, CircularProgress, Snackbar, Alert } from '@mui/material';
-import { Sync } from '@mui/icons-material';
+import { ArrowsClockwise } from '@phosphor-icons/react';
 import { startSync, getSyncStatus, getLatestImport } from '../services/api';
 
 function SyncButton({ token, onSyncComplete }) {
@@ -143,7 +143,7 @@ function SyncButton({ token, onSyncComplete }) {
 
   // Calculate button text
   let buttonText = 'Sync Check-ins';
-  let buttonIcon = <Sync />;
+  let buttonIcon = <ArrowsClockwise size={20} />;
 
   if (completionShown) {
     buttonText = 'Sync Complete ✓';
