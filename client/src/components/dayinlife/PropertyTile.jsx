@@ -6,7 +6,7 @@ import {
   Moon,
   Sneaker,
   MapPin,
-  Activity,
+  Lightning,
   Heart,
   Flame,
 } from '@phosphor-icons/react';
@@ -17,7 +17,7 @@ const iconMap = {
   sleep: Moon,
   steps: Sneaker,
   checkins: MapPin,
-  activities: Activity,
+  activities: Lightning,
   heartRate: Heart,
   calories: Flame,
 };
