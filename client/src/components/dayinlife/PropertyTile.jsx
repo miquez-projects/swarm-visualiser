@@ -9,7 +9,6 @@ import {
   Activity,
   Heart,
   Flame,
-  Clock,
 } from '@phosphor-icons/react';
 
 // Map of icon types to Phosphor components
@@ -21,7 +20,6 @@ const iconMap = {
   activities: Activity,
   heartRate: Heart,
   calories: Flame,
-  clock: Clock,
 };
 
 const PropertyTile = ({ icon, iconType, label, value, sublabel }) => {
@@ -37,11 +35,9 @@ const PropertyTile = ({ icon, iconType, label, value, sublabel }) => {
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
-      border: 1,
-      borderColor: 'border.default',
     }}>
       {IconComponent ? (
-        <Box sx={{ color: 'secondary.main', mb: 1, display: 'flex', justifyContent: 'center' }}>
+        <Box sx={{ color: 'secondary.main', mb: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <IconComponent size={32} weight="regular" />
         </Box>
       ) : icon ? (
