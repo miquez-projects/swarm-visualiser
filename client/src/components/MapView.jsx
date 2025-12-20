@@ -7,6 +7,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import VenuePhotosGallery from './VenuePhotosGallery';
 import { formatDateInLocalZone } from '../utils/timezoneUtils';
 import { CATEGORY_COLORS, getContributionColor, mapColors, overlayColors } from '../theme';
+import { mapStyle } from '../mapStyle';
 
 const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -245,7 +246,7 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
         }}
         interactiveLayerIds={['clusters', 'unclustered-point']}
         cursor="pointer"
-        mapStyle="mapbox://styles/mapbox/dark-v11"
+        mapStyle={mapStyle}
         mapboxAccessToken={MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
       >
