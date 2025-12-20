@@ -125,7 +125,7 @@ function YearInReviewPage() {
     });
   };
 
-  const StatTile = ({ icon, label, value, color = 'primary' }) => (
+  const StatTile = ({ icon, label, value }) => (
     <Paper
       sx={{
         p: 3,
