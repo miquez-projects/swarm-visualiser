@@ -13,7 +13,14 @@ import {
   useMediaQuery,
   useTheme
 } from '@mui/material';
-import { Menu as MenuIcon, Sync, Settings, Map, CalendarToday, Today } from '@mui/icons-material';
+import {
+  List,
+  ArrowsClockwise,
+  Gear,
+  MapTrifold,
+  Calendar,
+  Sun,
+} from '@phosphor-icons/react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { syncAllData } from '../services/api';
 
@@ -73,7 +80,7 @@ const ContextMenu = ({ token, lastSyncAt, onSyncComplete }) => {
   return (
     <>
       <IconButton color="inherit" onClick={handleOpen} disabled={syncing}>
-        {syncing ? <CircularProgress size={24} color="inherit" /> : <MenuIcon />}
+        {syncing ? <CircularProgress size={24} color="inherit" /> : <List size={24} />}
       </IconButton>
 
       <Menu
@@ -89,7 +96,7 @@ const ContextMenu = ({ token, lastSyncAt, onSyncComplete }) => {
             {!isHome && (
               <MenuItem onClick={() => { handleClose(); navigate('/'); }}>
                 <ListItemIcon>
-                  <Map fontSize="small" />
+                  <MapTrifold size={18} />
                 </ListItemIcon>
                 <ListItemText primary="Map" />
               </MenuItem>
@@ -97,7 +104,7 @@ const ContextMenu = ({ token, lastSyncAt, onSyncComplete }) => {
             {!isYearInReview && (
               <MenuItem onClick={() => { handleClose(); navigate('/year-in-review'); }}>
                 <ListItemIcon>
-                  <CalendarToday fontSize="small" />
+                  <Calendar size={18} />
                 </ListItemIcon>
                 <ListItemText primary="Year in Review" />
               </MenuItem>
@@ -105,7 +112,7 @@ const ContextMenu = ({ token, lastSyncAt, onSyncComplete }) => {
             {!isDayInLife && (
               <MenuItem onClick={() => { handleClose(); navigate('/day-in-life'); }}>
                 <ListItemIcon>
-                  <Today fontSize="small" />
+                  <Sun size={18} />
                 </ListItemIcon>
                 <ListItemText primary="Day in Life" />
               </MenuItem>
@@ -117,14 +124,14 @@ const ContextMenu = ({ token, lastSyncAt, onSyncComplete }) => {
         {/* Settings items */}
         <MenuItem onClick={handleDataSources}>
           <ListItemIcon>
-            <Settings fontSize="small" />
+            <Gear size={18} />
           </ListItemIcon>
           <ListItemText primary="Data Sources" />
         </MenuItem>
 
         <MenuItem onClick={handleSyncAll}>
           <ListItemIcon>
-            <Sync fontSize="small" />
+            <ArrowsClockwise size={18} />
           </ListItemIcon>
           <ListItemText primary="Sync All Data" />
         </MenuItem>
