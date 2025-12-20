@@ -6,21 +6,9 @@ import { Room, Close, CalendarMonth } from '@mui/icons-material';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import VenuePhotosGallery from './VenuePhotosGallery';
 import { formatDateInLocalZone } from '../utils/timezoneUtils';
+import { CATEGORY_COLORS, getContributionColor } from '../theme';
 
 const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
-
-// Category color mapping
-const CATEGORY_COLORS = {
-  'Restaurant': '#e74c3c',
-  'Bar': '#9b59b6',
-  'Café': '#f39c12',
-  'Coffee Shop': '#d35400',
-  'Museum': '#3498db',
-  'Park': '#27ae60',
-  'Hotel': '#16a085',
-  'Shop': '#e67e22',
-  'Unknown': '#95a5a6'
-};
 
 function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange, token }) {
   const [selectedVenue, setSelectedVenue] = useState(null);
@@ -179,7 +167,7 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            bgcolor: 'rgba(0,0,0,0.1)',
+            bgcolor: 'rgba(18, 18, 18, 0.3)',
             zIndex: 1000
           }}
         >
@@ -256,7 +244,7 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
         }}
         interactiveLayerIds={['clusters', 'unclustered-point']}
         cursor="pointer"
-        mapStyle="mapbox://styles/mapbox/streets-v12"
+        mapStyle="mapbox://styles/mapbox/dark-v11"
         mapboxAccessToken={MAPBOX_TOKEN}
         style={{ width: '100%', height: '100%' }}
       >
@@ -278,11 +266,11 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
               'circle-color': [
                 'step',
                 ['get', 'point_count'],
-                '#51bbd6',
+                '#2d9a8c',
                 100,
-                '#f1f075',
+                '#246b60',
                 750,
-                '#f28cb1'
+                '#1e7544'
               ],
               'circle-radius': [
                 'step',
@@ -307,7 +295,7 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
               'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold']
             }}
             paint={{
-              'text-color': '#ffffff'
+              'text-color': '#f5f5f5'
             }}
           />
 
@@ -320,19 +308,19 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
               'circle-color': [
                 'match',
                 ['get', 'category'],
-                'Restaurant', '#e74c3c',
-                'Bar', '#9b59b6',
-                'Café', '#f39c12',
-                'Coffee Shop', '#d35400',
-                'Museum', '#3498db',
-                'Park', '#27ae60',
-                'Hotel', '#16a085',
-                'Shop', '#e67e22',
-                '#95a5a6' // default
+                'Restaurant', '#a63d30',
+                'Bar', '#6d4080',
+                'Café', '#b87a0f',
+                'Coffee Shop', '#8f3d00',
+                'Museum', '#2a6a94',
+                'Park', '#1e7544',
+                'Hotel', '#127560',
+                'Shop', '#a35a18',
+                '#5a6566' // default
               ],
               'circle-radius': 8,
               'circle-stroke-width': 2,
-              'circle-stroke-color': '#fff'
+              'circle-stroke-color': '#1e1e1e'
             }}
           />
         </Source>
@@ -625,15 +613,6 @@ function CheckinContributionGrid({ checkins }) {
     return result;
   }, [startDate, endDate, checkinsByWeek]);
 
-  // Get color intensity based on weekly check-in count
-  const getColor = (count) => {
-    if (count === 0) return '#ebedf0';
-    if (count <= 2) return '#9be9a8';
-    if (count <= 5) return '#40c463';
-    if (count <= 10) return '#30a14e';
-    return '#216e39';
-  };
-
   const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   return (
@@ -664,11 +643,11 @@ function CheckinContributionGrid({ checkins }) {
                         sx={{
                           width: 14,
                           height: 14,
-                          bgcolor: getColor(week.count),
+                          bgcolor: getContributionColor(week.count),
                           borderRadius: 0.5,
                           cursor: week.count > 0 ? 'pointer' : 'default',
                           '&:hover': week.count > 0 ? {
-                            outline: '2px solid rgba(0,0,0,0.3)',
+                            outline: '2px solid rgba(45, 154, 140, 0.4)',
                             outlineOffset: 1,
                             transform: 'scale(1.1)'
                           } : {}
@@ -694,7 +673,7 @@ function CheckinContributionGrid({ checkins }) {
               sx={{
                 width: 14,
                 height: 14,
-                bgcolor: getColor(count),
+                bgcolor: getContributionColor(count),
                 borderRadius: 0.5
               }}
             />
