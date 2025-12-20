@@ -1,9 +1,12 @@
 import React from 'react';
 import { Paper, Typography, Box, Link } from '@mui/material';
-import { Map as MapIcon } from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
+import { MapTrifold } from '@phosphor-icons/react';
 import { formatTimeInLocalZone } from '../../utils/timezoneUtils';
 
 const CheckinEventTile = ({ event, onPhotoClick, authToken }) => {
+  const theme = useTheme();
+
   return (
     <Paper sx={{ p: 3, mb: 2 }}>
       <Typography variant="h6" gutterBottom>
@@ -16,7 +19,7 @@ const CheckinEventTile = ({ event, onPhotoClick, authToken }) => {
           <img
             src={event.staticMapUrl}
             alt="Check-in map"
-            style={{ width: '100%', borderRadius: 8 }}
+            style={{ width: '100%', borderRadius: theme.shape.borderRadius }}
           />
           <Link
             href={`/?token=${authToken}`}
@@ -33,7 +36,7 @@ const CheckinEventTile = ({ event, onPhotoClick, authToken }) => {
               gap: 0.5
             }}
           >
-            <MapIcon fontSize="small" /> Jump to main map
+            <MapTrifold size={16} /> Jump to main map
           </Link>
         </Box>
       )}
@@ -46,10 +49,14 @@ const CheckinEventTile = ({ event, onPhotoClick, authToken }) => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'stretch' }}>
           {event.checkins.map((checkin, idx) => (
             <Box key={idx} sx={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="caption" display="block">
+              <Typography
+                variant="caption"
+                display="block"
+                sx={{ fontFamily: theme.typography.fontFamilyMono }}
+              >
                 {formatTimeInLocalZone(checkin.checkin_date, checkin.timezone)}
               </Typography>
-              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'primary.main', mx: 'auto', my: 1 }} />
+              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'secondary.main', mx: 'auto', my: 1 }} />
               <Typography variant="caption" display="block" sx={{ mb: 1 }}>
                 {checkin.venue_name}
               </Typography>
@@ -97,12 +104,13 @@ const CheckinEventTile = ({ event, onPhotoClick, authToken }) => {
                           position: 'absolute',
                           bottom: 4,
                           right: 4,
-                          bgcolor: 'rgba(0, 0, 0, 0.7)',
-                          color: 'white',
+                          bgcolor: 'rgba(18, 18, 18, 0.8)',
+                          color: 'text.primary',
                           px: 1,
                           py: 0.5,
                           borderRadius: 0.5,
-                          fontSize: '0.75rem'
+                          fontSize: '0.75rem',
+                          fontFamily: theme.typography.fontFamilyMono
                         }}
                       >
                         +{checkin.photos.length - 1}

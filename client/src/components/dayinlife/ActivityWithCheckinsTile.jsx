@@ -1,9 +1,11 @@
 import React from 'react';
 import { Paper, Typography, Box, Link } from '@mui/material';
-import { OpenInNew } from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
+import { ArrowSquareOut } from '@phosphor-icons/react';
 import { formatTimeInLocalZone } from '../../utils/timezoneUtils';
 
 const ActivityWithCheckinsTile = ({ event, onPhotoClick }) => {
+  const theme = useTheme();
   const { activity, checkins, staticMapUrl } = event;
 
   const formatDuration = (seconds) => {
@@ -33,7 +35,7 @@ const ActivityWithCheckinsTile = ({ event, onPhotoClick }) => {
           <img
             src={staticMapUrl}
             alt="Activity map with check-ins"
-            style={{ width: '100%', borderRadius: 8 }}
+            style={{ width: '100%', borderRadius: theme.shape.borderRadius }}
           />
           {activity.url && (
             <Link
@@ -51,7 +53,7 @@ const ActivityWithCheckinsTile = ({ event, onPhotoClick }) => {
                 gap: 0.5
               }}
             >
-              <OpenInNew fontSize="small" /> View Details
+              <ArrowSquareOut size={16} /> View Details
             </Link>
           )}
         </Box>
@@ -60,14 +62,20 @@ const ActivityWithCheckinsTile = ({ event, onPhotoClick }) => {
       {/* Activity Stats */}
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}>
         {activity.distance && (
-          <Typography variant="body1">
+          <Typography
+            variant="body1"
+            sx={{ fontFamily: theme.typography.fontFamilyMono }}
+          >
             {formatDistance(activity.distance)}
           </Typography>
         )}
         {activity.duration && (
           <>
             <Typography variant="body1">•</Typography>
-            <Typography variant="body1">
+            <Typography
+              variant="body1"
+              sx={{ fontFamily: theme.typography.fontFamilyMono }}
+            >
               {formatDuration(activity.duration)}
             </Typography>
           </>
@@ -75,7 +83,10 @@ const ActivityWithCheckinsTile = ({ event, onPhotoClick }) => {
         {activity.calories && (
           <>
             <Typography variant="body1">•</Typography>
-            <Typography variant="body1">
+            <Typography
+              variant="body1"
+              sx={{ fontFamily: theme.typography.fontFamilyMono }}
+            >
               {activity.calories} cal
             </Typography>
           </>
@@ -90,10 +101,14 @@ const ActivityWithCheckinsTile = ({ event, onPhotoClick }) => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'stretch' }}>
           {checkins.map((checkin, idx) => (
             <Box key={idx} sx={{ flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column' }}>
-              <Typography variant="caption" display="block">
+              <Typography
+                variant="caption"
+                display="block"
+                sx={{ fontFamily: theme.typography.fontFamilyMono }}
+              >
                 {formatTimeInLocalZone(checkin.checkin_date, checkin.timezone)}
               </Typography>
-              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'primary.main', mx: 'auto', my: 1 }} />
+              <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'secondary.main', mx: 'auto', my: 1 }} />
               <Typography variant="caption" display="block" sx={{ mb: 1 }}>
                 {checkin.venue_name}
               </Typography>
@@ -141,12 +156,13 @@ const ActivityWithCheckinsTile = ({ event, onPhotoClick }) => {
                           position: 'absolute',
                           bottom: 4,
                           right: 4,
-                          bgcolor: 'rgba(0, 0, 0, 0.7)',
-                          color: 'white',
+                          bgcolor: 'rgba(18, 18, 18, 0.8)',
+                          color: 'text.primary',
                           px: 1,
                           py: 0.5,
                           borderRadius: 0.5,
-                          fontSize: '0.75rem'
+                          fontSize: '0.75rem',
+                          fontFamily: theme.typography.fontFamilyMono
                         }}
                       >
                         +{checkin.photos.length - 1}

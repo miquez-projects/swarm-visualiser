@@ -1,8 +1,10 @@
 import React from 'react';
 import { Paper, Typography, Box, Link } from '@mui/material';
-import { OpenInNew } from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
+import { ArrowSquareOut } from '@phosphor-icons/react';
 
 const ActivityEventTile = ({ event }) => {
+  const theme = useTheme();
   const { activity, staticMapUrl } = event;
   const isMapped = event.type.includes('_mapped') && !event.type.includes('unmapped');
 
@@ -33,7 +35,7 @@ const ActivityEventTile = ({ event }) => {
           <img
             src={staticMapUrl}
             alt="Activity map"
-            style={{ width: '100%', borderRadius: 8 }}
+            style={{ width: '100%', borderRadius: theme.shape.borderRadius }}
           />
           {activity.url && (
             <Link
@@ -51,7 +53,7 @@ const ActivityEventTile = ({ event }) => {
                 gap: 0.5
               }}
             >
-              <OpenInNew fontSize="small" /> View Details
+              <ArrowSquareOut size={16} /> View Details
             </Link>
           )}
         </Box>
@@ -60,14 +62,20 @@ const ActivityEventTile = ({ event }) => {
       {/* Stats */}
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
         {isMapped && activity.distance && (
-          <Typography variant="body1">
+          <Typography
+            variant="body1"
+            sx={{ fontFamily: theme.typography.fontFamilyMono }}
+          >
             {formatDistance(activity.distance)}
           </Typography>
         )}
         {activity.duration && (
           <>
             <Typography variant="body1">•</Typography>
-            <Typography variant="body1">
+            <Typography
+              variant="body1"
+              sx={{ fontFamily: theme.typography.fontFamilyMono }}
+            >
               {formatDuration(activity.duration)}
             </Typography>
           </>
@@ -75,7 +83,10 @@ const ActivityEventTile = ({ event }) => {
         {activity.calories && (
           <>
             <Typography variant="body1">•</Typography>
-            <Typography variant="body1">
+            <Typography
+              variant="body1"
+              sx={{ fontFamily: theme.typography.fontFamilyMono }}
+            >
               {activity.calories} cal
             </Typography>
           </>
