@@ -3,7 +3,13 @@ const polyline = require('@mapbox/polyline');
 class StaticMapGenerator {
   constructor() {
     this.mapboxToken = process.env.MAPBOX_TOKEN;
-    this.baseUrl = 'https://api.mapbox.com/styles/v1/mapbox/streets-v12/static';
+    // Use dark style to match the app's cartographic theme
+    this.baseUrl = 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/static';
+    // Design system colors
+    this.colors = {
+      interactive: 'ff6b35', // Orange for markers and check-in paths
+      data: '2d9a8c',        // Teal for activity tracklogs
+    };
   }
 
   generateCheckinMapUrl(checkins, width = 600, height = 400) {
@@ -27,13 +33,13 @@ class StaticMapGenerator {
 
         if (group.indices.length === 1) {
           // Single checkin - small pin
-          return `pin-s-${firstNum}+ff6b35(${group.longitude},${group.latitude})`;
+          return `pin-s-${firstNum}+${this.colors.interactive}(${group.longitude},${group.latitude})`;
         } else if (group.indices.length === 2) {
           // Two checkins - medium pin with first number
-          return `pin-m-${firstNum}+ff6b35(${group.longitude},${group.latitude})`;
+          return `pin-m-${firstNum}+${this.colors.interactive}(${group.longitude},${group.latitude})`;
         } else {
           // Three or more checkins - large pin with first number
-          return `pin-l-${firstNum}+ff6b35(${group.longitude},${group.latitude})`;
+          return `pin-l-${firstNum}+${this.colors.interactive}(${group.longitude},${group.latitude})`;
         }
       })
       .join(',');
@@ -41,7 +47,7 @@ class StaticMapGenerator {
     // Auto-fit bounds
     // URL-encode the polyline to handle special characters
     const urlEncodedPath = encodeURIComponent(encodedPath);
-    const path = `path-2+ff6b35-0.5(${urlEncodedPath})`;
+    const path = `path-2+${this.colors.interactive}-0.5(${urlEncodedPath})`;
 
     return `${this.baseUrl}/${path},${markers}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
   }
@@ -148,7 +154,7 @@ class StaticMapGenerator {
 
     // URL-encode the polyline to handle special characters
     const urlEncodedPath = encodeURIComponent(encodedPath);
-    const path = `path-3+3498db-0.8(${urlEncodedPath})`;
+    const path = `path-3+${this.colors.data}-0.8(${urlEncodedPath})`;
 
     return `${this.baseUrl}/${path}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
   }
@@ -205,13 +211,13 @@ class StaticMapGenerator {
 
     // URL-encode the polyline
     const urlEncodedPath = encodeURIComponent(encodedPath);
-    const path = `path-3+3498db-0.8(${urlEncodedPath})`;
+    const path = `path-3+${this.colors.data}-0.8(${urlEncodedPath})`;
 
     // Add check-in markers (if any) - no connecting lines, just markers
     let markers = '';
     if (checkins && checkins.length > 0) {
       markers = ',' + checkins
-        .map((c, idx) => `pin-s-${idx + 1}+ff6b35(${c.longitude},${c.latitude})`)
+        .map((c, idx) => `pin-s-${idx + 1}+${this.colors.interactive}(${c.longitude},${c.latitude})`)
         .join(',');
     }
 
