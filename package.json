@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Web application to visualize Swarm check-in data",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "install:all": "npm install && cd client && npm install && cd ../server && npm install",
     "dev:client": "cd client && npm start",
