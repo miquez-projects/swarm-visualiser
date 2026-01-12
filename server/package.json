@@ -25,7 +25,7 @@
     "multer": "^2.0.2",
     "oauth": "^0.10.2",
     "pg": "^8.11.3",
-    "pg-boss": "^9.0.3"
+    "pg-boss": "^12.5.4"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
