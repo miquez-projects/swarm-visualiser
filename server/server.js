@@ -43,6 +43,17 @@ app.get('/debug/encryption', (req, res) => {
   });
 });
 
+// Debug endpoint to check Mapbox token setup
+app.get('/debug/mapbox', (req, res) => {
+  const hasToken = !!process.env.MAPBOX_TOKEN;
+  const tokenPrefix = process.env.MAPBOX_TOKEN ? process.env.MAPBOX_TOKEN.substring(0, 10) : null;
+  res.json({
+    hasMapboxToken: hasToken,
+    tokenPrefix: tokenPrefix,
+    isPublicKey: tokenPrefix?.startsWith('pk.')
+  });
+});
+
 // API routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/import', require('./routes/import'));
