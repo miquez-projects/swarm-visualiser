@@ -14,6 +14,7 @@ class StaticMapGenerator {
 
   generateCheckinMapUrl(checkins, width = 600, height = 400) {
     if (checkins.length === 0) return null;
+    console.log(`[StaticMap] Generating checkin map for ${checkins.length} checkins, token: ${this.mapboxToken ? 'SET' : 'MISSING'}`);
 
     // Create curved path through checkins
     const coords = checkins.map(c => [c.longitude, c.latitude]);
@@ -127,6 +128,7 @@ class StaticMapGenerator {
 
   generateActivityMapUrl(tracklogOrPolyline, width = 600, height = 400) {
     if (!tracklogOrPolyline) return null;
+    console.log(`[StaticMap] Generating activity map, token: ${this.mapboxToken ? 'SET' : 'MISSING'}`);
 
     let encodedPath;
 
