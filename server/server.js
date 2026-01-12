@@ -54,6 +54,31 @@ app.get('/debug/mapbox', (req, res) => {
   });
 });
 
+// Debug endpoint to test static map generation
+app.get('/debug/static-map', (req, res) => {
+  const staticMapGenerator = require('./services/staticMapGenerator');
+  // Test checkins
+  const testCheckins = [
+    { latitude: 51.5074, longitude: -0.1278 }, // London
+    { latitude: 51.5094, longitude: -0.1180 }  // Near London
+  ];
+  try {
+    const url = staticMapGenerator.generateCheckinMapUrl(testCheckins);
+    res.json({
+      success: true,
+      tokenInGenerator: !!staticMapGenerator.mapboxToken,
+      tokenPrefix: staticMapGenerator.mapboxToken ? staticMapGenerator.mapboxToken.substring(0, 10) : null,
+      urlGenerated: !!url,
+      urlPreview: url ? url.substring(0, 250) + '...' : null
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // API routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/import', require('./routes/import'));
