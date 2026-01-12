@@ -10,6 +10,8 @@ class StaticMapGenerator {
       interactive: 'ff6b35', // Orange for markers and check-in paths
       data: '2d9a8c',        // Teal for activity tracklogs
     };
+    // Log initialization status
+    console.log(`[StaticMap] Initialized - token: ${this.mapboxToken ? 'SET (' + this.mapboxToken.substring(0, 10) + '...)' : 'MISSING'}`);
   }
 
   generateCheckinMapUrl(checkins, width = 600, height = 400) {
@@ -50,7 +52,9 @@ class StaticMapGenerator {
     const urlEncodedPath = encodeURIComponent(encodedPath);
     const path = `path-2+${this.colors.interactive}-0.5(${urlEncodedPath})`;
 
-    return `${this.baseUrl}/${path},${markers}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
+    const url = `${this.baseUrl}/${path},${markers}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
+    console.log(`[StaticMap] Generated checkin URL (first 200 chars): ${url.substring(0, 200)}...`);
+    return url;
   }
 
   calculateDynamicThreshold(checkins) {
@@ -158,7 +162,9 @@ class StaticMapGenerator {
     const urlEncodedPath = encodeURIComponent(encodedPath);
     const path = `path-3+${this.colors.data}-0.8(${urlEncodedPath})`;
 
-    return `${this.baseUrl}/${path}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
+    const url = `${this.baseUrl}/${path}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
+    console.log(`[StaticMap] Generated activity URL (first 200 chars): ${url.substring(0, 200)}...`);
+    return url;
   }
 
   createCurvedPath(coords) {
