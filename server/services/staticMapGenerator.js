@@ -3,8 +3,8 @@ const polyline = require('@mapbox/polyline');
 class StaticMapGenerator {
   constructor() {
     this.mapboxToken = process.env.MAPBOX_TOKEN;
-    // Use dark style to match the app's cartographic theme
-    this.baseUrl = 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/static';
+    // Custom teal-tinted cartographic style matching the dynamic map
+    this.baseUrl = 'https://api.mapbox.com/styles/v1/miquez989/cmkbo1gex00ti01s9bcz824bp/static';
     // Design system colors
     this.colors = {
       interactive: 'ff6b35', // Orange for markers and check-in paths
