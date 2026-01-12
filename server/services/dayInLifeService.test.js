@@ -1,20 +1,28 @@
-const dayInLifeService = require('./dayInLifeService');
-const Checkin = require('../models/checkin');
-const StravaActivity = require('../models/stravaActivity');
-const GarminActivity = require('../models/garminActivity');
-const GarminDailySteps = require('../models/garminDailySteps');
-const GarminDailyHeartRate = require('../models/garminDailyHeartRate');
-const GarminDailySleep = require('../models/garminDailySleep');
-const weatherService = require('./weatherService');
+// Mock database connection first (before any imports that use it)
+jest.mock('../db/connection', () => ({
+  query: jest.fn().mockResolvedValue({ rows: [] })
+}));
 
 // Mock all dependencies
 jest.mock('../models/checkin');
 jest.mock('../models/stravaActivity');
+jest.mock('../models/stravaActivityPhoto');
 jest.mock('../models/garminActivity');
 jest.mock('../models/garminDailySteps');
 jest.mock('../models/garminDailyHeartRate');
 jest.mock('../models/garminDailySleep');
 jest.mock('./weatherService');
+
+const dayInLifeService = require('./dayInLifeService');
+const Checkin = require('../models/checkin');
+const StravaActivity = require('../models/stravaActivity');
+const StravaActivityPhoto = require('../models/stravaActivityPhoto');
+const GarminActivity = require('../models/garminActivity');
+const GarminDailySteps = require('../models/garminDailySteps');
+const GarminDailyHeartRate = require('../models/garminDailyHeartRate');
+const GarminDailySleep = require('../models/garminDailySleep');
+const weatherService = require('./weatherService');
+const db = require('../db/connection');
 
 describe('dayInLifeService', () => {
   const userId = 'test-user-123';
@@ -25,6 +33,10 @@ describe('dayInLifeService', () => {
   beforeEach(() => {
     // Clear all mocks before each test
     jest.clearAllMocks();
+    // Reset db mock to default empty rows
+    db.query.mockResolvedValue({ rows: [] });
+    // Mock StravaActivityPhoto.findByActivityId to return empty by default
+    StravaActivityPhoto.findByActivityId = jest.fn().mockResolvedValue([]);
   });
 
   describe('getDayInLife', () => {
@@ -128,20 +140,17 @@ describe('dayInLifeService', () => {
       // Verify all data sources were called correctly
       expect(Checkin.find).toHaveBeenCalledWith({
         userId,
-        startDate: '2024-01-15T00:00:00.000Z',
-        endDate: '2024-01-15T23:59:59.999Z'
+        localDate: '2024-01-15'
       });
 
       expect(StravaActivity.findByUserAndDateRange).toHaveBeenCalledWith(
         userId,
-        '2024-01-15T00:00:00.000Z',
-        '2024-01-15T23:59:59.999Z'
+        '2024-01-15'
       );
 
       expect(GarminActivity.findByUserAndDateRange).toHaveBeenCalledWith(
         userId,
-        '2024-01-15T00:00:00.000Z',
-        '2024-01-15T23:59:59.999Z'
+        '2024-01-15'
       );
 
       expect(GarminDailySteps.findByUserAndDateRange).toHaveBeenCalledWith(
@@ -407,8 +416,7 @@ describe('dayInLifeService', () => {
       ];
 
       // Mock db.query for photos
-      const db = require('../db/connection');
-      db.query = jest.fn().mockResolvedValue({
+      db.query.mockResolvedValue({
         rows: [
           { checkin_id: 1, photo_url: 'https://example.com/photo1.jpg', photo_url_cached: 'https://cached.com/photo1.jpg' }
         ]
@@ -426,10 +434,6 @@ describe('dayInLifeService', () => {
         { id: 1, checkin_date: '2024-01-15T09:00:00Z', venue_name: 'Coffee', latitude: 40.7128, longitude: -74.0060 },
         { id: 2, checkin_date: '2024-01-15T12:00:00Z', venue_name: 'Lunch', latitude: 40.7138, longitude: -74.0070 }
       ];
-
-      // Mock db.query for photos
-      const db = require('../db/connection');
-      db.query = jest.fn().mockResolvedValue({ rows: [] });
 
       const events = await dayInLifeService.generateEvents(mockCheckins, []);
 

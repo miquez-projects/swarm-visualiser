@@ -1,6 +1,15 @@
+// Mock the database connection
+jest.mock('../db/connection', () => ({
+  query: jest.fn()
+}));
+
 const DailyWeather = require('./dailyWeather');
+const db = require('../db/connection');
 
 describe('DailyWeather', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
   describe('upsert', () => {
     it('should insert new weather record', async () => {
       const weatherData = {
@@ -11,6 +20,10 @@ describe('DailyWeather', () => {
         condition: 'clear',
         weather_icon: '☀️'
       };
+
+      db.query.mockResolvedValueOnce({
+        rows: [{ id: 1, ...weatherData, temp_celsius: '18.5' }]
+      });
 
       const result = await DailyWeather.upsert(weatherData);
 
@@ -29,10 +42,16 @@ describe('DailyWeather', () => {
         weather_icon: '🌤'
       };
 
-      // Insert first time
+      // First upsert
+      db.query.mockResolvedValueOnce({
+        rows: [{ id: 1, ...weatherData, temp_celsius: '20.0' }]
+      });
       await DailyWeather.upsert(weatherData);
 
-      // Update with new temperature
+      // Second upsert with updated temperature
+      db.query.mockResolvedValueOnce({
+        rows: [{ id: 1, ...weatherData, temp_celsius: '22.0' }]
+      });
       weatherData.temp_celsius = 22.0;
       const result = await DailyWeather.upsert(weatherData);
 
@@ -43,15 +62,16 @@ describe('DailyWeather', () => {
   describe('findByDateAndLocation', () => {
     it('should find weather by date and country', async () => {
       const weatherData = {
+        id: 1,
         date: '2024-01-16',
         country: 'Canada',
         region: null,
-        temp_celsius: 5.0,
+        temp_celsius: '5.0',
         condition: 'snowy',
         weather_icon: '🌨'
       };
 
-      await DailyWeather.upsert(weatherData);
+      db.query.mockResolvedValueOnce({ rows: [weatherData] });
 
       const result = await DailyWeather.findByDateAndLocation('2024-01-16', 'Canada', null);
 
@@ -61,6 +81,8 @@ describe('DailyWeather', () => {
     });
 
     it('should return undefined if not found', async () => {
+      db.query.mockResolvedValueOnce({ rows: [] });
+
       const result = await DailyWeather.findByDateAndLocation('2099-01-01', 'Mars', null);
 
       expect(result).toBeUndefined();

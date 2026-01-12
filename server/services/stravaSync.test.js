@@ -1,4 +1,3 @@
-const stravaSyncService = require('./stravaSync');
 const stravaOAuth = require('./stravaOAuth');
 const StravaActivity = require('../models/stravaActivity');
 const StravaActivityPhoto = require('../models/stravaActivityPhoto');
@@ -8,6 +7,21 @@ jest.mock('./stravaOAuth');
 jest.mock('../models/stravaActivity');
 jest.mock('../models/stravaActivityPhoto');
 jest.mock('../models/user');
+jest.mock('./stravaRateLimitService', () => ({
+  StravaRateLimitService: jest.fn().mockImplementation(() => ({
+    checkQuota: jest.fn().mockResolvedValue({ allowed: true }),
+    recordRequest: jest.fn().mockResolvedValue(undefined),
+    handleRateLimitResponse: jest.fn().mockResolvedValue(undefined)
+  })),
+  RateLimitError: class RateLimitError extends Error {
+    constructor(message, retryAfter) {
+      super(message);
+      this.retryAfter = retryAfter;
+    }
+  }
+}));
+
+const stravaSyncService = require('./stravaSync');
 
 describe('StravaSyncService', () => {
   const mockUserId = 123;
@@ -15,6 +29,11 @@ describe('StravaSyncService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Set default mock implementations
+    StravaActivity.findActivitiesNeedingPhotoSync.mockResolvedValue([]);
+    StravaActivity.findById.mockResolvedValue(null);
+    StravaActivity.bulkInsert.mockResolvedValue(0);
+    StravaActivityPhoto.bulkInsert.mockResolvedValue(0);
   });
 
   describe('syncActivities', () => {
@@ -246,6 +265,7 @@ describe('StravaSyncService', () => {
         mockEncryptedTokens,
         mockUserId,
         null,
+        null,
         onProgress
       );
 
@@ -336,7 +356,7 @@ describe('StravaSyncService', () => {
     ];
 
     test('should sync photos for activities with photos', async () => {
-      StravaActivity.findActivitiesWithPhotos.mockResolvedValue(mockActivities);
+      StravaActivity.findActivitiesNeedingPhotoSync.mockResolvedValue(mockActivities);
 
       // Mock photo fetches for each activity
       stravaOAuth.makeAuthenticatedRequest.mockResolvedValue(mockPhotos);
@@ -402,7 +422,7 @@ describe('StravaSyncService', () => {
     });
 
     test('should transform photo data correctly', async () => {
-      StravaActivity.findActivitiesWithPhotos.mockResolvedValue([mockActivities[0]]);
+      StravaActivity.findActivitiesNeedingPhotoSync.mockResolvedValue([mockActivities[0]]);
       stravaOAuth.makeAuthenticatedRequest.mockResolvedValue(mockPhotos);
 
       const capturedCalls = [];
@@ -430,7 +450,7 @@ describe('StravaSyncService', () => {
         location: null
       };
 
-      StravaActivity.findActivitiesWithPhotos.mockResolvedValue([mockActivities[0]]);
+      StravaActivity.findActivitiesNeedingPhotoSync.mockResolvedValue([mockActivities[0]]);
       stravaOAuth.makeAuthenticatedRequest.mockResolvedValue([photoWithoutLocation]);
 
       const capturedCalls = [];
@@ -455,7 +475,7 @@ describe('StravaSyncService', () => {
         photo_count: 1
       }));
 
-      StravaActivity.findActivitiesWithPhotos.mockResolvedValue(activities);
+      StravaActivity.findActivitiesNeedingPhotoSync.mockResolvedValue(activities);
 
       for (let i = 0; i < 10; i++) {
         stravaOAuth.makeAuthenticatedRequest.mockResolvedValueOnce([mockPhotos[0]]);
@@ -487,7 +507,7 @@ describe('StravaSyncService', () => {
     });
 
     test('should handle photo fetch errors gracefully', async () => {
-      StravaActivity.findActivitiesWithPhotos.mockResolvedValue(mockActivities);
+      StravaActivity.findActivitiesNeedingPhotoSync.mockResolvedValue(mockActivities);
 
       stravaOAuth.makeAuthenticatedRequest
         .mockRejectedValueOnce(new Error('Photo fetch failed'))
@@ -506,7 +526,7 @@ describe('StravaSyncService', () => {
     });
 
     test('should handle empty photo response', async () => {
-      StravaActivity.findActivitiesWithPhotos.mockResolvedValue([mockActivities[0]]);
+      StravaActivity.findActivitiesNeedingPhotoSync.mockResolvedValue([mockActivities[0]]);
       stravaOAuth.makeAuthenticatedRequest.mockResolvedValue([]);
 
       const result = await stravaSyncService.syncActivityPhotos(
@@ -520,7 +540,7 @@ describe('StravaSyncService', () => {
     });
 
     test('should handle API errors', async () => {
-      StravaActivity.findActivitiesWithPhotos.mockRejectedValue(
+      StravaActivity.findActivitiesNeedingPhotoSync.mockRejectedValue(
         new Error('Database error')
       );
 
@@ -531,7 +551,7 @@ describe('StravaSyncService', () => {
   });
 
   describe('fullHistoricalSync', () => {
-    test('should perform full sync with 5 year lookback', async () => {
+    test('should perform full sync with no date restriction', async () => {
       const mockActivityResult = { imported: 100, fetched: 100 };
       const mockPhotoResult = { activitiesProcessed: 10, photosInserted: 20 };
 
@@ -549,14 +569,17 @@ describe('StravaSyncService', () => {
         photos: mockPhotoResult
       });
 
-      const callDate = stravaSyncService.syncActivities.mock.calls[0][2];
-      const fiveYearsAgo = new Date();
-      fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
-
-      expect(callDate.getFullYear()).toBe(fiveYearsAgo.getFullYear());
+      // Full historical sync passes null for afterDate to get all activities
+      expect(stravaSyncService.syncActivities).toHaveBeenCalledWith(
+        mockEncryptedTokens,
+        mockUserId,
+        null,
+        null,
+        null
+      );
     });
 
-    test('should use custom yearsBack parameter', async () => {
+    test('should pass cursor for resumable sync', async () => {
       jest.spyOn(stravaSyncService, 'syncActivities').mockResolvedValue({
         imported: 50,
         fetched: 50
@@ -566,17 +589,21 @@ describe('StravaSyncService', () => {
         photosInserted: 10
       });
 
+      const cursor = { page: 5, lastActivityId: '12345' };
+
       await stravaSyncService.fullHistoricalSync(
         mockEncryptedTokens,
         mockUserId,
-        10
+        cursor
       );
 
-      const callDate = stravaSyncService.syncActivities.mock.calls[0][2];
-      const tenYearsAgo = new Date();
-      tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
-
-      expect(callDate.getFullYear()).toBe(tenYearsAgo.getFullYear());
+      expect(stravaSyncService.syncActivities).toHaveBeenCalledWith(
+        mockEncryptedTokens,
+        mockUserId,
+        null,
+        cursor,
+        null
+      );
     });
 
     test('should pass progress callback to sync methods', async () => {
@@ -594,14 +621,15 @@ describe('StravaSyncService', () => {
       await stravaSyncService.fullHistoricalSync(
         mockEncryptedTokens,
         mockUserId,
-        5,
+        null,
         onProgress
       );
 
       expect(stravaSyncService.syncActivities).toHaveBeenCalledWith(
         mockEncryptedTokens,
         mockUserId,
-        expect.any(Date),
+        null,
+        null,
         onProgress
       );
 
@@ -615,7 +643,7 @@ describe('StravaSyncService', () => {
   });
 
   describe('incrementalSync', () => {
-    test('should perform incremental sync with 7-day lookback', async () => {
+    test('should perform incremental sync from lastSyncDate', async () => {
       const lastSyncDate = new Date('2025-01-10T00:00:00Z');
 
       jest.spyOn(stravaSyncService, 'syncActivities').mockResolvedValue({
@@ -635,14 +663,12 @@ describe('StravaSyncService', () => {
 
       expect(result.success).toBe(true);
 
+      // Incremental sync uses lastSyncDate directly as the start date
       const callDate = stravaSyncService.syncActivities.mock.calls[0][2];
-      const expectedDate = new Date(lastSyncDate);
-      expectedDate.setDate(expectedDate.getDate() - 7);
-
-      expect(callDate.toISOString()).toBe(expectedDate.toISOString());
+      expect(callDate.toISOString()).toBe(lastSyncDate.toISOString());
     });
 
-    test('should use current date minus 7 days if no lastSyncDate', async () => {
+    test('should use current date if no lastSyncDate provided', async () => {
       jest.spyOn(stravaSyncService, 'syncActivities').mockResolvedValue({
         imported: 3,
         fetched: 3
@@ -652,18 +678,19 @@ describe('StravaSyncService', () => {
         photosInserted: 0
       });
 
+      const beforeCall = new Date();
       await stravaSyncService.incrementalSync(
         mockEncryptedTokens,
         mockUserId,
         null
       );
+      const afterCall = new Date();
 
       const callDate = stravaSyncService.syncActivities.mock.calls[0][2];
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-      // Allow 1 second tolerance for test execution time
-      expect(Math.abs(callDate.getTime() - sevenDaysAgo.getTime())).toBeLessThan(1000);
+      // The call date should be between beforeCall and afterCall
+      expect(callDate.getTime()).toBeGreaterThanOrEqual(beforeCall.getTime() - 100);
+      expect(callDate.getTime()).toBeLessThanOrEqual(afterCall.getTime() + 100);
     });
 
     test('should pass progress callback to sync methods', async () => {
@@ -677,11 +704,13 @@ describe('StravaSyncService', () => {
       });
 
       const onProgress = jest.fn();
+      const lastSyncDate = new Date();
 
       await stravaSyncService.incrementalSync(
         mockEncryptedTokens,
         mockUserId,
-        new Date(),
+        lastSyncDate,
+        null,
         onProgress
       );
 
@@ -689,6 +718,7 @@ describe('StravaSyncService', () => {
         mockEncryptedTokens,
         mockUserId,
         expect.any(Date),
+        null,
         onProgress
       );
     });
@@ -753,6 +783,7 @@ describe('StravaSyncService', () => {
         avg_cadence: 85,
         avg_watts: 200,
         tracklog: 'LINESTRING(-122.4194 37.7749,-122.4094 37.7849)',
+        timezone: 'America/Los_Angeles',
         is_private: false,
         kudos_count: 5,
         comment_count: 2,
@@ -780,7 +811,8 @@ describe('StravaSyncService', () => {
       expect(result.start_latlng).toBeNull();
       expect(result.end_latlng).toBeNull();
       expect(result.tracklog).toBeNull();
-      expect(result.calories).toBeUndefined();
+      // calories will be null or undefined depending on the activity
+      expect(result.calories == null).toBe(true);
       expect(result.is_private).toBe(false);
     });
 

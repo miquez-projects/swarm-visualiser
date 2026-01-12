@@ -28,8 +28,7 @@ describe('Sync Routes', () => {
       const mockUser = {
         id: 1,
         display_name: 'Test User',
-        avatar_url: 'https://example.com/avatar.jpg',
-        last_sync_at: new Date('2024-01-01')
+        avatar_url: 'https://example.com/avatar.jpg'
       };
 
       const mockSyncResults = {
@@ -38,7 +37,6 @@ describe('Sync Routes', () => {
       };
 
       User.findBySecretToken.mockResolvedValueOnce(mockUser);
-      User.updateLastSync.mockResolvedValueOnce(mockUser);
       syncAllDataSources.mockResolvedValueOnce(mockSyncResults);
 
       const response = await request(app)
@@ -49,9 +47,8 @@ describe('Sync Routes', () => {
       expect(response.body.success).toBe(true);
       expect(response.body.results).toBeDefined();
       expect(response.body.results.foursquare).toBeDefined();
-      expect(response.body.lastSyncAt).toBeDefined();
+      expect(response.body.message).toBe('Sync jobs queued. Check progress in import history.');
       expect(User.findBySecretToken).toHaveBeenCalledWith('test-token-123');
-      expect(User.updateLastSync).toHaveBeenCalledWith(1);
       expect(syncAllDataSources).toHaveBeenCalledWith(1);
     });
 
@@ -77,8 +74,7 @@ describe('Sync Routes', () => {
       const mockUser = {
         id: 1,
         display_name: 'Test User',
-        avatar_url: 'https://example.com/avatar.jpg',
-        last_sync_at: new Date('2024-01-01')
+        avatar_url: 'https://example.com/avatar.jpg'
       };
 
       const mockSyncResults = {
@@ -87,7 +83,6 @@ describe('Sync Routes', () => {
       };
 
       User.findBySecretToken.mockResolvedValueOnce(mockUser);
-      User.updateLastSync.mockResolvedValueOnce(mockUser);
       syncAllDataSources.mockResolvedValueOnce(mockSyncResults);
 
       const response = await request(app)

@@ -56,6 +56,7 @@ describe('Foursquare Service', () => {
         checkin_date: new Date(1609459200 * 1000),
         city: 'New York',
         country: 'United States',
+        timezone: 'America/New_York',
         photos: [
           {
             url: 'https://example.com/photos/original/photo1.jpg',
@@ -105,6 +106,7 @@ describe('Foursquare Service', () => {
         checkin_date: new Date(1609459200 * 1000),
         city: 'London',
         country: 'United Kingdom',
+        timezone: 'Europe/London',
         photos: []
       });
     });

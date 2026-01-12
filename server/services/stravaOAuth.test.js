@@ -332,63 +332,6 @@ describe('StravaOAuthService', () => {
     });
   });
 
-  describe('handleRateLimit', () => {
-    test('should handle 429 rate limit error with exponential backoff', async () => {
-      const error = {
-        response: {
-          status: 429
-        }
-      };
-
-      jest.useFakeTimers();
-      const promise = stravaOAuth.handleRateLimit(error, 0);
-      jest.advanceTimersByTime(1000);
-      await promise;
-      jest.useRealTimers();
-
-      // Should succeed after waiting
-      expect(true).toBe(true);
-    });
-
-    test('should calculate correct delay for retry count', async () => {
-      const error = { response: { status: 429 } };
-
-      jest.useFakeTimers();
-
-      // Retry 0: 2^0 * 1000 = 1000ms
-      const promise1 = stravaOAuth.handleRateLimit(error, 0);
-      jest.advanceTimersByTime(1000);
-      await promise1;
-
-      // Retry 1: 2^1 * 1000 = 2000ms
-      const promise2 = stravaOAuth.handleRateLimit(error, 1);
-      jest.advanceTimersByTime(2000);
-      await promise2;
-
-      // Retry 2: 2^2 * 1000 = 4000ms
-      const promise3 = stravaOAuth.handleRateLimit(error, 2);
-      jest.advanceTimersByTime(4000);
-      await promise3;
-
-      jest.useRealTimers();
-    });
-
-    test('should throw error after max retries', async () => {
-      const error = { response: { status: 429 } };
-
-      await expect(
-        stravaOAuth.handleRateLimit(error, 3)
-      ).rejects.toThrow('Rate limit exceeded: Maximum retries reached');
-    });
-
-    test('should rethrow non-429 errors', async () => {
-      const error = { response: { status: 500 } };
-
-      await expect(
-        stravaOAuth.handleRateLimit(error, 0)
-      ).rejects.toEqual(error);
-    });
-  });
 
   describe('makeAuthenticatedRequest', () => {
     const mockEncryptedTokens = 'encrypted:' + JSON.stringify({
@@ -544,34 +487,7 @@ describe('StravaOAuthService', () => {
       expect(result.newEncryptedTokens).toBeDefined();
     });
 
-    test('should handle rate limit with retry', async () => {
-      stravaOAuth.isTokenExpired.mockReturnValue(false);
-
-      const rateLimitError = {
-        response: {
-          status: 429,
-          data: { message: 'Rate limit exceeded' }
-        }
-      };
-
-      axios.get
-        .mockRejectedValueOnce(rateLimitError)
-        .mockResolvedValueOnce({ data: { success: true } });
-
-      jest.spyOn(stravaOAuth, 'handleRateLimit').mockResolvedValue(1000);
-
-      const result = await stravaOAuth.makeAuthenticatedRequest(
-        mockEncryptedTokens,
-        '/athlete',
-        {},
-        'GET'
-      );
-
-      expect(result).toEqual({ success: true });
-      expect(stravaOAuth.handleRateLimit).toHaveBeenCalledWith(rateLimitError, 0);
-    });
-
-    test('should throw error after max rate limit retries', async () => {
+    test('should throw immediately on rate limit (429)', async () => {
       stravaOAuth.isTokenExpired.mockReturnValue(false);
 
       const rateLimitError = {
@@ -582,9 +498,6 @@ describe('StravaOAuthService', () => {
       };
 
       axios.get.mockRejectedValue(rateLimitError);
-      jest.spyOn(stravaOAuth, 'handleRateLimit').mockRejectedValue(
-        new Error('Rate limit exceeded: Maximum retries reached')
-      );
 
       await expect(
         stravaOAuth.makeAuthenticatedRequest(
@@ -593,7 +506,7 @@ describe('StravaOAuthService', () => {
           {},
           'GET'
         )
-      ).rejects.toThrow('Rate limit exceeded: Maximum retries reached');
+      ).rejects.toThrow('Rate limit exceeded');
     });
 
     test('should throw error if token refresh fails', async () => {

@@ -29,6 +29,7 @@ describe('Strava OAuth2 Routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     User.findBySecretToken.mockResolvedValue(mockUser);
+    User.findById.mockResolvedValue(mockUser);
     User.update.mockResolvedValue(mockUser);
     // Reset queue mock
     getQueue().send.mockResolvedValue(undefined);
@@ -62,7 +63,7 @@ describe('Strava OAuth2 Routes', () => {
       expect(response.status).toBe(200);
       expect(stravaOAuth.getAuthorizationUrl).toHaveBeenCalledWith(
         expect.stringContaining('/api/strava/auth/callback'),
-        '',
+        'user_1',
         'read,activity:read_all'
       );
     });
@@ -115,8 +116,10 @@ describe('Strava OAuth2 Routes', () => {
     });
   });
 
-  describe('POST /api/strava/auth/callback', () => {
-    test('should exchange code for tokens successfully', async () => {
+  describe('GET /api/strava/auth/callback', () => {
+    // Note: The callback is a GET endpoint that redirects to frontend
+    // User ID comes from state parameter (format: "user_1")
+    test('should exchange code for tokens successfully and redirect', async () => {
       const mockTokenData = {
         accessToken: 'access-token-123',
         refreshToken: 'refresh-token-123',
@@ -131,14 +134,10 @@ describe('Strava OAuth2 Routes', () => {
       ImportJob.create.mockResolvedValue({ id: 456 });
 
       const response = await request(app)
-        .post('/api/strava/auth/callback')
-        .set('x-auth-token', mockToken)
-        .send({ code: 'auth-code-123' });
+        .get('/api/strava/auth/callback?code=auth-code-123&state=user_1');
 
-      expect(response.status).toBe(200);
-      expect(response.body.success).toBe(true);
-      expect(response.body.athleteId).toBe(9876543);
-      expect(response.body.jobId).toBe(456);
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toContain('strava=connected');
     });
 
     test('should call exchangeCodeForToken with correct parameters', async () => {
@@ -155,9 +154,7 @@ describe('Strava OAuth2 Routes', () => {
       ImportJob.create.mockResolvedValue({ id: 123 });
 
       await request(app)
-        .post('/api/strava/auth/callback')
-        .set('x-auth-token', mockToken)
-        .send({ code: 'auth-code-123' });
+        .get('/api/strava/auth/callback?code=auth-code-123&state=user_1');
 
       expect(stravaOAuth.exchangeCodeForToken).toHaveBeenCalledWith(
         'auth-code-123',
@@ -180,9 +177,7 @@ describe('Strava OAuth2 Routes', () => {
       ImportJob.create.mockResolvedValue({ id: 123 });
 
       await request(app)
-        .post('/api/strava/auth/callback')
-        .set('x-auth-token', mockToken)
-        .send({ code: 'auth-code-123' });
+        .get('/api/strava/auth/callback?code=auth-code-123&state=user_1');
 
       expect(stravaOAuth.encryptTokens).toHaveBeenCalledWith(
         'access-token-123',
@@ -206,12 +201,10 @@ describe('Strava OAuth2 Routes', () => {
       ImportJob.create.mockResolvedValue({ id: 123 });
 
       await request(app)
-        .post('/api/strava/auth/callback')
-        .set('x-auth-token', mockToken)
-        .send({ code: 'auth-code-123' });
+        .get('/api/strava/auth/callback?code=auth-code-123&state=user_1');
 
       expect(User.updateStravaAuth).toHaveBeenCalledWith(
-        mockUser.id,
+        1,
         mockEncryptedTokens,
         9876543
       );
@@ -231,9 +224,7 @@ describe('Strava OAuth2 Routes', () => {
       ImportJob.create.mockResolvedValue({ id: 789 });
 
       await request(app)
-        .post('/api/strava/auth/callback')
-        .set('x-auth-token', mockToken)
-        .send({ code: 'auth-code-123' });
+        .get('/api/strava/auth/callback?code=auth-code-123&state=user_1');
 
       expect(ImportJob.create).toHaveBeenCalledWith({
         user_id: 1,
@@ -248,51 +239,42 @@ describe('Strava OAuth2 Routes', () => {
       });
     });
 
-    test('should reject missing authorization code', async () => {
+    test('should return 400 for missing authorization code', async () => {
       const response = await request(app)
-        .post('/api/strava/auth/callback')
-        .set('x-auth-token', mockToken)
-        .send({});
+        .get('/api/strava/auth/callback?state=user_1');
 
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('Authorization code is required');
       expect(stravaOAuth.exchangeCodeForToken).not.toHaveBeenCalled();
     });
 
-    test('should handle token exchange failure', async () => {
+    test('should redirect with error for missing state', async () => {
+      const response = await request(app)
+        .get('/api/strava/auth/callback?code=auth-code-123');
+
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toContain('error=invalid_state');
+    });
+
+    test('should redirect with error for invalid state format', async () => {
+      const response = await request(app)
+        .get('/api/strava/auth/callback?code=auth-code-123&state=invalid');
+
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toContain('error=invalid_state');
+    });
+
+    test('should redirect with error on token exchange failure', async () => {
       stravaOAuth.exchangeCodeForToken.mockRejectedValue(new Error('Token exchange failed'));
 
       const response = await request(app)
-        .post('/api/strava/auth/callback')
-        .set('x-auth-token', mockToken)
-        .send({ code: 'auth-code-123' });
+        .get('/api/strava/auth/callback?code=auth-code-123&state=user_1');
 
-      expect(response.status).toBe(500);
-      expect(response.body.error).toBe('Failed to exchange authorization code for tokens');
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toContain('error=strava_failed');
     });
 
-    test('should require authentication', async () => {
-      const response = await request(app)
-        .post('/api/strava/auth/callback')
-        .send({ code: 'auth-code-123' });
-
-      expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Authentication required');
-    });
-
-    test('should handle invalid authentication token', async () => {
-      User.findBySecretToken.mockResolvedValueOnce(null);
-
-      const response = await request(app)
-        .post('/api/strava/auth/callback')
-        .set('x-auth-token', 'invalid-token')
-        .send({ code: 'auth-code-123' });
-
-      expect(response.status).toBe(401);
-      expect(response.body.error).toBe('Invalid token');
-    });
-
-    test('should handle database errors', async () => {
+    test('should redirect with error on database error', async () => {
       const mockTokenData = {
         accessToken: 'access-token-123',
         refreshToken: 'refresh-token-123',
@@ -305,15 +287,13 @@ describe('Strava OAuth2 Routes', () => {
       User.updateStravaAuth.mockRejectedValue(new Error('Database error'));
 
       const response = await request(app)
-        .post('/api/strava/auth/callback')
-        .set('x-auth-token', mockToken)
-        .send({ code: 'auth-code-123' });
+        .get('/api/strava/auth/callback?code=auth-code-123&state=user_1');
 
-      expect(response.status).toBe(500);
-      expect(response.body.error).toBe('Failed to exchange authorization code for tokens');
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toContain('error=strava_failed');
     });
 
-    test('should handle job creation failure', async () => {
+    test('should redirect with error on job creation failure', async () => {
       const mockTokenData = {
         accessToken: 'access-token-123',
         refreshToken: 'refresh-token-123',
@@ -327,15 +307,13 @@ describe('Strava OAuth2 Routes', () => {
       ImportJob.create.mockRejectedValue(new Error('Job creation failed'));
 
       const response = await request(app)
-        .post('/api/strava/auth/callback')
-        .set('x-auth-token', mockToken)
-        .send({ code: 'auth-code-123' });
+        .get('/api/strava/auth/callback?code=auth-code-123&state=user_1');
 
-      expect(response.status).toBe(500);
-      expect(response.body.error).toBe('Failed to exchange authorization code for tokens');
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toContain('error=strava_failed');
     });
 
-    test('should handle queue failure', async () => {
+    test('should redirect with error on queue failure', async () => {
       const mockTokenData = {
         accessToken: 'access-token-123',
         refreshToken: 'refresh-token-123',
@@ -350,12 +328,10 @@ describe('Strava OAuth2 Routes', () => {
       getQueue().send.mockRejectedValue(new Error('Queue unavailable'));
 
       const response = await request(app)
-        .post('/api/strava/auth/callback')
-        .set('x-auth-token', mockToken)
-        .send({ code: 'auth-code-123' });
+        .get('/api/strava/auth/callback?code=auth-code-123&state=user_1');
 
-      expect(response.status).toBe(500);
-      expect(response.body.error).toBe('Failed to exchange authorization code for tokens');
+      expect(response.status).toBe(302);
+      expect(response.headers.location).toContain('error=strava_failed');
     });
   });
 
@@ -447,12 +423,12 @@ describe('Strava OAuth2 Routes', () => {
     });
   });
 
-  describe('POST /api/strava/disconnect', () => {
+  describe('DELETE /api/strava/disconnect', () => {
     test('should disconnect Strava and clear tokens', async () => {
       User.updateStravaAuth.mockResolvedValue({ id: 1 });
 
       const response = await request(app)
-        .post('/api/strava/disconnect')
+        .delete('/api/strava/disconnect')
         .set('x-auth-token', mockToken);
 
       expect(response.status).toBe(200);
@@ -464,7 +440,7 @@ describe('Strava OAuth2 Routes', () => {
       User.updateStravaAuth.mockResolvedValue({ id: 1 });
 
       await request(app)
-        .post('/api/strava/disconnect')
+        .delete('/api/strava/disconnect')
         .set('x-auth-token', mockToken);
 
       expect(User.updateStravaAuth).toHaveBeenCalledWith(
@@ -477,7 +453,7 @@ describe('Strava OAuth2 Routes', () => {
       User.updateStravaAuth.mockResolvedValue({ id: 1 });
 
       const response = await request(app)
-        .post('/api/strava/disconnect')
+        .delete('/api/strava/disconnect')
         .set('x-auth-token', mockToken);
 
       expect(response.status).toBe(200);
@@ -486,7 +462,7 @@ describe('Strava OAuth2 Routes', () => {
 
     test('should require authentication', async () => {
       const response = await request(app)
-        .post('/api/strava/disconnect');
+        .delete('/api/strava/disconnect');
 
       expect(response.status).toBe(401);
       expect(response.body.error).toBe('Authentication required');
@@ -497,7 +473,7 @@ describe('Strava OAuth2 Routes', () => {
       User.findBySecretToken.mockResolvedValueOnce(null);
 
       const response = await request(app)
-        .post('/api/strava/disconnect')
+        .delete('/api/strava/disconnect')
         .set('x-auth-token', 'invalid-token');
 
       expect(response.status).toBe(401);
@@ -509,7 +485,7 @@ describe('Strava OAuth2 Routes', () => {
       User.updateStravaAuth.mockRejectedValue(new Error('Database connection lost'));
 
       const response = await request(app)
-        .post('/api/strava/disconnect')
+        .delete('/api/strava/disconnect')
         .set('x-auth-token', mockToken);
 
       expect(response.status).toBe(500);
@@ -547,22 +523,21 @@ describe('Strava OAuth2 Routes', () => {
         .post('/api/strava/sync')
         .set('x-auth-token', mockToken);
 
-      // Note: Strava route uses 'userId' instead of 'user_id' and omits 'data_source'
-      // This is inconsistent with Garmin but matches current implementation
       expect(ImportJob.create).toHaveBeenCalledWith({
-        userId: 1,
+        user_id: 1,
+        data_source: 'strava',
         status: 'queued'
       });
     });
 
-    test('should queue job in pg-boss with incremental sync', async () => {
+    test('should queue job in pg-boss with incremental sync when user has synced before', async () => {
       User.getStravaTokens.mockResolvedValue('encrypted-tokens');
+      User.findById.mockResolvedValue({ id: 1, last_strava_sync_at: new Date() });
       ImportJob.create.mockResolvedValue({ id: 789 });
 
       await request(app)
         .post('/api/strava/sync')
-        .set('x-auth-token', mockToken)
-        .send({ syncType: 'incremental' });
+        .set('x-auth-token', mockToken);
 
       expect(getQueue().send).toHaveBeenCalledWith('import-strava-data', {
         jobId: 789,
@@ -571,14 +546,14 @@ describe('Strava OAuth2 Routes', () => {
       });
     });
 
-    test('should queue job in pg-boss with full sync', async () => {
+    test('should queue job in pg-boss with full sync when user has never synced', async () => {
       User.getStravaTokens.mockResolvedValue('encrypted-tokens');
+      User.findById.mockResolvedValue({ id: 1, last_strava_sync_at: null });
       ImportJob.create.mockResolvedValue({ id: 999 });
 
       await request(app)
         .post('/api/strava/sync')
-        .set('x-auth-token', mockToken)
-        .send({ syncType: 'full' });
+        .set('x-auth-token', mockToken);
 
       expect(getQueue().send).toHaveBeenCalledWith('import-strava-data', {
         jobId: 999,
@@ -587,8 +562,9 @@ describe('Strava OAuth2 Routes', () => {
       });
     });
 
-    test('should default to incremental sync when syncType not specified', async () => {
+    test('should auto-detect sync type based on last_strava_sync_at', async () => {
       User.getStravaTokens.mockResolvedValue('encrypted-tokens');
+      User.findById.mockResolvedValue({ id: 1, last_strava_sync_at: '2025-01-01' });
       ImportJob.create.mockResolvedValue({ id: 111 });
 
       await request(app)
