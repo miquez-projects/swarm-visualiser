@@ -11,7 +11,7 @@ const { getQueue } = require('./queue');
  * @param {number} job.data.userId - User ID
  * @param {string} job.data.syncType - 'full' or 'incremental'
  */
-async function importStravaDataHandler(job) {
+async function importStravaDataHandler([job]) {
   const { jobId, userId, syncType = 'incremental' } = job.data;
 
   console.log(`Starting Strava import job ${jobId} for user ${userId} (${syncType})`);

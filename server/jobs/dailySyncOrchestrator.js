@@ -9,9 +9,9 @@ const ImportJob = require('../models/importJob');
  * Active users = users with tokens who logged in within last 30 days
  * Jobs are staggered with 2-minute delays to respect API rate limits
  *
- * @param {Object} job - pg-boss job object
+ * @param {Object[]} jobs - pg-boss job array (v12+ passes array)
  */
-async function dailySyncOrchestrator(job) {
+async function dailySyncOrchestrator([job]) {
   console.log('[DAILY-SYNC] Orchestrator started');
 
   try {

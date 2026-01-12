@@ -12,7 +12,7 @@ const { fetchCheckins, transformCheckin } = require('../services/foursquare');
  * @param {number} job.data.jobId - Import job ID
  * @param {number} job.data.userId - User ID
  */
-async function importCheckinsHandler(job) {
+async function importCheckinsHandler([job]) {
   const { jobId, userId } = job.data;
 
   console.log(`Starting import job ${jobId} for user ${userId}`);

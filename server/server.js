@@ -79,15 +79,15 @@ async function start() {
     await initQueue();
     const queue = getQueue();
 
-    // Register job handlers
+    // Register job handlers (queues created in initQueue)
     await queue.work('import-checkins', importCheckinsHandler);
 
     // Register Garmin import job
-    await queue.work('import-garmin-data', { teamSize: 2, teamConcurrency: 1 }, importGarminDataHandler);
+    await queue.work('import-garmin-data', importGarminDataHandler);
     console.log('Registered job: import-garmin-data');
 
     // Register Strava import job
-    await queue.work('import-strava-data', { teamSize: 2, teamConcurrency: 1 }, importStravaDataHandler);
+    await queue.work('import-strava-data', importStravaDataHandler);
     console.log('Registered job: import-strava-data');
 
     console.log('Job queue initialized and workers registered');

@@ -9,7 +9,7 @@ const garminSync = require('../services/garminSync');
  * @param {number} job.data.userId - User ID
  * @param {string} job.data.syncType - 'full' or 'incremental'
  */
-async function importGarminDataHandler(job) {
+async function importGarminDataHandler([job]) {
   const { jobId, userId, syncType = 'incremental' } = job.data;
 
   console.log(`Starting Garmin import job ${jobId} for user ${userId} (${syncType})`);
