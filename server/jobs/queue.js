@@ -1,14 +1,4 @@
-const PgBoss = require('pg-boss');
-const { pool } = require('../db/connection');
 const dailySyncOrchestrator = require('./dailySyncOrchestrator');
-
-// Create adapter for pg-boss to use shared connection pool
-// pg-boss expects executeSql method, but node-postgres Pool uses query method
-const dbAdapter = {
-  async executeSql(text, values) {
-    return await pool.query(text, values);
-  }
-};
 
 let boss = null;
 
@@ -20,6 +10,9 @@ async function initQueue() {
   if (boss) {
     return boss;
   }
+
+  // pg-boss v12+ is ESM-only, use dynamic import for CommonJS compatibility
+  const { PgBoss } = await import('pg-boss');
 
   boss = new PgBoss({
     connectionString: process.env.DATABASE_URL,
