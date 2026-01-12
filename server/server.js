@@ -69,7 +69,8 @@ app.get('/debug/static-map', (req, res) => {
       tokenInGenerator: !!staticMapGenerator.mapboxToken,
       tokenPrefix: staticMapGenerator.mapboxToken ? staticMapGenerator.mapboxToken.substring(0, 10) : null,
       urlGenerated: !!url,
-      urlPreview: url ? url.substring(0, 250) + '...' : null
+      urlPreview: url ? url.substring(0, 250) + '...' : null,
+      fullUrl: url
     });
   } catch (error) {
     res.json({
