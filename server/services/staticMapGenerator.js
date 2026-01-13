@@ -3,20 +3,17 @@ const polyline = require('@mapbox/polyline');
 class StaticMapGenerator {
   constructor() {
     this.mapboxToken = process.env.MAPBOX_TOKEN;
-    // Custom teal-tinted cartographic style matching the dynamic map
-    this.baseUrl = 'https://api.mapbox.com/styles/v1/miquez989/cmkbo1gex00ti01s9bcz824bp/static';
+    // Use dark style to match the app's cartographic theme
+    this.baseUrl = 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/static';
     // Design system colors
     this.colors = {
       interactive: 'ff6b35', // Orange for markers and check-in paths
       data: '2d9a8c',        // Teal for activity tracklogs
     };
-    // Log initialization status
-    console.log(`[StaticMap] Initialized - token: ${this.mapboxToken ? 'SET (' + this.mapboxToken.substring(0, 10) + '...)' : 'MISSING'}`);
   }
 
   generateCheckinMapUrl(checkins, width = 600, height = 400) {
     if (checkins.length === 0) return null;
-    console.log(`[StaticMap] Generating checkin map for ${checkins.length} checkins, token: ${this.mapboxToken ? 'SET' : 'MISSING'}`);
 
     // Create curved path through checkins
     const coords = checkins.map(c => [c.longitude, c.latitude]);
@@ -52,9 +49,7 @@ class StaticMapGenerator {
     const urlEncodedPath = encodeURIComponent(encodedPath);
     const path = `path-2+${this.colors.interactive}-0.5(${urlEncodedPath})`;
 
-    const url = `${this.baseUrl}/${path},${markers}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
-    console.log(`[StaticMap] Generated checkin URL (first 200 chars): ${url.substring(0, 200)}...`);
-    return url;
+    return `${this.baseUrl}/${path},${markers}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
   }
 
   calculateDynamicThreshold(checkins) {
@@ -132,7 +127,6 @@ class StaticMapGenerator {
 
   generateActivityMapUrl(tracklogOrPolyline, width = 600, height = 400) {
     if (!tracklogOrPolyline) return null;
-    console.log(`[StaticMap] Generating activity map, token: ${this.mapboxToken ? 'SET' : 'MISSING'}`);
 
     let encodedPath;
 
@@ -162,9 +156,7 @@ class StaticMapGenerator {
     const urlEncodedPath = encodeURIComponent(encodedPath);
     const path = `path-3+${this.colors.data}-0.8(${urlEncodedPath})`;
 
-    const url = `${this.baseUrl}/${path}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
-    console.log(`[StaticMap] Generated activity URL (first 200 chars): ${url.substring(0, 200)}...`);
-    return url;
+    return `${this.baseUrl}/${path}/auto/${width}x${height}@2x?access_token=${this.mapboxToken}`;
   }
 
   createCurvedPath(coords) {
