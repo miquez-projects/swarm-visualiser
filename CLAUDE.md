@@ -142,3 +142,5 @@ git log --oneline -10
 - Check if already running before starting: `cat logs/render-stream.pid`
 
 <!-- Deploy test: 2026-01-17T20:52:13Z -->
+
+<!-- Deploy test 2: 2026-01-17T21:04:13Z -->
