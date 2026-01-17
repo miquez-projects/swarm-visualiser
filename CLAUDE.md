@@ -140,3 +140,5 @@ git log --oneline -10
 - Logs persist in `logs/render-stream.log` until manually cleared
 - The log streaming process runs in background and survives terminal restarts
 - Check if already running before starting: `cat logs/render-stream.pid`
+
+<!-- Deploy test: 2026-01-17T20:52:13Z -->
