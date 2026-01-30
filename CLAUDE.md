@@ -119,6 +119,18 @@ git log --oneline -10
 - **Test pattern**: Jest + supertest (server), Jest + @testing-library/react (client)
 - **Mocking**: Server tests mock DB via `jest.mock('../db/connection')`, client tests mock axios
 
+### Commit Conventions for CI Efficiency
+
+Use [conventional commits](https://www.conventionalcommits.org/) to make CI behavior predictable:
+
+- `feat:`, `fix:`, `refactor:` — triggers CI for affected paths (server/client)
+- `test:` — triggers CI (test files live alongside source)
+- `docs:` — **skips CI** (paths-ignore covers `**.md` and `docs/**`)
+- `ci:` — only triggers if workflow files change (not in `server/` or `client/`)
+- `chore:` — triggers CI only if touching server/client files
+- Add `[skip ci]` to commit message to skip CI entirely (e.g., typo fixes, config-only changes)
+- Keep server and client changes in **separate commits/PRs** when possible to avoid running both test suites unnecessarily
+
 ---
 
 ## Environment Variables
