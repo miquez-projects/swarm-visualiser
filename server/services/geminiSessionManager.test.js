@@ -7,17 +7,9 @@ jest.mock('./geminiService', () => ({
 
 const sessionManager = require('./geminiSessionManager');
 
-// Access the module-level activeSessions Map via the manager's methods
-// We need to clear sessions between tests
 beforeEach(() => {
-  // Clean all sessions by creating expired ones won't work; use cleanup trick
-  // Instead, we rely on getActiveSessionCount and unique userIds per test
-  jest.useFakeTimers();
-  // Clear sessions by advancing time and running cleanup
-  jest.setSystemTime(Date.now() + 60 * 60 * 1000);
-  sessionManager.cleanup();
-  jest.useRealTimers();
-  mockModel.startChat.mockClear();
+  sessionManager.clearAllSessions();
+  jest.clearAllMocks();
 });
 
 afterEach(() => {

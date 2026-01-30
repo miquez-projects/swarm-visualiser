@@ -55,6 +55,10 @@ describe('Checkin.find', () => {
   test('filters by bounds', async () => {
     await Checkin.find({ bounds: '18.0,46.0,20.0,48.0' });
     expect(db.query.mock.calls[0][0]).toContain('latitude BETWEEN');
+    // Verify correct param order: minLat, maxLat, minLng, maxLng
+    expect(db.query.mock.calls[0][1]).toEqual(
+      expect.arrayContaining([46.0, 48.0, 18.0, 20.0])
+    );
   });
 
   test('throws on invalid bounds', async () => {

@@ -185,6 +185,13 @@ class GeminiSessionManager {
   }
 
   /**
+   * Clear all sessions (for testing)
+   */
+  clearAllSessions() {
+    activeSessions.clear();
+  }
+
+  /**
    * Get session count (for monitoring)
    */
   getActiveSessionCount() {
