@@ -410,6 +410,26 @@ describe('dayInLifeService', () => {
       expect(events[1].type).toBe('strava_activity_unmapped');
     });
 
+    it('should order checkins within a group chronologically (ASC) even when input is DESC', async () => {
+      // DB returns checkins in DESC order
+      const mockCheckins = [
+        { id: 3, checkin_date: '2024-01-15T14:00:00Z', venue_name: 'Museum', latitude: 40.7148, longitude: -74.0080 },
+        { id: 2, checkin_date: '2024-01-15T12:00:00Z', venue_name: 'Lunch', latitude: 40.7138, longitude: -74.0070 },
+        { id: 1, checkin_date: '2024-01-15T09:00:00Z', venue_name: 'Coffee', latitude: 40.7128, longitude: -74.0060 }
+      ];
+
+      const events = await dayInLifeService.generateEvents(mockCheckins, []);
+
+      expect(events).toHaveLength(1);
+      expect(events[0].type).toBe('checkin_group');
+      // Checkins within the group must be chronological (ASC)
+      expect(events[0].checkins[0].venue_name).toBe('Coffee');
+      expect(events[0].checkins[1].venue_name).toBe('Lunch');
+      expect(events[0].checkins[2].venue_name).toBe('Museum');
+      // startTime should be the earliest checkin
+      expect(events[0].startTime).toBe('2024-01-15T09:00:00Z');
+    });
+
     it('should include photos in check-in events', async () => {
       const mockCheckins = [
         { id: 1, checkin_date: '2024-01-15T09:00:00Z', venue_name: 'Coffee', latitude: 40.7128, longitude: -74.0060 }

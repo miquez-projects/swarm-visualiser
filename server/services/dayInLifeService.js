@@ -264,6 +264,9 @@ async function getWeather(userId, date, checkins) {
  * @returns {Promise<Array>} Array of event objects
  */
 async function generateEvents(checkins, activities) {
+  // Sort checkins chronologically (ASC) - DB returns DESC
+  checkins.sort((a, b) => new Date(a.checkin_date) - new Date(b.checkin_date));
+
   // First pass: assign check-ins to activities
   const mappedActivities = activities
     .filter(a => !!a.tracklog)
