@@ -110,7 +110,7 @@ git log --oneline -10
 
 ## CI / Testing Strategy
 
-- **CI runs on PRs only** (not on merge to main) via GitHub Actions
+- **CI runs on pushes to main and on PRs** via GitHub Actions
 - **Path-based filtering**: server tests only run when `server/**` changes, client tests only when `client/**` changes
 - **Docs-only changes** (`.md`, `docs/`) skip CI entirely
 - **Server tests**: `cd server && npx jest --verbose --forceExit`

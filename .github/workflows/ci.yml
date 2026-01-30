@@ -1,14 +1,18 @@
 name: CI
 
 # CI Policy:
+# - Runs on pushes to main and on PRs targeting main
 # - Skips docs-only changes
 # - Use [skip ci] in commit message to skip entirely
-# - Tests run on PRs only (already passed before merge)
-#
-# Rationale: With feature branch workflow, unit tests run on PR.
-# Re-running on merge is redundant.
 
 on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+      - 'LICENSE'
   pull_request:
     branches: [main]
     paths-ignore:
