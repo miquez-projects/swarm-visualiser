@@ -13,6 +13,7 @@ jest.mock('../jobs/queue', () => ({
 
 const User = require('../models/user');
 const sessionManager = require('../services/geminiSessionManager');
+const queryBuilder = require('../services/queryBuilder');
 const app = require('../server');
 
 const mockToken = 'test-token';
@@ -71,6 +72,55 @@ describe('Copilot Routes', () => {
         .send({ message: 'Hello' });
 
       expect(res.status).toBe(401);
+    });
+
+    test('handles function-call round-trip (query_checkins)', async () => {
+      const functionCallResponse = {
+        response: {
+          functionCalls: [{ name: 'query_checkins', args: { category: 'Food' } }],
+          text: () => '',
+          candidates: []
+        }
+      };
+      const textResponse = {
+        response: {
+          functionCalls: [],
+          text: () => 'You have 5 food checkins!',
+          candidates: []
+        }
+      };
+      const mockChat = {
+        sendMessage: jest.fn()
+          .mockResolvedValueOnce(functionCallResponse)
+          .mockResolvedValueOnce(textResponse),
+        getHistory: jest.fn().mockResolvedValue([
+          { role: 'user', parts: [{ text: 'How many food checkins?' }] },
+          { role: 'model', parts: [{ text: 'You have 5 food checkins!' }] }
+        ])
+      };
+      sessionManager.getOrCreateSession.mockReturnValue({
+        chat: mockChat,
+        historyPosition: 0
+      });
+      queryBuilder.executeQuery.mockResolvedValue({
+        data: [{ count: 5 }],
+        metadata: null
+      });
+
+      const res = await request(app)
+        .post('/api/copilot/chat')
+        .set('x-auth-token', mockToken)
+        .send({ message: 'How many food checkins?' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.response).toBe('You have 5 food checkins!');
+      // Verify sendMessage called twice: once with user message, once with function response
+      expect(mockChat.sendMessage).toHaveBeenCalledTimes(2);
+      // Verify executeQuery was called with the function call args
+      expect(queryBuilder.executeQuery).toHaveBeenCalledWith(
+        { category: 'Food' },
+        '1'
+      );
     });
   });
 });

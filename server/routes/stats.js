@@ -111,11 +111,11 @@ router.get(
 
       res.json({
         period1: {
-          label: `${period1_start.toISOString().split('T')[0]} to ${period1_end.toISOString().split('T')[0]}`,
+          label: `${new Date(period1_start).toISOString().split('T')[0]} to ${new Date(period1_end).toISOString().split('T')[0]}`,
           ...period1Stats
         },
         period2: {
-          label: `${period2_start.toISOString().split('T')[0]} to ${period2_end.toISOString().split('T')[0]}`,
+          label: `${new Date(period2_start).toISOString().split('T')[0]} to ${new Date(period2_end).toISOString().split('T')[0]}`,
           ...period2Stats
         },
         comparison: {

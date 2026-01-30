@@ -50,10 +50,11 @@ describe('Stats Routes', () => {
         .mockResolvedValueOnce(period1)
         .mockResolvedValueOnce(period2);
 
-      await request(app)
+      const res = await request(app)
         .get('/api/stats/compare?period1_start=2024-01-01T00:00:00.000Z&period1_end=2024-06-30T00:00:00.000Z&period2_start=2024-07-01T00:00:00.000Z&period2_end=2024-12-31T00:00:00.000Z')
         .set('x-auth-token', mockToken);
 
+      expect(res.status).toBe(200);
       // Verify getStats was called twice with userId scoped filters
       expect(Checkin.getStats).toHaveBeenCalledTimes(2);
       expect(Checkin.getStats).toHaveBeenCalledWith(expect.objectContaining({ userId: 1 }));
