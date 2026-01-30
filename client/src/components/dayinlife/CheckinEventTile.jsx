@@ -92,7 +92,7 @@ const CheckinEventTile = ({ event, onPhotoClick, authToken }) => {
                   >
                     <img
                       src={checkin.photos[0].photo_url_cached || checkin.photos[0].photo_url}
-                      alt="Check-in photo"
+                      alt="Check-in at venue"
                       style={{
                         width: '100%',
                         height: '100%',

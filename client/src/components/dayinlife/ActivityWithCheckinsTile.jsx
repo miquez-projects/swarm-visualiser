@@ -2,7 +2,6 @@ import React from 'react';
 import { Paper, Typography, Box, Link } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { ArrowSquareOut } from '@phosphor-icons/react';
-import { formatTimeInLocalZone } from '../../utils/timezoneUtils';
 import { overlayColors } from '../../theme';
 
 const ActivityWithCheckinsTile = ({ event, onPhotoClick }) => {
@@ -118,7 +117,7 @@ const ActivityWithCheckinsTile = ({ event, onPhotoClick }) => {
               >
                 <img
                   src={activity.photos[0].photo_url}
-                  alt="Activity photo"
+                  alt="Activity snapshot"
                   style={{
                     width: '100%',
                     height: '100%',
@@ -188,7 +187,7 @@ const ActivityWithCheckinsTile = ({ event, onPhotoClick }) => {
                 >
                   <img
                     src={checkin.photos[0].photo_url_cached || checkin.photos[0].photo_url}
-                    alt="Check-in photo"
+                    alt="Check-in at venue"
                     style={{
                       width: '100%',
                       height: '100%',

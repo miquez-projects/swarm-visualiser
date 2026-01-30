@@ -6,8 +6,7 @@ import {
   Grid,
   CircularProgress,
   Card,
-  CardMedia,
-  CardContent
+  CardMedia
 } from '@mui/material';
 import Lightbox from 'yet-another-react-lightbox';
 import 'yet-another-react-lightbox/styles.css';

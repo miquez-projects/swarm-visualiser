@@ -117,7 +117,7 @@ const ActivityEventTile = ({ event, onPhotoClick }) => {
               >
                 <img
                   src={activity.photos[0].photo_url}
-                  alt="Activity photo"
+                  alt="Activity snapshot"
                   style={{
                     width: '100%',
                     height: '100%',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -6,11 +6,10 @@ import {
   IconButton,
   Grid,
   CircularProgress,
-  TextField,
   useMediaQuery,
   useTheme
 } from '@mui/material';
-import { CaretLeft, CaretRight, CalendarBlank } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight } from '@phosphor-icons/react';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -37,17 +36,7 @@ const DayInLifePage = () => {
 
   const currentDate = date ? new Date(date) : new Date();
 
-  useEffect(() => {
-    if (date) {
-      loadDayData(date);
-    } else {
-      // Default to today
-      const today = new Date().toISOString().split('T')[0];
-      navigate(`/day-in-life/${today}`);
-    }
-  }, [date, navigate]);
-
-  const loadDayData = async (dateStr) => {
+  const loadDayData = useCallback(async (dateStr) => {
     console.log('[DayInLife] Loading data for:', dateStr, 'Token present:', !!token);
     setLoading(true);
     setError(null);
@@ -73,7 +62,17 @@ const DayInLifePage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (date) {
+      loadDayData(date);
+    } else {
+      // Default to today
+      const today = new Date().toISOString().split('T')[0];
+      navigate(`/day-in-life/${today}`);
+    }
+  }, [date, navigate, loadDayData]);
 
   const handlePrevDay = () => {
     const prev = new Date(currentDate);

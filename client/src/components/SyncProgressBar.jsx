@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, LinearProgress, Typography, Alert } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import { getSyncStatus } from '../services/api';
 
 /**
@@ -14,7 +13,6 @@ import { getSyncStatus } from '../services/api';
  * @param {Function} onError - Callback when sync fails
  */
 function SyncProgressBar({ jobId, token, dataSource = 'data', onComplete, onError }) {
-  const theme = useTheme();
   const [progress, setProgress] = useState({
     totalImported: 0,
     totalExpected: 0,
