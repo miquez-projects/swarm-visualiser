@@ -57,3 +57,61 @@ export function toGeoJSON(venueGroups) {
 export function getMarkerColor(category) {
   return CATEGORY_COLORS[category] || CATEGORY_COLORS['Unknown'];
 }
+
+/**
+ * Group checkins by week (ISO week, starting Monday).
+ * Returns an object mapping week-start date strings to checkin counts.
+ */
+export function groupCheckinsByWeek(checkins) {
+  const groups = {};
+  checkins.forEach(checkin => {
+    const date = new Date(checkin.checkin_date);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(date);
+    monday.setDate(diff);
+    const weekKey = monday.toISOString().split('T')[0];
+    groups[weekKey] = (groups[weekKey] || 0) + 1;
+  });
+  return groups;
+}
+
+/**
+ * Generate a weeks grid organized by year and month for a contribution-style display.
+ * @param {Object} checkinsByWeek - Map of week-start date strings to counts
+ * @param {Date} earliestDate - Start date (should be a Monday)
+ * @param {Date} latestDate - End date
+ * @returns {Array} Array of year objects containing months with week data
+ */
+export function generateWeeksGrid(checkinsByWeek, earliestDate, latestDate) {
+  const result = [];
+  const current = new Date(earliestDate);
+
+  while (current <= latestDate) {
+    const year = current.getFullYear();
+    const month = current.getMonth();
+    const weekKey = current.toISOString().split('T')[0];
+    const count = checkinsByWeek[weekKey] || 0;
+
+    let yearObj = result.find(y => y.year === year);
+    if (!yearObj) {
+      yearObj = { year, months: [] };
+      result.push(yearObj);
+    }
+
+    let monthObj = yearObj.months.find(m => m.month === month);
+    if (!monthObj) {
+      monthObj = { month, weeks: [] };
+      yearObj.months.push(monthObj);
+    }
+
+    monthObj.weeks.push({
+      weekStart: weekKey,
+      count: count
+    });
+
+    current.setDate(current.getDate() + 7);
+  }
+
+  return result;
+}

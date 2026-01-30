@@ -10,8 +10,8 @@ describe('statsUtils', () => {
         }
       };
       const result = formatDateRange(data);
-      expect(result).toContain(' - ');
-      expect(typeof result).toBe('string');
+      const expected = `${new Date('2024-01-01T00:00:00Z').toLocaleDateString()} - ${new Date('2024-12-31T00:00:00Z').toLocaleDateString()}`;
+      expect(result).toBe(expected);
     });
 
     test('returns "No data" for null input', () => {

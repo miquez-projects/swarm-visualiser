@@ -1,4 +1,4 @@
-import { groupCheckinsByVenue, toGeoJSON, getMarkerColor } from './mapUtils';
+import { groupCheckinsByVenue, toGeoJSON, getMarkerColor, groupCheckinsByWeek, generateWeeksGrid } from './mapUtils';
 
 describe('mapUtils', () => {
   describe('groupCheckinsByVenue', () => {
@@ -83,20 +83,72 @@ describe('mapUtils', () => {
   });
 
   describe('getMarkerColor', () => {
-    test('returns a color string for known categories', () => {
-      const color = getMarkerColor('Coffee Shop');
-      expect(typeof color).toBe('string');
+    test('returns correct color for known categories', () => {
+      expect(getMarkerColor('Coffee Shop')).toBe('#8f3d00');
+      expect(getMarkerColor('Restaurant')).toBe('#a63d30');
     });
 
-    test('returns a default color for unknown categories', () => {
-      const color = getMarkerColor('Unknown Category XYZ');
-      expect(typeof color).toBe('string');
+    test('returns Unknown color for unknown categories', () => {
+      expect(getMarkerColor('Unknown Category XYZ')).toBe('#5a6566');
     });
 
     test('returns same color as Unknown for missing category', () => {
-      const unknownColor = getMarkerColor('Unknown');
-      const missingColor = getMarkerColor('Nonexistent');
-      expect(missingColor).toBe(unknownColor);
+      expect(getMarkerColor('Nonexistent')).toBe('#5a6566');
+      expect(getMarkerColor('Unknown')).toBe('#5a6566');
+    });
+  });
+
+  describe('groupCheckinsByWeek', () => {
+    test('groups checkins into week buckets by Monday', () => {
+      const checkins = [
+        { checkin_date: '2024-01-08T10:00:00Z' }, // Monday
+        { checkin_date: '2024-01-09T10:00:00Z' }, // Tuesday same week
+        { checkin_date: '2024-01-15T10:00:00Z' }, // Next Monday
+      ];
+      const result = groupCheckinsByWeek(checkins);
+      expect(result['2024-01-08']).toBe(2);
+      expect(result['2024-01-15']).toBe(1);
+    });
+
+    test('handles empty array', () => {
+      expect(groupCheckinsByWeek([])).toEqual({});
+    });
+
+    test('groups Sunday into previous week', () => {
+      // 2024-01-14 is a Sunday, should group with Monday 2024-01-08
+      const checkins = [{ checkin_date: '2024-01-14T10:00:00Z' }];
+      const result = groupCheckinsByWeek(checkins);
+      expect(result['2024-01-08']).toBe(1);
+    });
+  });
+
+  describe('generateWeeksGrid', () => {
+    test('generates year/month/week structure', () => {
+      const checkinsByWeek = { '2024-01-08': 3, '2024-01-15': 1 };
+      const start = new Date('2024-01-08');
+      const end = new Date('2024-01-20');
+      const result = generateWeeksGrid(checkinsByWeek, start, end);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].year).toBe(2024);
+      expect(result[0].months[0].month).toBe(0); // January
+      expect(result[0].months[0].weeks).toHaveLength(2);
+      expect(result[0].months[0].weeks[0]).toEqual({ weekStart: '2024-01-08', count: 3 });
+      expect(result[0].months[0].weeks[1]).toEqual({ weekStart: '2024-01-15', count: 1 });
+    });
+
+    test('returns empty array when start > end', () => {
+      const result = generateWeeksGrid({}, new Date('2024-02-01'), new Date('2024-01-01'));
+      expect(result).toEqual([]);
+    });
+
+    test('spans multiple years', () => {
+      const start = new Date('2023-12-25');
+      const end = new Date('2024-01-08');
+      const result = generateWeeksGrid({}, start, end);
+      expect(result).toHaveLength(2);
+      expect(result[0].year).toBe(2023);
+      expect(result[1].year).toBe(2024);
     });
   });
 });

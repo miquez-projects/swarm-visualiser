@@ -8,7 +8,7 @@ import VenuePhotosGallery from './VenuePhotosGallery';
 import { formatDateInLocalZone } from '../utils/timezoneUtils';
 import { CATEGORY_COLORS, getContributionColor, mapColors, overlayColors } from '../theme';
 import { mapStyle } from '../mapStyle';
-import { groupCheckinsByVenue, toGeoJSON, getMarkerColor } from '../utils/mapUtils';
+import { groupCheckinsByVenue, toGeoJSON, getMarkerColor, groupCheckinsByWeek, generateWeeksGrid } from '../utils/mapUtils';
 
 const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -501,21 +501,7 @@ MapView.propTypes = {
 // GitHub-style contribution grid component - showing weeks instead of days
 function CheckinContributionGrid({ checkins }) {
   // Group check-ins by week (using ISO week date format)
-  const checkinsByWeek = useMemo(() => {
-    const groups = {};
-    checkins.forEach(checkin => {
-      const date = new Date(checkin.checkin_date);
-      // Get the Monday of the week this check-in belongs to
-      const day = date.getDay();
-      const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-      const monday = new Date(date);
-      monday.setDate(diff);
-      const weekKey = monday.toISOString().split('T')[0];
-
-      groups[weekKey] = (groups[weekKey] || 0) + 1;
-    });
-    return groups;
-  }, [checkins]);
+  const checkinsByWeek = useMemo(() => groupCheckinsByWeek(checkins), [checkins]);
 
   // Calculate date range for the grid (entire history)
   const { startDate, endDate } = useMemo(() => {
@@ -536,42 +522,7 @@ function CheckinContributionGrid({ checkins }) {
   }, [checkins]);
 
   // Generate all weeks for the grid, organized by year and month
-  const yearsData = useMemo(() => {
-    const result = [];
-    const current = new Date(startDate);
-
-    while (current <= endDate) {
-      const year = current.getFullYear();
-      const month = current.getMonth();
-      const weekKey = current.toISOString().split('T')[0];
-      const count = checkinsByWeek[weekKey] || 0;
-
-      // Find or create year object
-      let yearObj = result.find(y => y.year === year);
-      if (!yearObj) {
-        yearObj = { year, months: [] };
-        result.push(yearObj);
-      }
-
-      // Find or create month object
-      let monthObj = yearObj.months.find(m => m.month === month);
-      if (!monthObj) {
-        monthObj = { month, weeks: [] };
-        yearObj.months.push(monthObj);
-      }
-
-      // Add week
-      monthObj.weeks.push({
-        weekStart: weekKey,
-        count: count
-      });
-
-      // Move to next week
-      current.setDate(current.getDate() + 7);
-    }
-
-    return result;
-  }, [startDate, endDate, checkinsByWeek]);
+  const yearsData = useMemo(() => generateWeeksGrid(checkinsByWeek, startDate, endDate), [startDate, endDate, checkinsByWeek]);
 
   const monthLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
