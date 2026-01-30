@@ -2,7 +2,6 @@ const importStravaDataHandler = require('./importStravaData');
 const User = require('../models/user');
 const ImportJob = require('../models/importJob');
 const stravaSync = require('../services/stravaSync');
-const { RateLimitError } = require('../services/stravaRateLimitService');
 const { getQueue } = require('./queue');
 
 jest.mock('../models/user');
@@ -99,6 +98,19 @@ describe('importStravaDataHandler', () => {
     ).rejects.toThrow('Something broke');
 
     expect(ImportJob.markFailed).toHaveBeenCalledWith(1, 'Something broke');
+  });
+
+  it('handles generic rate limit errors (message-based) without re-throwing', async () => {
+    const genericError = new Error('Rate limit exceeded - too many requests');
+    genericError.name = 'Error'; // NOT RateLimitError
+
+    stravaSync.incrementalSync.mockRejectedValue(genericError);
+
+    await importStravaDataHandler([{ data: baseJobData }]);
+
+    expect(ImportJob.markFailed).toHaveBeenCalledWith(1, 'Rate limit exceeded - too many requests');
+    expect(ImportJob.markRateLimited).not.toHaveBeenCalled();
+    expect(getQueue().send).not.toHaveBeenCalled();
   });
 
   it('does not update last sync timestamp when no items imported', async () => {

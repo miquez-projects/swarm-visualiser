@@ -113,6 +113,8 @@ describe('importCheckinsHandler', () => {
     expect(CheckinPhoto.bulkInsert).toHaveBeenCalledWith([
       expect.objectContaining({ checkin_id: 50, photo_url: 'http://p1' })
     ]);
+    // Verify total CheckinPhoto.bulkInsert calls: 1 (individual fallback) + 1 (second pass) = 2
+    expect(CheckinPhoto.bulkInsert).toHaveBeenCalledTimes(2);
     expect(ImportJob.markCompleted).toHaveBeenCalledWith(1);
   });
 });
