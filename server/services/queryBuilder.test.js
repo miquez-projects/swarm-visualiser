@@ -122,4 +122,40 @@ describe('QueryBuilder', () => {
       }, 'u1')).toThrow('Invalid date granularity');
     });
   });
+
+  describe('filter parameterization (SQL injection prevention)', () => {
+    test('filter values are parameterized, not interpolated into SQL', async () => {
+      db.query
+        .mockResolvedValueOnce({ rows: [{ count: '0' }] })
+        .mockResolvedValueOnce({ rows: [] });
+
+      await queryBuilder.executeQuery({
+        queryType: 'checkins',
+        filters: { country: "'; DROP TABLE checkins; --" },
+      }, 'user-1');
+
+      const mainSql = db.query.mock.calls[1][0];
+      const mainParams = db.query.mock.calls[1][1];
+      // SQL injection string must be in params, not in the SQL text
+      expect(mainSql).not.toContain('DROP TABLE');
+      expect(mainParams).toContain("'; DROP TABLE checkins; --");
+    });
+  });
+
+  describe('orderBy.direction sanitization', () => {
+    test('invalid direction defaults to ASC', async () => {
+      db.query
+        .mockResolvedValueOnce({ rows: [{ count: '0' }] })
+        .mockResolvedValueOnce({ rows: [] });
+
+      await queryBuilder.executeQuery({
+        queryType: 'checkins',
+        orderBy: { field: 'checkin_date', direction: 'DESC; DROP TABLE' },
+      }, 'user-1');
+
+      const mainSql = db.query.mock.calls[1][0];
+      expect(mainSql).toContain('ORDER BY checkin_date ASC');
+      expect(mainSql).not.toContain('DROP TABLE');
+    });
+  });
 });

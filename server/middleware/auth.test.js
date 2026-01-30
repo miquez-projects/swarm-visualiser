@@ -62,5 +62,27 @@ describe('Auth Middleware', () => {
       expect(res.status).toBe(401);
       expect(res.body.error).toBe('Invalid token');
     });
+
+    test('returns 500 when findBySecretToken throws', async () => {
+      User.findBySecretToken.mockRejectedValue(new Error('DB connection failed'));
+
+      const res = await request(app)
+        .get('/api/checkins')
+        .set('x-auth-token', 'some-token');
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('Authentication error');
+    });
+
+    test('query param token takes precedence over header', async () => {
+      User.findBySecretToken.mockResolvedValue(mockUser);
+
+      const res = await request(app)
+        .get('/api/checkins?token=query-token')
+        .set('x-auth-token', 'header-token');
+
+      expect(res.status).not.toBe(401);
+      expect(User.findBySecretToken).toHaveBeenCalledWith('query-token');
+    });
   });
 });

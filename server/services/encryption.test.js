@@ -44,5 +44,32 @@ describe('Encryption Service', () => {
       expect(() => encrypt('')).toThrow('Text to encrypt is required');
       expect(() => decrypt('')).toThrow('Encrypted text is required');
     });
+
+    test('rejects tampered ciphertext', () => {
+      const encrypted = encrypt('secret');
+      const parts = encrypted.split(':');
+      parts[2] = 'ff' + parts[2].slice(2); // flip a byte
+      expect(() => decrypt(parts.join(':'))).toThrow();
+    });
+
+    test('rejects tampered auth tag', () => {
+      const encrypted = encrypt('secret');
+      const parts = encrypted.split(':');
+      parts[1] = 'ff' + parts[1].slice(2); // flip a byte in auth tag
+      expect(() => decrypt(parts.join(':'))).toThrow();
+    });
+
+    test('rejects malformed input — wrong number of parts', () => {
+      expect(() => decrypt('aabb:ccdd')).toThrow();
+      expect(() => decrypt('aabb')).toThrow();
+    });
+
+    test('rejects malformed input — invalid hex', () => {
+      expect(() => decrypt('zzzz:zzzz:zzzz')).toThrow();
+    });
+
+    test('rejects null input', () => {
+      expect(() => decrypt(null)).toThrow();
+    });
   });
 });
