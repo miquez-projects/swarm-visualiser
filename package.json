@@ -27,7 +27,6 @@
     "express-session": "^1.18.2",
     "multer": "^2.0.2",
     "passport": "^0.7.0",
-    "passport-foursquare": "^1.0.0",
-    "pg-boss": "^11.1.1"
+    "passport-foursquare": "^1.0.0"
   }
 }
