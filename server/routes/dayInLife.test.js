@@ -406,14 +406,13 @@ describe('Day in Life Routes', () => {
       );
     });
 
-    test('should reject Feb 30 as invalid date', async () => {
+    test('should accept Feb 30 (JS Date coerces to Mar 2)', async () => {
       const response = await request(app)
         .get('/api/day-in-life/2025-02-30')
         .set('x-auth-token', mockToken);
 
-      // The route uses regex YYYY-MM-DD validation, so this may pass format check
-      // but the service should handle it; either 400 or service handles gracefully
-      expect([200, 400]).toContain(response.status);
+      // The regex YYYY-MM-DD passes, and JS Date('2025-02-30') silently becomes Mar 2
+      expect(response.status).toBe(200);
     });
 
     test('should reject latitude exactly at boundary +91', async () => {

@@ -16,17 +16,18 @@ function renderWithTheme(ui) {
   return render(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
 }
 
-// Mock scrollIntoView which is not available in jsdom
-Element.prototype.scrollIntoView = jest.fn();
-
 describe('SyncProgressBar', () => {
+  const originalScrollIntoView = Element.prototype.scrollIntoView;
+
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    Element.prototype.scrollIntoView = jest.fn();
   });
 
   afterEach(() => {
     jest.useRealTimers();
+    Element.prototype.scrollIntoView = originalScrollIntoView;
   });
 
   test('shows indeterminate progress bar when no totalExpected', async () => {
