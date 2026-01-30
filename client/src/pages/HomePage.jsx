@@ -6,6 +6,7 @@ import FilterPanel from '../components/FilterPanel';
 import StatsPanel from '../components/StatsPanel';
 import { getCheckins, validateToken } from '../services/api';
 import { Box, Snackbar, Alert } from '@mui/material';
+import { boundsContained, addBuffer, calculateBounds } from '../utils/geoUtils';
 
 function HomePage({ mapRef: externalMapRef }) {
   const [searchParams] = useSearchParams();
@@ -29,40 +30,6 @@ function HomePage({ mapRef: externalMapRef }) {
   const localMapRef = useRef(null);
   const mapRef = externalMapRef || localMapRef;
 
-  // Check if inner bounds fully contained within outer bounds
-  const boundsContained = useCallback((inner, outer) => {
-    return inner.minLng >= outer.minLng &&
-           inner.maxLng <= outer.maxLng &&
-           inner.minLat >= outer.minLat &&
-           inner.maxLat <= outer.maxLat;
-  }, []);
-
-  // Add buffer percentage to bounds (clamped to valid lat/lng ranges)
-  const addBuffer = useCallback((bounds, percent) => {
-    const lngRange = bounds.maxLng - bounds.minLng;
-    const latRange = bounds.maxLat - bounds.minLat;
-
-    return {
-      minLng: Math.max(-180, bounds.minLng - (lngRange * percent)),
-      maxLng: Math.min(180, bounds.maxLng + (lngRange * percent)),
-      minLat: Math.max(-90, bounds.minLat - (latRange * percent)),
-      maxLat: Math.min(90, bounds.maxLat + (latRange * percent))
-    };
-  }, []);
-
-  const calculateBounds = useCallback((venues) => {
-    if (!venues || venues.length === 0) return null;
-
-    const lngs = venues.map(v => v.longitude).filter(lng => lng != null);
-    const lats = venues.map(v => v.latitude).filter(lat => lat != null);
-
-    if (lngs.length === 0 || lats.length === 0) return null;
-
-    return [
-      [Math.min(...lngs), Math.min(...lats)], // Southwest
-      [Math.max(...lngs), Math.max(...lats)]  // Northeast
-    ];
-  }, []);
 
   const loadCheckins = useCallback(async (filterOverrides = {}, retryCount = 0) => {
     try {
@@ -188,7 +155,7 @@ function HomePage({ mapRef: externalMapRef }) {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, calculateBounds]); // mapRef is stable (ref), no need to include
+  }, [token]); // mapRef is stable (ref), calculateBounds is a module import
 
   // Handle viewport changes (pan/zoom)
   const handleViewportChange = useCallback((viewState) => {
@@ -277,7 +244,7 @@ function HomePage({ mapRef: externalMapRef }) {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [currentBounds, currentZoom, loading, lastLoadedBounds, lastLoadedZoom, boundsContained, addBuffer, loadCheckins]);
+  }, [currentBounds, currentZoom, loading, lastLoadedBounds, lastLoadedZoom, loadCheckins]);
 
   const sidebar = (
     <Box sx={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>

@@ -8,6 +8,7 @@ import VenuePhotosGallery from './VenuePhotosGallery';
 import { formatDateInLocalZone } from '../utils/timezoneUtils';
 import { CATEGORY_COLORS, getContributionColor, mapColors, overlayColors } from '../theme';
 import { mapStyle } from '../mapStyle';
+import { groupCheckinsByVenue, toGeoJSON, getMarkerColor } from '../utils/mapUtils';
 
 const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -24,49 +25,10 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Group check-ins by venue
-  const venueGroups = useMemo(() => {
-    if (!checkins) return [];
-
-    const groups = {};
-    checkins.forEach(checkin => {
-      const key = checkin.venue_id || `${checkin.latitude},${checkin.longitude}`;
-      if (!groups[key]) {
-        groups[key] = {
-          venue_id: checkin.venue_id,
-          venue_name: checkin.venue_name,
-          venue_category: checkin.venue_category,
-          latitude: checkin.latitude,
-          longitude: checkin.longitude,
-          city: checkin.city,
-          country: checkin.country,
-          checkins: []
-        };
-      }
-      groups[key].checkins.push(checkin);
-    });
-
-    return Object.values(groups);
-  }, [checkins]);
+  const venueGroups = useMemo(() => groupCheckinsByVenue(checkins), [checkins]);
 
   // Convert venue groups to GeoJSON for clustering
-  const checkinsGeoJSON = useMemo(() => ({
-    type: "FeatureCollection",
-    features: venueGroups.map(venue => ({
-      type: "Feature",
-      geometry: {
-        type: "Point",
-        coordinates: [venue.longitude, venue.latitude]
-      },
-      properties: {
-        venueId: venue.venue_id,
-        venueName: venue.venue_name,
-        checkinCount: venue.checkins.length,
-        category: venue.venue_category,
-        city: venue.city,
-        country: venue.country
-      }
-    }))
-  }), [venueGroups]);
+  const checkinsGeoJSON = useMemo(() => toGeoJSON(venueGroups), [venueGroups]);
 
   // Fit map to show all checkins on initial load only
   useEffect(() => {
@@ -94,10 +56,6 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
     // Mark initial load as complete
     setIsInitialLoad(false);
   }, [checkins, isInitialLoad, mapRef]);
-
-  const getMarkerColor = (category) => {
-    return CATEGORY_COLORS[category] || CATEGORY_COLORS['Unknown'];
-  };
 
   // Handle clicks on unclustered points (individual venues)
   const handlePointClick = useCallback((event) => {

@@ -27,6 +27,7 @@ import {
 } from 'recharts';
 import { getStats, compareTimePeriods } from '../services/api';
 import { chartColors } from '../theme';
+import { formatDateRange, prepareComparisonBarData, prepareComparisonTimelineData } from '../utils/statsUtils';
 
 function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMode = false, onComparisonModeChange, token, refreshTrigger = 0 }) {
   const [stats, setStats] = useState(null);
@@ -132,72 +133,6 @@ function StatsPanel({ filters, isExpanded = false, onToggleExpand, comparisonMod
   // Use comparison data if available, otherwise regular stats
   const period1Data = showingComparison ? comparisonData.period1 : stats;
   const period2Data = showingComparison ? comparisonData.period2 : null;
-
-  // Format date range
-  const formatDateRange = (data) => {
-    if (!data || !data.date_range || !data.date_range.first_checkin || !data.date_range.last_checkin) {
-      return 'No data';
-    }
-    const first = new Date(data.date_range.first_checkin).toLocaleDateString();
-    const last = new Date(data.date_range.last_checkin).toLocaleDateString();
-    return `${first} - ${last}`;
-  };
-
-  // Prepare comparison data for bar charts (merge both periods)
-  const prepareComparisonBarData = (period1Array, period2Array, keyField) => {
-    const combined = {};
-
-    // Add period 1 data
-    period1Array.forEach(item => {
-      const key = item[keyField];
-      combined[key] = {
-        name: key,
-        period1: parseInt(item.count) || 0,
-        period2: 0
-      };
-    });
-
-    // Add period 2 data
-    period2Array.forEach(item => {
-      const key = item[keyField];
-      if (combined[key]) {
-        combined[key].period2 = parseInt(item.count) || 0;
-      } else {
-        combined[key] = {
-          name: key,
-          period1: 0,
-          period2: parseInt(item.count) || 0
-        };
-      }
-    });
-
-    // Convert to array and sort by total count
-    return Object.values(combined)
-      .map(item => ({
-        ...item,
-        total: item.period1 + item.period2
-      }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 5); // Top 5
-  };
-
-  // Prepare comparison timeline data (overlapping periods with relative time indices)
-  const prepareComparisonTimelineData = (period1Timeline, period2Timeline) => {
-    // Convert timeline items to relative indices (0, 1, 2, ...)
-    const maxLength = Math.max(period1Timeline.length, period2Timeline.length);
-    const result = [];
-
-    for (let i = 0; i < maxLength; i++) {
-      const dataPoint = {
-        index: i + 1, // Start from 1 for better readability
-        period1: i < period1Timeline.length ? (parseInt(period1Timeline[i].count) || 0) : null,
-        period2: i < period2Timeline.length ? (parseInt(period2Timeline[i].count) || 0) : null
-      };
-      result.push(dataPoint);
-    }
-
-    return result;
-  };
 
   // Prepare timeline data - backend now provides adaptive granularity
   const prepareTimelineData = () => {
