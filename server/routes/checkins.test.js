@@ -52,5 +52,51 @@ describe('Checkins Routes', () => {
         expect.objectContaining({ country: 'US', city: 'NYC', category: 'Food', userId: 1 })
       );
     });
+
+    test('returns 400 for invalid bounds format', async () => {
+      const res = await request(app)
+        .get('/api/checkins?bounds=invalid')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(400);
+      expect(res.body.errors).toBeDefined();
+    });
+
+    test('returns 400 for invalid limit (negative)', async () => {
+      const res = await request(app)
+        .get('/api/checkins?limit=-1')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(400);
+      expect(res.body.errors).toBeDefined();
+    });
+
+    test('returns 400 for invalid zoom (> 20)', async () => {
+      const res = await request(app)
+        .get('/api/checkins?zoom=25')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(400);
+      expect(res.body.errors).toBeDefined();
+    });
+
+    test('returns 400 for invalid startDate', async () => {
+      const res = await request(app)
+        .get('/api/checkins?startDate=not-a-date')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(400);
+      expect(res.body.errors).toBeDefined();
+    });
+
+    test('returns 500 when model rejects', async () => {
+      Checkin.find.mockRejectedValue(new Error('DB error'));
+
+      const res = await request(app)
+        .get('/api/checkins')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(500);
+    });
   });
 });

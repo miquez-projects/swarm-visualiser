@@ -67,5 +67,53 @@ describe('Stats Routes', () => {
 
       expect(res.status).toBe(400);
     });
+
+    test('returns 400 with invalid date format', async () => {
+      const res = await request(app)
+        .get('/api/stats/compare?period1_start=bad&period1_end=bad&period2_start=bad&period2_end=bad')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(400);
+      expect(res.body.errors).toBeDefined();
+    });
+
+    test('returns 400 with partial date params', async () => {
+      const res = await request(app)
+        .get('/api/stats/compare?period1_start=2024-01-01T00:00:00.000Z')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('GET /api/stats - error paths', () => {
+    test('returns 500 when getStats rejects', async () => {
+      Checkin.getStats.mockRejectedValue(new Error('DB error'));
+
+      const res = await request(app)
+        .get('/api/stats')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(500);
+    });
+
+    test('returns 400 for invalid startDate format', async () => {
+      const res = await request(app)
+        .get('/api/stats?startDate=not-a-date')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(400);
+      expect(res.body.errors).toBeDefined();
+    });
+
+    test('returns 500 when compare getStats rejects', async () => {
+      Checkin.getStats.mockRejectedValue(new Error('DB error'));
+
+      const res = await request(app)
+        .get('/api/stats/compare?period1_start=2024-01-01T00:00:00.000Z&period1_end=2024-06-30T00:00:00.000Z&period2_start=2024-07-01T00:00:00.000Z&period2_end=2024-12-31T00:00:00.000Z')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(500);
+    });
   });
 });

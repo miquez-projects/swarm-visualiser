@@ -714,6 +714,18 @@ describe('Strava OAuth2 Routes', () => {
       expect(response.body.error).toBe('Failed to get sync status');
     });
 
+    test('should handle non-numeric jobId param gracefully', async () => {
+      ImportJob.findById.mockResolvedValue(null);
+
+      const response = await request(app)
+        .get('/api/strava/sync/status/not-a-number')
+        .set('x-auth-token', mockToken);
+
+      // Route passes param as string to model; model returns null
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Job not found');
+    });
+
     test('should include error message when job failed', async () => {
       const mockJob = {
         id: 123,

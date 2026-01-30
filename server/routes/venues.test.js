@@ -156,5 +156,30 @@ describe('Venue Routes', () => {
       expect(response.status).toBe(500);
       expect(response.body).toHaveProperty('error', 'Failed to get photos');
     });
+
+    test('handles venueId with special characters', async () => {
+      User.findBySecretToken.mockResolvedValueOnce(mockUser);
+      CheckinPhoto.findByVenueId.mockResolvedValueOnce([]);
+
+      const response = await request(app)
+        .get('/api/venues/venue%20with%20spaces/photos')
+        .set('x-auth-token', 'test-token-123');
+
+      expect(response.status).toBe(200);
+      expect(CheckinPhoto.findByVenueId).toHaveBeenCalledWith('venue with spaces', mockUser.id);
+    });
+
+    test('handles very long venueId', async () => {
+      User.findBySecretToken.mockResolvedValueOnce(mockUser);
+      CheckinPhoto.findByVenueId.mockResolvedValueOnce([]);
+
+      const longId = 'a'.repeat(500);
+      const response = await request(app)
+        .get(`/api/venues/${longId}/photos`)
+        .set('x-auth-token', 'test-token-123');
+
+      expect(response.status).toBe(200);
+      expect(CheckinPhoto.findByVenueId).toHaveBeenCalledWith(longId, mockUser.id);
+    });
   });
 });

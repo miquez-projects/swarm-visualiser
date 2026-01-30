@@ -68,5 +68,43 @@ describe('Year In Review Routes', () => {
 
       expect(res.status).toBe(400);
     });
+
+    test('rejects year below 2000', async () => {
+      const res = await request(app)
+        .get('/api/year-in-review/1999')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(400);
+    });
+
+    test('rejects year above 2100', async () => {
+      const res = await request(app)
+        .get('/api/year-in-review/2101')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(400);
+    });
+
+    test('returns 500 when db query rejects', async () => {
+      db.query.mockRejectedValue(new Error('DB error'));
+
+      const res = await request(app)
+        .get('/api/year-in-review/2024')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(500);
+    });
+  });
+
+  describe('GET /api/year-in-review/years - error paths', () => {
+    test('returns 500 when db query rejects', async () => {
+      db.query.mockRejectedValue(new Error('DB error'));
+
+      const res = await request(app)
+        .get('/api/year-in-review/years')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(500);
+    });
   });
 });

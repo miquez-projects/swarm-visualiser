@@ -122,5 +122,41 @@ describe('Copilot Routes', () => {
         '1'
       );
     });
+
+    test('returns 400 for empty string message', async () => {
+      const res = await request(app)
+        .post('/api/copilot/chat')
+        .set('x-auth-token', mockToken)
+        .send({ message: '' });
+
+      expect(res.status).toBe(400);
+    });
+
+    test('returns 400 for non-string message', async () => {
+      const res = await request(app)
+        .post('/api/copilot/chat')
+        .set('x-auth-token', mockToken)
+        .send({ message: 123 });
+
+      expect(res.status).toBe(400);
+    });
+
+    test('returns 500 when session sendMessage rejects', async () => {
+      const mockChat = {
+        sendMessage: jest.fn().mockRejectedValue(new Error('Gemini API error')),
+        getHistory: jest.fn().mockResolvedValue([])
+      };
+      sessionManager.getOrCreateSession.mockReturnValue({
+        chat: mockChat,
+        historyPosition: 0
+      });
+
+      const res = await request(app)
+        .post('/api/copilot/chat')
+        .set('x-auth-token', mockToken)
+        .send({ message: 'Hello' });
+
+      expect(res.status).toBe(500);
+    });
   });
 });

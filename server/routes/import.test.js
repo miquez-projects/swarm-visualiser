@@ -121,5 +121,41 @@ describe('Import Routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.job).toBeNull();
     });
+
+    test('returns 500 when findLatestByUserId rejects', async () => {
+      ImportJob.findLatestByUserId.mockRejectedValue(new Error('DB error'));
+
+      const res = await request(app)
+        .get('/api/import/latest')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('Failed to get latest import');
+    });
+  });
+
+  describe('POST /api/import/start - error paths', () => {
+    test('returns 500 when ImportJob.create rejects', async () => {
+      ImportJob.findByUserId.mockResolvedValue([]);
+      ImportJob.create.mockRejectedValue(new Error('DB error'));
+
+      const res = await request(app)
+        .post('/api/import/start')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('Failed to start import');
+    });
+
+    test('returns 500 when findById rejects', async () => {
+      ImportJob.findById.mockRejectedValue(new Error('DB error'));
+
+      const res = await request(app)
+        .get('/api/import/status/42')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(500);
+      expect(res.body.error).toBe('Failed to get import status');
+    });
   });
 });

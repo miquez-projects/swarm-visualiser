@@ -44,5 +44,25 @@ describe('Filters Routes', () => {
       const res = await request(app).get('/api/filters/options');
       expect(res.status).toBe(401);
     });
+
+    test('returns 500 when model rejects', async () => {
+      Checkin.getFilterOptions.mockRejectedValue(new Error('DB error'));
+
+      const res = await request(app)
+        .get('/api/filters/options')
+        .set('x-auth-token', mockToken);
+
+      expect(res.status).toBe(500);
+    });
+
+    test('returns 401 for invalid token', async () => {
+      User.findBySecretToken.mockResolvedValue(null);
+
+      const res = await request(app)
+        .get('/api/filters/options')
+        .set('x-auth-token', 'bad-token');
+
+      expect(res.status).toBe(401);
+    });
   });
 });
