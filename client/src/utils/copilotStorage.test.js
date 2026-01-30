@@ -35,6 +35,11 @@ describe('copilotStorage', () => {
       clearMessages();
       expect(loadMessages()).toEqual([]);
     });
+
+    it('returns empty array when localStorage contains malformed JSON', () => {
+      localStorage.setItem('copilot_chat_history', '{not valid json!!!');
+      expect(loadMessages()).toEqual([]);
+    });
   });
 
   describe('copilot state', () => {

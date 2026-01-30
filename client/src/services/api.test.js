@@ -63,10 +63,50 @@ describe('api service', () => {
     expect(result).toEqual({ reply: 'hello' });
   });
 
+  it('sendCopilotMessage sends empty history when >10 items', async () => {
+    mockPost.mockResolvedValue({ data: { reply: 'ok' } });
+    const longHistory = Array.from({ length: 11 }, (_, i) => ({ role: 'user', text: `msg${i}` }));
+    await sendCopilotMessage('test', longHistory, 'tok');
+    expect(mockPost).toHaveBeenCalledWith(
+      '/api/copilot/chat',
+      { message: 'test', conversationHistory: [] },
+      { params: { token: 'tok' } }
+    );
+  });
+
+  it('sendCopilotMessage passes history when <=10 items', async () => {
+    mockPost.mockResolvedValue({ data: { reply: 'ok' } });
+    const history = Array.from({ length: 10 }, (_, i) => ({ role: 'user', text: `msg${i}` }));
+    await sendCopilotMessage('test', history, 'tok');
+    expect(mockPost).toHaveBeenCalledWith(
+      '/api/copilot/chat',
+      { message: 'test', conversationHistory: history },
+      { params: { token: 'tok' } }
+    );
+  });
+
   it('getFilterOptions calls GET /api/filters/options', async () => {
     mockGet.mockResolvedValue({ data: { cities: ['NYC'] } });
     const result = await getFilterOptions({ token: 'tok' });
     expect(mockGet).toHaveBeenCalledWith('/api/filters/options', { params: { token: 'tok' } });
     expect(result).toEqual({ cities: ['NYC'] });
+  });
+
+  describe('error handling', () => {
+    it('getCheckins propagates network errors', async () => {
+      const networkError = new Error('Network Error');
+      mockGet.mockRejectedValue(networkError);
+      await expect(getCheckins()).rejects.toThrow('Network Error');
+    });
+
+    it('getStats propagates errors', async () => {
+      mockGet.mockRejectedValue(new Error('Request failed'));
+      await expect(getStats()).rejects.toThrow('Request failed');
+    });
+
+    it('sendCopilotMessage propagates errors', async () => {
+      mockPost.mockRejectedValue(new Error('Server error'));
+      await expect(sendCopilotMessage('hi', [], 'tok')).rejects.toThrow('Server error');
+    });
   });
 });
