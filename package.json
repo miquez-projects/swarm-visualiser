@@ -22,9 +22,9 @@
   },
   "dependencies": {
     "@photostructure/tz-lookup": "^11.4.0",
-    "axios": "^1.13.2",
+    "axios": "^1.13.3",
     "csv-parser": "^3.2.0",
-    "express-session": "^1.18.2",
+    "express-session": "^1.19.0",
     "multer": "^2.0.2",
     "passport": "^0.7.0",
     "passport-foursquare": "^1.0.0"
