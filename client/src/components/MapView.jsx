@@ -9,6 +9,7 @@ import { formatDateInLocalZone } from '../utils/timezoneUtils';
 import { CATEGORY_COLORS, getContributionColor, mapColors, overlayColors } from '../theme';
 import { mapStyle } from '../mapStyle';
 import { groupCheckinsByVenue, toGeoJSON, getMarkerColor, groupCheckinsByWeek, generateWeeksGrid } from '../utils/mapUtils';
+import { calculateBounds } from '../utils/geoUtils';
 
 const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -38,14 +39,8 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
     const validCheckins = checkins.filter(c => c.latitude && c.longitude);
     if (validCheckins.length === 0) return;
 
-    // Calculate bounds
-    const lngs = validCheckins.map(c => c.longitude);
-    const lats = validCheckins.map(c => c.latitude);
-
-    const bounds = [
-      [Math.min(...lngs), Math.min(...lats)], // Southwest
-      [Math.max(...lngs), Math.max(...lats)]  // Northeast
-    ];
+    const bounds = calculateBounds(validCheckins);
+    if (!bounds) return;
 
     mapRef.current.fitBounds(bounds, {
       padding: 40,
