@@ -46,7 +46,6 @@ async function initQueue() {
   // Create queues (required in pg-boss v10+)
   await boss.createQueue('daily-sync-orchestrator');
   await boss.createQueue('import-checkins');
-  await boss.createQueue('import-garmin-data');
   await boss.createQueue('import-strava-data');
   console.log('Created job queues');
 

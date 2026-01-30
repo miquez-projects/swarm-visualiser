@@ -4,7 +4,6 @@ const cors = require('cors');
 const session = require('express-session');
 const { initQueue, getQueue, stopQueue } = require('./jobs/queue');
 const importCheckinsHandler = require('./jobs/importCheckins');
-const importGarminDataHandler = require('./jobs/importGarminData');
 const importStravaDataHandler = require('./jobs/importStravaData');
 
 const app = express();
@@ -14,7 +13,7 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Session middleware for OAuth flows (Garmin PKCE)
+// Session middleware
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
   resave: false,
@@ -81,10 +80,6 @@ async function start() {
 
     // Register job handlers (queues created in initQueue)
     await queue.work('import-checkins', importCheckinsHandler);
-
-    // Register Garmin import job
-    await queue.work('import-garmin-data', importGarminDataHandler);
-    console.log('Registered job: import-garmin-data');
 
     // Register Strava import job
     await queue.work('import-strava-data', importStravaDataHandler);

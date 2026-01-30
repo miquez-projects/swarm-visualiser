@@ -32,8 +32,7 @@ describe('Sync Routes', () => {
       };
 
       const mockSyncResults = {
-        foursquare: { status: 'queued', jobId: 123 },
-        garmin: { status: 'not_implemented' }
+        foursquare: { status: 'queued', jobId: 123 }
       };
 
       User.findBySecretToken.mockResolvedValueOnce(mockUser);
@@ -78,8 +77,7 @@ describe('Sync Routes', () => {
       };
 
       const mockSyncResults = {
-        foursquare: { status: 'queued', jobId: 123 },
-        garmin: { status: 'not_implemented' }
+        foursquare: { status: 'queued', jobId: 123 }
       };
 
       User.findBySecretToken.mockResolvedValueOnce(mockUser);
