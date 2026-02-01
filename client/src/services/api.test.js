@@ -1,29 +1,28 @@
-import axios from 'axios';
+const { mockGet, mockPost } = vi.hoisted(() => ({
+  mockGet: vi.fn(),
+  mockPost: vi.fn()
+}));
 
-const mockGet = jest.fn();
-const mockPost = jest.fn();
-
-jest.mock('axios', () => ({
-  __esModule: true,
+vi.mock('axios', () => ({
   default: {
-    create: jest.fn(() => ({
+    create: vi.fn(() => ({
       get: mockGet,
       post: mockPost,
       interceptors: {
-        request: { use: jest.fn() },
-        response: { use: jest.fn() }
+        request: { use: vi.fn() },
+        response: { use: vi.fn() }
       }
     }))
   }
 }));
 
-const {
+import {
   getCheckins,
   getStats,
   validateToken,
   sendCopilotMessage,
   getFilterOptions
-} = require('./api');
+} from './api';
 
 beforeEach(() => {
   mockGet.mockReset();

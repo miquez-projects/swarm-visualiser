@@ -4,28 +4,31 @@ import userEvent from '@testing-library/user-event';
 import SyncButton from './SyncButton';
 
 // Mock the API module
-jest.mock('../services/api', () => ({
-  startSync: jest.fn(),
-  getSyncStatus: jest.fn(),
-  getLatestImport: jest.fn()
+vi.mock('../services/api', () => ({
+  startSync: vi.fn(),
+  getSyncStatus: vi.fn(),
+  getLatestImport: vi.fn()
 }));
 
 // Mock phosphor-icons
-jest.mock('@phosphor-icons/react', () => ({
-  ArrowsClockwise: (props) => <span data-testid="sync-icon" {...props} />
+vi.mock('@phosphor-icons/react', () => ({
+  ArrowsClockwise: (props) => {
+    const React = require('react');
+    return React.createElement('span', { 'data-testid': 'sync-icon', ...props });
+  }
 }));
 
-const { startSync, getSyncStatus, getLatestImport } = require('../services/api');
+import { startSync, getSyncStatus, getLatestImport } from '../services/api';
 
 describe('SyncButton', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    jest.useFakeTimers();
+    vi.clearAllMocks();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     getLatestImport.mockResolvedValue({ job: null });
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   test('renders sync button with default text', async () => {
@@ -40,7 +43,7 @@ describe('SyncButton', () => {
     startSync.mockResolvedValue({ jobId: 42 });
     getSyncStatus.mockResolvedValue({ status: 'running', totalImported: 0, totalExpected: 0 });
 
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<SyncButton token="test-token" />);
 
     await waitFor(() => {
@@ -56,7 +59,7 @@ describe('SyncButton', () => {
     startSync.mockResolvedValue({ jobId: 42 });
     getSyncStatus.mockResolvedValue({ status: 'running', totalImported: 0, totalExpected: 0 });
 
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<SyncButton token="test-token" />);
 
     await waitFor(() => {
@@ -73,7 +76,7 @@ describe('SyncButton', () => {
   test('shows error toast on startSync failure', async () => {
     startSync.mockRejectedValue(new Error('Network error'));
 
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<SyncButton token="test-token" />);
 
     await waitFor(() => {
@@ -93,7 +96,7 @@ describe('SyncButton', () => {
     });
     getSyncStatus.mockResolvedValue({ status: 'running', totalImported: 5, totalExpected: 10 });
 
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<SyncButton token="test-token" />);
 
     await waitFor(() => {
@@ -112,7 +115,7 @@ describe('SyncButton', () => {
       response: { status: 401 }
     });
 
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<SyncButton token="test-token" />);
 
     await waitFor(() => {

@@ -4,11 +4,11 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import SyncProgressBar from './SyncProgressBar';
 
 // Mock the API module
-jest.mock('../services/api', () => ({
-  getSyncStatus: jest.fn()
+vi.mock('../services/api', () => ({
+  getSyncStatus: vi.fn()
 }));
 
-const { getSyncStatus } = require('../services/api');
+import { getSyncStatus } from '../services/api';
 
 const theme = createTheme();
 
@@ -20,13 +20,13 @@ describe('SyncProgressBar', () => {
   const originalScrollIntoView = Element.prototype.scrollIntoView;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    jest.useFakeTimers();
-    Element.prototype.scrollIntoView = jest.fn();
+    vi.clearAllMocks();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
     Element.prototype.scrollIntoView = originalScrollIntoView;
   });
 
@@ -68,7 +68,7 @@ describe('SyncProgressBar', () => {
   });
 
   test('shows completion state and calls onComplete', async () => {
-    const onComplete = jest.fn();
+    const onComplete = vi.fn();
     getSyncStatus.mockResolvedValue({
       status: 'completed',
       totalImported: 100,
@@ -102,7 +102,7 @@ describe('SyncProgressBar', () => {
   });
 
   test('shows error state and calls onError on failure', async () => {
-    const onError = jest.fn();
+    const onError = vi.fn();
     getSyncStatus.mockResolvedValue({
       status: 'failed',
       totalImported: 0,
@@ -122,7 +122,7 @@ describe('SyncProgressBar', () => {
   });
 
   test('shows warning when partial import before failure', async () => {
-    const onError = jest.fn();
+    const onError = vi.fn();
     getSyncStatus.mockResolvedValue({
       status: 'failed',
       totalImported: 25,
