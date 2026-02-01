@@ -1,14 +1,7 @@
 import axios from 'axios';
 
 // API base URL from environment variable (set in Vercel)
-const API_BASE_URL = (import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:3001';
-
-// Debug logging
-console.log('API Configuration:', {
-  VITE_API_URL: import.meta.env && import.meta.env.VITE_API_URL,
-  API_BASE_URL: API_BASE_URL,
-  MODE: import.meta.env && import.meta.env.MODE
-});
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -21,7 +14,7 @@ const api = axios.create({
 // Request interceptor for logging in development
 api.interceptors.request.use(
   config => {
-    if (import.meta.env && import.meta.env.MODE === 'development') {
+    if (import.meta.env.MODE === 'development') {
       console.log(`API Request: ${config.method.toUpperCase()} ${config.url}`, config.params);
     }
     return config;
