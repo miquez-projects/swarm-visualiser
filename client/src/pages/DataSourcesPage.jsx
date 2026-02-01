@@ -40,7 +40,7 @@ const DataSourcesPage = () => {
   const [uploadResults, setUploadResults] = useState(null);
 
   const tokenUrl = `${window.location.origin}/?token=${token}`;
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   // Fetch user data to get lastSyncAt
   const fetchUserData = useCallback(async () => {

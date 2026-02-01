@@ -14,7 +14,7 @@ import { useTheme } from '@mui/material/styles';
 import { CloudArrowUp, CheckCircle, XCircle } from '@phosphor-icons/react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 function ImportPage() {
   const theme = useTheme();

@@ -11,7 +11,7 @@ import { mapStyle } from '../mapStyle';
 import { groupCheckinsByVenue, toGeoJSON, getMarkerColor, groupCheckinsByWeek, generateWeeksGrid } from '../utils/mapUtils';
 import { calculateBounds } from '../utils/geoUtils';
 
-const MAPBOX_TOKEN = process.env.REACT_APP_MAPBOX_TOKEN;
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange, token }) {
   const theme = useTheme();
@@ -103,7 +103,7 @@ function MapView({ checkins, loading, viewportLoading, mapRef, onViewportChange,
         }}
       >
         <Typography color="error">
-          Mapbox token not configured. Please set REACT_APP_MAPBOX_TOKEN in .env
+          Mapbox token not configured. Please set VITE_MAPBOX_TOKEN in .env
         </Typography>
       </Box>
     );
