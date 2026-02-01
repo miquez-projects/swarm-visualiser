@@ -114,9 +114,9 @@ git log --oneline -10
 - **Path-based filtering**: server tests only run when `server/**` changes, client tests only when `client/**` changes
 - **Docs-only changes** (`.md`, `docs/`) skip CI entirely
 - **Server tests**: `cd server && npx jest --verbose --forceExit`
-- **Client tests**: `cd client && npx react-scripts test --watchAll=false`
+- **Client tests**: `cd client && npx vitest run`
 - **Test files**: Co-located `*.test.js` files next to source
-- **Test pattern**: Jest + supertest (server), Jest + @testing-library/react (client)
+- **Test pattern**: Jest + supertest (server), Vitest + @testing-library/react (client)
 - **Mocking**: Server tests mock DB via `jest.mock('../db/connection')`, client tests mock axios
 
 ### Commit Conventions for CI Efficiency

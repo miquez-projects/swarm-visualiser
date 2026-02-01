@@ -90,10 +90,8 @@ jobs:
 
       - name: Run tests
         working-directory: client
-        env:
-          CI: true
-        run: npx react-scripts test --watchAll=false
+        run: npx vitest run --reporter=verbose
 
       - name: Build check
         working-directory: client
-        run: npx react-scripts build
+        run: npx vite build
