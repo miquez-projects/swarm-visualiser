@@ -34,7 +34,7 @@ function SyncProgressBar({ jobId, token, dataSource = 'data', onComplete, onErro
   // Scroll to error alert when error appears
   useEffect(() => {
     if ((error || progress.status === 'failed') && errorAlertRef.current) {
-      errorAlertRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      errorAlertRef.current.scrollIntoView?.({ behavior: 'smooth', block: 'nearest' });
     }
   }, [error, progress.status]);
 
