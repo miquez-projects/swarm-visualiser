@@ -35,3 +35,25 @@ code {
 ::-webkit-scrollbar-thumb:hover {
   background: #444;
 }
+
+/* Mapbox popup dark theme overrides */
+.mapboxgl-popup-content {
+  background-color: #1e1e1e !important;
+  color: #f5f5f5 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+.mapboxgl-popup-close-button {
+  color: #a0a0a0 !important;
+  font-size: 18px !important;
+}
+
+.mapboxgl-popup-close-button:hover {
+  color: #f5f5f5 !important;
+  background-color: transparent !important;
+}
+
+.mapboxgl-popup-tip {
+  border-top-color: #1e1e1e !important;
+}
