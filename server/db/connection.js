@@ -1,14 +1,12 @@
 const { Pool } = require('pg');
 
-// Detect if we're connecting to a remote database that requires SSL
-const isRemoteDatabase = process.env.DATABASE_URL &&
-  (process.env.DATABASE_URL.includes('render.com') ||
-   process.env.DATABASE_URL.includes('railway.app') ||
-   process.env.NODE_ENV === 'production');
+const ssl = process.env.DB_SSL === 'true'
+  ? { rejectUnauthorized: false }
+  : false;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: isRemoteDatabase ? { rejectUnauthorized: false } : false,
+  ssl,
   // Pool configuration to reduce connection churn
   max: 10, // Maximum number of clients in the pool
   idleTimeoutMillis: 30000, // Close idle clients after 30 seconds

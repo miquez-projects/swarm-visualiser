@@ -1,10 +1,64 @@
-name: Deploy to Render
+name: CD
+
 on:
   push:
     branches: [main]
+    paths:
+      - "server/**"
+      - ".github/workflows/deploy.yml"
+
+concurrency:
+  group: deploy-swarm
+  cancel-in-progress: false
+
 jobs:
   deploy:
+    name: Deploy to Hetzner
     runs-on: ubuntu-latest
+    environment: production
     steps:
-      - name: Trigger Render Deploy
-        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+      - uses: actions/checkout@v6
+
+      - name: Sync code to server
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          rsync -az --delete \
+            --exclude='.env' \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            server/ ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/swarm-visualizer/server/
+          rm ~/.ssh/deploy_key
+
+      - name: Build and deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /opt/services
+
+            echo "==> Rebuilding swarm-api..."
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml build swarm-api
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d swarm-api
+
+            echo "==> Verifying health..."
+            sleep 5
+            for i in $(seq 1 12); do
+              docker compose exec -T swarm-api wget -qO- http://127.0.0.1:3001/health && break
+              sleep 5
+            done
+            docker compose exec -T swarm-api wget -qO- http://127.0.0.1:3001/health || {
+              echo "DEPLOY FAILED: health check failed"
+              docker compose logs --tail=50 swarm-api
+              exit 1
+            }
+
+            docker image prune -f
+            echo "==> Deploy complete."
