@@ -2,48 +2,20 @@
 
 This file contains important reminders and workflows for Claude Code when working on this project.
 
-## 🔴 ALWAYS START WITH THIS
-
-**Before starting any development work:**
-
-```bash
-# Start Render log streaming
-npm run logs:start
-```
-
-This automatically streams logs from the production Render deployment to `logs/render-stream.log` so we can monitor the deployed service without manual copy-paste from the dashboard.
-
-**To view logs:**
-```bash
-# Watch in real-time
-npm run logs:view
-
-# Search logs
-grep "error" logs/render-stream.log
-grep "copilot" logs/render-stream.log
-```
-
-**To stop when done:**
-```bash
-npm run logs:stop
-```
-
-See [docs/RENDER_LOGS.md](docs/RENDER_LOGS.md) for full documentation.
-
----
-
 ## Project Context
 
 ### Architecture
 - **Frontend**: React + Material-UI + Mapbox GL JS (deployed on Vercel)
-- **Backend**: Node.js + Express + PostgreSQL + PostGIS (deployed on Render)
+- **Backend**: Node.js + Express + PostgreSQL + PostGIS (Docker on Hetzner VPS)
 - **AI Copilot**: Google Gemini 2.5 Flash with function calling
 
-### Key Services
-- **Render Service**: `srv-d41sc0ali9vc73bbtekg` (swarm-visualizer-api)
-- **Database**: PostgreSQL on Render (PostGIS-enabled)
-  - **Production DB URL**: `postgresql://swarm_visualizer_user:1nlk2RVUmnpg2G2HO4QmaMhncX3ysg40@dpg-d41s9rer433s73cv4t00-a.frankfurt-postgres.render.com/swarm_visualizer`
+### Deployment
+- **VPS**: Hetzner CAX21 (Helsinki) — shared with Resonance and 531-tracker
+- **Backend URL**: https://swarm-api.gabormikes.com
 - **Frontend URL**: https://swarm-visualiser.vercel.app
+- **Docker Compose**: `/opt/services/` on the VPS (managed from the Resonance repo under `services/`)
+- **Reverse Proxy**: Caddy (in Resonance's stack) handles TLS and routes `swarm-api.gabormikes.com` → swarm-api container on port 3001
+- **CD**: GitHub Actions pushes code via rsync + rebuilds Docker container on the VPS
 
 ### Important Files
 - `/server/routes/copilot.js` - AI Copilot endpoint with function calling
@@ -70,14 +42,49 @@ See [docs/RENDER_LOGS.md](docs/RENDER_LOGS.md) for full documentation.
 
 ---
 
+## Production Access
+
+### SSH into the VPS
+```bash
+ssh resonance    # connects to resonance@95.217.189.44 (Helsinki)
+```
+
+### View production logs
+```bash
+ssh resonance "cd /opt/services && docker compose logs swarm-api --tail=100"
+ssh resonance "cd /opt/services && docker compose logs swarm-api -f"  # follow
+```
+
+### Access production database
+```bash
+# Via SSH tunnel (port 5433 for services DB)
+ssh -L 5433:localhost:5433 resonance
+# Then in another terminal:
+psql -h localhost -p 5433 -U services -d services
+# Tables are in the 'public' schema
+```
+
+Or directly on the VPS:
+```bash
+ssh resonance "cd /opt/services && docker compose exec -T services-db psql -U services -d services"
+```
+
+### Restart the service
+```bash
+ssh resonance "cd /opt/services && docker compose restart swarm-api"
+```
+
+### Shared database warning
+The database is shared with 531-tracker via schema isolation:
+- **swarm-visualizer**: `public` schema
+- **531-tracker**: `tracker` schema
+
 ## Development Workflow
 
-1. **Start log streaming** (see above)
-2. Make changes locally
-3. Test with local development server: `npm run dev`
-4. Push to GitHub (triggers automatic Render deployment)
-5. Monitor deployment via log stream
-6. Test on production
+1. Make changes locally
+2. Test with local development server: `npm run dev`
+3. Push to GitHub (triggers automatic Hetzner deployment for `server/**` changes)
+4. Monitor via `ssh resonance "cd /opt/services && docker compose logs swarm-api -f"`
 
 ---
 
@@ -151,27 +158,8 @@ Use [conventional commits](https://www.conventionalcommits.org/) to make CI beha
 
 ## Debugging Production Issues
 
-1. **Check logs**: `tail -f logs/render-stream.log`
-2. **Search for errors**: `grep -i error logs/render-stream.log`
-3. **Check Gemini API calls**: `grep "Gemini" logs/render-stream.log`
-4. **Check database**: Review PostgreSQL connection errors
+1. **Check logs**: `ssh resonance "cd /opt/services && docker compose logs swarm-api --tail=100"`
+2. **Search for errors**: `ssh resonance "cd /opt/services && docker compose logs swarm-api 2>&1 | grep -i error"`
+3. **Check container status**: `ssh resonance "cd /opt/services && docker compose ps"`
+4. **Check database**: `ssh resonance "cd /opt/services && docker compose exec -T services-db psql -U services -d services -c 'SELECT count(*) FROM checkins;'"`
 5. **Check frontend console**: Browser DevTools
-
----
-
-## Notes for Future Sessions
-
-- Always start log streaming at the beginning of each session
-- Logs persist in `logs/render-stream.log` until manually cleared
-- The log streaming process runs in background and survives terminal restarts
-- Check if already running before starting: `cat logs/render-stream.pid`
-
-<!-- Deploy test: 2026-01-17T20:52:13Z -->
-
-<!-- Deploy test 2: 2026-01-17T21:04:13Z -->
-
-<!-- Deploy test 3: 2026-01-17T21:08:52Z -->
-
-<!-- Deploy test 4: 2026-01-17T21:15:36Z -->
-
-<!-- Deploy test 5: 2026-01-17T21:18:35Z -->
