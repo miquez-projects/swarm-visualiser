@@ -21,11 +21,11 @@
     "concurrently": "^9.2.1"
   },
   "dependencies": {
-    "@photostructure/tz-lookup": "^11.4.0",
-    "axios": "^1.13.4",
-    "csv-parser": "^3.2.0",
+    "@photostructure/tz-lookup": "^11.5.0",
+    "axios": "^1.16.1",
+    "csv-parser": "^3.2.1",
     "express-session": "^1.19.0",
-    "multer": "^2.0.2",
+    "multer": "^2.1.1",
     "passport": "^0.7.0",
     "passport-foursquare": "^1.0.0"
   }
