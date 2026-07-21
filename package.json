@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@photostructure/tz-lookup": "^11.4.0",
-    "axios": "^1.13.4",
+    "axios": "^1.18.0",
     "csv-parser": "^3.2.0",
     "express-session": "^1.19.0",
     "multer": "^2.0.2",
