@@ -16,7 +16,7 @@
     "@google/generative-ai": "^0.24.1",
     "@mapbox/polyline": "^1.2.1",
     "@photostructure/tz-lookup": "^11.4.0",
-    "axios": "^1.13.4",
+    "axios": "^1.18.0",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
